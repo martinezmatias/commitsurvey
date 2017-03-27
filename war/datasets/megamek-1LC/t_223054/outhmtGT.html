@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_GameEvent_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2005 Ben Mazur (bmazur@sev.org)<br/>
+ *<br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.common.event;<br/>
+<br/>
+/**<br/>
+ * Instances of descendant classes are sent as a result of Game change<br/>
+ *<br/>
+ * @see GameListener<br/>
+ */<br/>
+public abstract class GameEvent extends java.util.EventObject {<br/>
+<br/>
+    public static final int GAME_PLAYER_CONNECTED = 0;<br/>
+    public static final int GAME_PLAYER_DISCONNECTED = 1;<br/>
+    public static final int GAME_PLAYER_CHANGE = 2;<br/>
+    public static final int GAME_PLAYER_CHAT = 3;<br/>
+<br/>
+    public static final int GAME_PHASE_CHANGE = 4;<br/>
+    public static final int GAME_TURN_CHANGE = 5;<br/>
+    public static final int GAME_REPORT = 6;<br/>
+    public static final int GAME_END = 7;<br/>
+<br/>
+    public static final int GAME_BOARD_NEW = 8;<br/>
+    public static final int GAME_BOARD_CHANGE = 9;<br/>
+    public static final int GAME_SETTINGS_CHANGE = 10;<br/>
+    public static final int GAME_MAP_QUERY = 11;<br/>
+<br/>
+    public static final int GAME_ENTITY_NEW = 12;<br/>
+    public static final int GAME_ENTITY_REMOVE = 13;<br/>
+    public static final int GAME_ENTITY_NEW_OFFBOARD = 14;<br/>
+    public static final int GAME_ENTITY_CHANGE = 15;<br/>
+    public static final int <span class="upd">GAME_NEW_ATTACK</span> = 16;<br/>
+<br/>
+    protected int type;<br/>
+<br/>
+    /**<br/>
+     * Construct game event<br/>
+     */<br/>
+    public GameEvent(Object source, int type){<br/>
+        super(source);<br/>
+        this.type = type;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * <br/>
+     * @return the type of the event<br/>
+     */<br/>
+    public int getType() {<br/>
+        return type;<br/>
+    }<br/>
+<br/>
+    public String toString() {<br/>
+        StringBuffer buff = new StringBuffer();<br/>
+        switch (this.type) {<br/>
+            case GAME_PLAYER_CHANGE :<br/>
+                buff.append("Status Change");<br/>
+                break;<br/>
+            case GAME_PLAYER_CHAT :<br/>
+                buff.append("Chat");<br/>
+                break;<br/>
+            case GAME_PHASE_CHANGE :<br/>
+                buff.append("Phase Change");<br/>
+                break;<br/>
+            case GAME_TURN_CHANGE :<br/>
+                buff.append("Turn Change");<br/>
+                break;<br/>
+            case GAME_ENTITY_NEW:<br/>
+                buff.append("New Entities");<br/>
+                break;<br/>
+            case GAME_SETTINGS_CHANGE :<br/>
+                buff.append("New Settings");<br/>
+                break;<br/>
+            default :<br/>
+                buff.append("Unknown");<br/>
+                break;<br/>
+        }<br/>
+        buff.append(" game event ");<br/>
+        return buff.toString();<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_GameEvent_1.3.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2005 Ben Mazur (bmazur@sev.org)<br/>
+ *<br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.common.event;<br/>
+<br/>
+/**<br/>
+ * Instances of descendant classes are sent as a result of Game change<br/>
+ *<br/>
+ * @see GameListener<br/>
+ */<br/>
+public abstract class GameEvent extends java.util.EventObject {<br/>
+<br/>
+    public static final int GAME_PLAYER_CONNECTED = 0;<br/>
+    public static final int GAME_PLAYER_DISCONNECTED = 1;<br/>
+    public static final int GAME_PLAYER_CHANGE = 2;<br/>
+    public static final int GAME_PLAYER_CHAT = 3;<br/>
+<br/>
+    public static final int GAME_PHASE_CHANGE = 4;<br/>
+    public static final int GAME_TURN_CHANGE = 5;<br/>
+    public static final int GAME_REPORT = 6;<br/>
+    public static final int GAME_END = 7;<br/>
+<br/>
+    public static final int GAME_BOARD_NEW = 8;<br/>
+    public static final int GAME_BOARD_CHANGE = 9;<br/>
+    public static final int GAME_SETTINGS_CHANGE = 10;<br/>
+    public static final int GAME_MAP_QUERY = 11;<br/>
+<br/>
+    public static final int GAME_ENTITY_NEW = 12;<br/>
+    public static final int GAME_ENTITY_REMOVE = 13;<br/>
+    public static final int GAME_ENTITY_NEW_OFFBOARD = 14;<br/>
+    public static final int GAME_ENTITY_CHANGE = 15;<br/>
+    public static final int <span class="upd">GAME_NEW_ACTION</span> = 16;<br/>
+<br/>
+    protected int type;<br/>
+<br/>
+    /**<br/>
+     * Construct game event<br/>
+     */<br/>
+    public GameEvent(Object source, int type){<br/>
+        super(source);<br/>
+        this.type = type;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * <br/>
+     * @return the type of the event<br/>
+     */<br/>
+    public int getType() {<br/>
+        return type;<br/>
+    }<br/>
+<br/>
+    public String toString() {<br/>
+        StringBuffer buff = new StringBuffer();<br/>
+        switch (this.type) {<br/>
+            case GAME_PLAYER_CHANGE :<br/>
+                buff.append("Status Change");<br/>
+                break;<br/>
+            case GAME_PLAYER_CHAT :<br/>
+                buff.append("Chat");<br/>
+                break;<br/>
+            case GAME_PHASE_CHANGE :<br/>
+                buff.append("Phase Change");<br/>
+                break;<br/>
+            case GAME_TURN_CHANGE :<br/>
+                buff.append("Turn Change");<br/>
+                break;<br/>
+            case GAME_ENTITY_NEW:<br/>
+                buff.append("New Entities");<br/>
+                break;<br/>
+            case GAME_SETTINGS_CHANGE :<br/>
+                buff.append("New Settings");<br/>
+                break;<br/>
+            default :<br/>
+                buff.append("Unknown");<br/>
+                break;<br/>
+        }<br/>
+        buff.append(" game event ");<br/>
+        return buff.toString();<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

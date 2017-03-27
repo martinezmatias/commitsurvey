@@ -1,0 +1,1 @@
+[ui]Removed bcc headerfield from list. This is by definition blind and will never appear in a header. Also removed the Reply-To field in the default setting. This gives us much more speed since we now restrict to the cached fields.

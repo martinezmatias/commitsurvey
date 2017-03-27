@@ -1,0 +1,1 @@
+[bug]Fixed bug in MessageBuilderHelper that caused error when replying to message. Bug was introduced by addressbook facade changes.[/bug]

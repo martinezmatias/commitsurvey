@@ -1,0 +1,1 @@
+[bug]wrong charset of boundary corrupted attachments

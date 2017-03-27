@@ -1,0 +1,1 @@
+Bug 205474 - [Themes] The wrong default font is loaded when you specify a different theme.

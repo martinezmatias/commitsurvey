@@ -1,0 +1,1 @@
+Comment out Java 1.5 method reference temporarily while Andrea works on patch

@@ -1,0 +1,1 @@
+Improved UMLModelelementStereotypecombobox so it updates correctly

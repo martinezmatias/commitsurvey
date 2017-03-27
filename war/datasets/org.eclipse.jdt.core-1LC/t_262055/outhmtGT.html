@@ -1,0 +1,292 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_CreatePackageDeclarationOperation_1.23.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2005 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.core;<br/>
+<br/>
+import org.eclipse.core.runtime.IStatus;<br/>
+import org.eclipse.jdt.core.ICompilationUnit;<br/>
+import org.eclipse.jdt.core.IImportDeclaration;<br/>
+import org.eclipse.jdt.core.IJavaElement;<br/>
+import org.eclipse.jdt.core.IJavaModelStatus;<br/>
+import org.eclipse.jdt.core.IJavaModelStatusConstants;<br/>
+import org.eclipse.jdt.core.IType;<br/>
+import org.eclipse.jdt.core.JavaConventions;<br/>
+import org.eclipse.jdt.core.JavaModelException;<br/>
+import org.eclipse.jdt.core.dom.AST;<br/>
+import org.eclipse.jdt.core.dom.ASTNode;<br/>
+import org.eclipse.jdt.core.dom.CompilationUnit;<br/>
+import org.eclipse.jdt.core.dom.Name;<br/>
+import org.eclipse.jdt.core.dom.PackageDeclaration;<br/>
+import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;<br/>
+import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;<br/>
+import org.eclipse.jdt.internal.core.util.Util;<br/>
+import org.eclipse.jface.text.IDocument;<br/>
+<br/>
+/**<br/>
+ * &lt;p&gt;This operation adds/replaces a package declaration in an existing compilation unit.<br/>
+ * If the compilation unit already includes the specified package declaration,<br/>
+ * it is not generated (it does not generate duplicates).<br/>
+ *<br/>
+ * &lt;p&gt;Required Attributes:&lt;ul&gt;<br/>
+ *  &lt;li&gt;Compilation unit element<br/>
+ *  &lt;li&gt;Package name<br/>
+ * &lt;/ul&gt;<br/>
+ */<br/>
+public class CreatePackageDeclarationOperation extends CreateElementInCUOperation {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The name of the package declaration being created<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String name = null;<br/>
+/**<br/>
+ * When executed, this operation will add a package declaration to the given compilation unit.<br/>
+ */<br/>
+public CreatePackageDeclarationOperation(String name, ICompilationUnit parentElement) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(parentElement);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.name= name;<br/>
+}<br/>
+protected StructuralPropertyDescriptor getChildPropertyDescriptor(ASTNode parent) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return CompilationUnit.PACKAGE_PROPERTY;<br/>
+}<br/>
+protected ASTNode generateElementAST(ASTRewrite rewriter, IDocument document, ICompilationUnit cu) throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//look for an existing package declaration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IJavaElement[] children = getCompilationUnit().getChildren();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; children.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (children[i].getElementType() ==  IJavaElement.PACKAGE_DECLARATION &amp;&amp; this.name.equals(children[i].getElementName())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//equivalent package declaration already exists<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.creationOccurred = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;AST ast = this.cuAST.getAST();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PackageDeclaration pkgDeclaration = ast.newPackageDeclaration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name astName = ast.newName(<span class="del">new <span class="del"><span class="del"><span class="del">String</span></span>[]</span> <span class="del">{<span class="mv">this.name</span>}</span></span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pkgDeclaration.setName(astName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return pkgDeclaration;<br/>
+}<br/>
+/**<br/>
+ * Creates and returns the handle for the element this operation created.<br/>
+ */<br/>
+protected IJavaElement generateResultHandle() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getCompilationUnit().getPackageDeclaration(this.name);<br/>
+}<br/>
+/**<br/>
+ * @see CreateElementInCUOperation#getMainTaskName()<br/>
+ */<br/>
+public String getMainTaskName(){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Util.bind("operation.createPackageProgress"); //$NON-NLS-1$<br/>
+}<br/>
+/**<br/>
+ * Sets the correct position for new package declaration:&lt;ul&gt;<br/>
+ * &lt;li&gt; before the first import<br/>
+ * &lt;li&gt; if no imports, before the first type<br/>
+ * &lt;li&gt; if no type - first thing in the CU<br/>
+ * &lt;li&gt; <br/>
+ */<br/>
+protected void initializeDefaultPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICompilationUnit cu = getCompilationUnit();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IImportDeclaration[] imports = cu.getImports();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (imports.length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createBefore(imports[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IType[] types = cu.getTypes();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (types.length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createBefore(types[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (JavaModelException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// cu doesn't exist: ignore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Possible failures: &lt;ul&gt;<br/>
+ *  &lt;li&gt;NO_ELEMENTS_TO_PROCESS - no compilation unit was supplied to the operation <br/>
+ *  &lt;li&gt;INVALID_NAME - a name supplied to the operation was not a valid<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;package declaration name.<br/>
+ * &lt;/ul&gt;<br/>
+ * @see IJavaModelStatus<br/>
+ * @see JavaConventions<br/>
+ */<br/>
+public IJavaModelStatus verify() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IJavaModelStatus status = super.verify();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!status.isOK()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (JavaConventions.validatePackageName(this.name).getSeverity() == IStatus.ERROR) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new JavaModelStatus(IJavaModelStatusConstants.INVALID_NAME, this.name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return JavaModelStatus.VERIFIED_OK;<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_CreatePackageDeclarationOperation_1.24.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2005 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.core;<br/>
+<br/>
+import org.eclipse.core.runtime.IStatus;<br/>
+import org.eclipse.jdt.core.ICompilationUnit;<br/>
+import org.eclipse.jdt.core.IImportDeclaration;<br/>
+import org.eclipse.jdt.core.IJavaElement;<br/>
+import org.eclipse.jdt.core.IJavaModelStatus;<br/>
+import org.eclipse.jdt.core.IJavaModelStatusConstants;<br/>
+import org.eclipse.jdt.core.IType;<br/>
+import org.eclipse.jdt.core.JavaConventions;<br/>
+import org.eclipse.jdt.core.JavaModelException;<br/>
+import org.eclipse.jdt.core.dom.AST;<br/>
+import org.eclipse.jdt.core.dom.ASTNode;<br/>
+import org.eclipse.jdt.core.dom.CompilationUnit;<br/>
+import org.eclipse.jdt.core.dom.Name;<br/>
+import org.eclipse.jdt.core.dom.PackageDeclaration;<br/>
+import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;<br/>
+import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;<br/>
+import org.eclipse.jdt.internal.core.util.Util;<br/>
+import org.eclipse.jface.text.IDocument;<br/>
+<br/>
+/**<br/>
+ * &lt;p&gt;This operation adds/replaces a package declaration in an existing compilation unit.<br/>
+ * If the compilation unit already includes the specified package declaration,<br/>
+ * it is not generated (it does not generate duplicates).<br/>
+ *<br/>
+ * &lt;p&gt;Required Attributes:&lt;ul&gt;<br/>
+ *  &lt;li&gt;Compilation unit element<br/>
+ *  &lt;li&gt;Package name<br/>
+ * &lt;/ul&gt;<br/>
+ */<br/>
+public class CreatePackageDeclarationOperation extends CreateElementInCUOperation {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The name of the package declaration being created<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String name = null;<br/>
+/**<br/>
+ * When executed, this operation will add a package declaration to the given compilation unit.<br/>
+ */<br/>
+public CreatePackageDeclarationOperation(String name, ICompilationUnit parentElement) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(parentElement);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.name= name;<br/>
+}<br/>
+protected StructuralPropertyDescriptor getChildPropertyDescriptor(ASTNode parent) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return CompilationUnit.PACKAGE_PROPERTY;<br/>
+}<br/>
+protected ASTNode generateElementAST(ASTRewrite rewriter, IDocument document, ICompilationUnit cu) throws JavaModelException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//look for an existing package declaration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IJavaElement[] children = getCompilationUnit().getChildren();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; children.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (children[i].getElementType() ==  IJavaElement.PACKAGE_DECLARATION &amp;&amp; this.name.equals(children[i].getElementName())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//equivalent package declaration already exists<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.creationOccurred = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;AST ast = this.cuAST.getAST();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;PackageDeclaration pkgDeclaration = ast.newPackageDeclaration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Name astName = ast.newName(<span class="mv">this.name</span>);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;pkgDeclaration.setName(astName);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return pkgDeclaration;<br/>
+}<br/>
+/**<br/>
+ * Creates and returns the handle for the element this operation created.<br/>
+ */<br/>
+protected IJavaElement generateResultHandle() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getCompilationUnit().getPackageDeclaration(this.name);<br/>
+}<br/>
+/**<br/>
+ * @see CreateElementInCUOperation#getMainTaskName()<br/>
+ */<br/>
+public String getMainTaskName(){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return Util.bind("operation.createPackageProgress"); //$NON-NLS-1$<br/>
+}<br/>
+/**<br/>
+ * Sets the correct position for new package declaration:&lt;ul&gt;<br/>
+ * &lt;li&gt; before the first import<br/>
+ * &lt;li&gt; if no imports, before the first type<br/>
+ * &lt;li&gt; if no type - first thing in the CU<br/>
+ * &lt;li&gt; <br/>
+ */<br/>
+protected void initializeDefaultPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ICompilationUnit cu = getCompilationUnit();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IImportDeclaration[] imports = cu.getImports();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (imports.length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createBefore(imports[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IType[] types = cu.getTypes();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (types.length &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createBefore(types[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (JavaModelException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// cu doesn't exist: ignore<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Possible failures: &lt;ul&gt;<br/>
+ *  &lt;li&gt;NO_ELEMENTS_TO_PROCESS - no compilation unit was supplied to the operation <br/>
+ *  &lt;li&gt;INVALID_NAME - a name supplied to the operation was not a valid<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;package declaration name.<br/>
+ * &lt;/ul&gt;<br/>
+ * @see IJavaModelStatus<br/>
+ * @see JavaConventions<br/>
+ */<br/>
+public IJavaModelStatus verify() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;IJavaModelStatus status = super.verify();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!status.isOK()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return status;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (JavaConventions.validatePackageName(this.name).getSeverity() == IStatus.ERROR) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new JavaModelStatus(IJavaModelStatusConstants.INVALID_NAME, this.name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return JavaModelStatus.VERIFIED_OK;<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

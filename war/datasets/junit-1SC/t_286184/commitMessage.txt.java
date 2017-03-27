@@ -1,0 +1,1 @@
+Indicate reason when a class is ignored

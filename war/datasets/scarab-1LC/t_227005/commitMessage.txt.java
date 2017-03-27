@@ -1,0 +1,1 @@
+this seems to fix a value when setting an attribute value that was previously unset.

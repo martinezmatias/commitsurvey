@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_WorkbenchPreferenceInitializer_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2003 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials <br/>
+ * are made available under the terms of the Common Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/cpl-v10.html<br/>
+ * <br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.internal;<br/>
+<br/>
+import <span class="upd">org.eclipse.core.runtime.preferences.<span class="upd">IPreferenceInitializer</span></span>;<br/>
+import org.eclipse.jface.preference.IPreferenceStore;<br/>
+import org.eclipse.jface.preference.JFacePreferences;<br/>
+import org.eclipse.jface.util.OpenStrategy;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.ui.application.IWorkbenchPreferences;<br/>
+<br/>
+/**<br/>
+ * Implementation of the workbench plugin's preferences extension's customization element.<br/>
+ * This is needed in order to force the workbench plugin's preferences to be initialized<br/>
+ * properly when running without org.eclipse.core.runtime.compatibility.<br/>
+ * For more details, see bug 58975 - New preference mechanism does not properly initialize defaults.<br/>
+ * <br/>
+ * @since 3.0<br/>
+ */<br/>
+public class WorkbenchPreferenceInitializer implements <span class="upd"><span class="upd">IPreferenceInitializer</span></span> {<br/>
+<br/>
+    public void initializeDefaultPreferences() {<br/>
+        IPreferenceStore store = WorkbenchPlugin.getDefault().getPreferenceStore();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JFacePreferences.setPreferenceStore(store);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// new generic workbench preferences (for RCP APIs in org.eclipse.ui.application)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SAVE_WORKBENCH_STATE, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_TITLE_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_MENU_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_COOL_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_FAST_VIEW_BARS, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_PERSPECTIVE_BAR, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_STATUS_LINE, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_PROGRESS_INDICATOR, false);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// workbench preferences that are API (but non-RCP)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// @issue these should probably be on org.eclipse.ui's preference store, <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//    not org.eclipse.ui.workbench<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.CLOSE_EDITORS_ON_EXIT, false);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// @issue some of these may be IDE-specific<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_PULLDOWN_ACTIVE, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_DISPLAY_FULL_NAME, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.STICKY_CYCLE, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.REUSE_EDITORS_BOOLEAN, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.REUSE_DIRTY_EDITORS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.REUSE_EDITORS, 8);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_ON_SINGLE_CLICK, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SELECT_ON_HOVER, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_AFTER_DELAY, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.RECENT_FILES, 4);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.VIEW_TAB_POSITION, SWT.TOP);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITOR_TAB_POSITION, SWT.TOP);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_MULTIPLE_EDITOR_TABS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_TRADITIONAL_STYLE_TABS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_TEXT_ON_PERSPECTIVE_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.DOCK_PERSPECTIVE_BAR, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITOR_TAB_WIDTH, 3); // high<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_VIEW_MODE, IPreferenceConstants.OVM_EMBED);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_PERSP_MODE, IPreferenceConstants.OPM_ACTIVE_PAGE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.ENABLED_DECORATORS, ""); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_SELECTION_SCOPE, IPreferenceConstants.EDITORLIST_SET_PAGE_SCOPE); // Current Window<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_SORT_CRITERIA, IPreferenceConstants.EDITORLIST_NAME_SORT); // Name Sort<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.COLOR_ICONS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_SHORTCUT_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_STATUS_LINE, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_TOOL_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.MULTI_KEY_ASSIST, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.MULTI_KEY_ASSIST_TIME, 1000);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Option to show user jobs in a dialog<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.RUN_IN_BACKGROUND,false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable wizard for project capability<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("ENABLE_CONFIGURABLE_PROJECT_WIZARD", false); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable single click<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("SINGLE_CLICK_METHOD", OpenStrategy.DOUBLE_CLICK); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable cool bars<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("ENABLE_COOL_BARS", true); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable new menu organization<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("ENABLE_NEW_MENUS", true); //$NON-NLS-1$&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Temporary option to turn off the dialog font<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("DISABLE_DIALOG_FONT", false); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.addPropertyChangeListener(new PlatformUIPreferenceListener());<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_WorkbenchPreferenceInitializer_1.3.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2003 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials <br/>
+ * are made available under the terms of the Common Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/cpl-v10.html<br/>
+ * <br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.ui.internal;<br/>
+<br/>
+import <span class="upd">org.eclipse.core.runtime.preferences.<span class="upd">AbstractPreferenceInitializer</span></span>;<br/>
+import org.eclipse.jface.preference.IPreferenceStore;<br/>
+import org.eclipse.jface.preference.JFacePreferences;<br/>
+import org.eclipse.jface.util.OpenStrategy;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.ui.application.IWorkbenchPreferences;<br/>
+<br/>
+/**<br/>
+ * Implementation of the workbench plugin's preferences extension's customization element.<br/>
+ * This is needed in order to force the workbench plugin's preferences to be initialized<br/>
+ * properly when running without org.eclipse.core.runtime.compatibility.<br/>
+ * For more details, see bug 58975 - New preference mechanism does not properly initialize defaults.<br/>
+ * <br/>
+ * @since 3.0<br/>
+ */<br/>
+public class WorkbenchPreferenceInitializer extends <span class="upd"><span class="upd">AbstractPreferenceInitializer</span></span> {<br/>
+<br/>
+    public void initializeDefaultPreferences() {<br/>
+        IPreferenceStore store = WorkbenchPlugin.getDefault().getPreferenceStore();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JFacePreferences.setPreferenceStore(store);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// new generic workbench preferences (for RCP APIs in org.eclipse.ui.application)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SAVE_WORKBENCH_STATE, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_TITLE_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_MENU_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_COOL_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_FAST_VIEW_BARS, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_PERSPECTIVE_BAR, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_STATUS_LINE, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IWorkbenchPreferences.SHOULD_SHOW_PROGRESS_INDICATOR, false);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// workbench preferences that are API (but non-RCP)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// @issue these should probably be on org.eclipse.ui's preference store, <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//    not org.eclipse.ui.workbench<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.CLOSE_EDITORS_ON_EXIT, false);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOULD_PROMPT_FOR_ENABLEMENT, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// @issue some of these may be IDE-specific<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_PULLDOWN_ACTIVE, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_DISPLAY_FULL_NAME, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.STICKY_CYCLE, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.REUSE_EDITORS_BOOLEAN, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.REUSE_DIRTY_EDITORS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.REUSE_EDITORS, 8);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_ON_SINGLE_CLICK, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SELECT_ON_HOVER, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_AFTER_DELAY, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.RECENT_FILES, 4);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.VIEW_TAB_POSITION, SWT.TOP);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITOR_TAB_POSITION, SWT.TOP);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_MULTIPLE_EDITOR_TABS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_TRADITIONAL_STYLE_TABS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_TEXT_ON_PERSPECTIVE_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.DOCK_PERSPECTIVE_BAR, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITOR_TAB_WIDTH, 3); // high<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_VIEW_MODE, IPreferenceConstants.OVM_EMBED);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.OPEN_PERSP_MODE, IPreferenceConstants.OPM_ACTIVE_PAGE);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.ENABLED_DECORATORS, ""); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_SELECTION_SCOPE, IPreferenceConstants.EDITORLIST_SET_PAGE_SCOPE); // Current Window<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.EDITORLIST_SORT_CRITERIA, IPreferenceConstants.EDITORLIST_NAME_SORT); // Name Sort<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.COLOR_ICONS, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_SHORTCUT_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_STATUS_LINE, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.SHOW_TOOL_BAR, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.MULTI_KEY_ASSIST, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.MULTI_KEY_ASSIST_TIME, 1000);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Option to show user jobs in a dialog<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault(IPreferenceConstants.RUN_IN_BACKGROUND,false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable wizard for project capability<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("ENABLE_CONFIGURABLE_PROJECT_WIZARD", false); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable single click<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("SINGLE_CLICK_METHOD", OpenStrategy.DOUBLE_CLICK); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable cool bars<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("ENABLE_COOL_BARS", true); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Temporary option to enable new menu organization<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("ENABLE_NEW_MENUS", true); //$NON-NLS-1$&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Temporary option to turn off the dialog font<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.setDefault("DISABLE_DIALOG_FONT", false); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store.addPropertyChangeListener(new PlatformUIPreferenceListener());<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

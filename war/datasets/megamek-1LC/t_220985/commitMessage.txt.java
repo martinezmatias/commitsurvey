@@ -1,0 +1,1 @@
++ more notification about criticals due to "2" hit location

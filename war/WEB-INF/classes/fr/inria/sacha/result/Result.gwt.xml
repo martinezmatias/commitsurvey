@@ -1,0 +1,12 @@
+<module>
+	<inherits name="com.google.gwt.user.User"/>
+	<inherits name="com.google.gwt.user.theme.standard.Standard"/>
+	 <inherits name='fr.inria.sacha.logic.Logic'/>
+	<entry-point class="fr.inria.sacha.result.client.Result"/>
+	
+	  <!-- Specify the paths for translatable code                    -->
+  <source path='client'/>
+  <source path='shared'/>
+
+ 
+</module>

@@ -1,0 +1,1 @@
+NullPoinerException fixed (encountered by Darius Davidavicius <Darius.Davidavicius@living-source.lt>)

@@ -1,0 +1,4401 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_IssueSearch_1.65.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.util.word;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2002 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */ <br/>
+<br/>
+// JDK classes<br/>
+import java.util.HashMap;<br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+import java.util.Vector;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Date;<br/>
+import java.util.Collections;<br/>
+import java.text.DateFormat;<br/>
+import java.text.SimpleDateFormat;<br/>
+import java.text.ParseException;<br/>
+<br/>
+import com.workingdogs.village.Record;<br/>
+import org.apache.torque.om.NumberKey;<br/>
+import org.apache.torque.om.ComboKey;<br/>
+import org.apache.torque.om.ObjectKey;<br/>
+import org.apache.torque.util.Criteria;<br/>
+import org.apache.torque.util.BasePeer;<br/>
+import org.apache.torque.TorqueException;<br/>
+import org.apache.commons.collections.SequencedHashMap;<br/>
+import org.apache.commons.collections.LRUMap;<br/>
+import org.apache.commons.lang.StringUtils;<br/>
+import org.apache.commons.lang.ObjectUtils;<br/>
+<br/>
+// Scarab classes<br/>
+import org.tigris.scarab.om.Attribute;<br/>
+import org.tigris.scarab.om.AttributeManager;<br/>
+import org.tigris.scarab.om.AttributeOptionPeer;<br/>
+import org.tigris.scarab.om.AttachmentTypePeer;<br/>
+import org.tigris.scarab.om.Issue;<br/>
+import org.tigris.scarab.om.IssueType;<br/>
+import org.tigris.scarab.om.IssuePeer;<br/>
+import org.tigris.scarab.om.AttributeValuePeer;<br/>
+import org.tigris.scarab.om.AttributeValue;<br/>
+import org.tigris.scarab.om.AttributePeer;<br/>
+import org.tigris.scarab.om.ActivityPeer;<br/>
+import org.tigris.scarab.om.ActivitySetPeer;<br/>
+import org.tigris.scarab.om.ActivitySetTypePeer;<br/>
+import org.tigris.scarab.om.RModuleOptionPeer;<br/>
+import org.tigris.scarab.om.RModuleOption;<br/>
+import org.tigris.scarab.om.RModuleIssueType;<br/>
+import org.tigris.scarab.om.RModuleIssueTypeManager;<br/>
+import org.tigris.scarab.om.Module;<br/>
+import org.tigris.scarab.om.ModuleManager;<br/>
+import org.tigris.scarab.om.MITList;<br/>
+import org.tigris.scarab.om.MITListItem;<br/>
+import org.tigris.scarab.om.RModuleUserAttribute;<br/>
+<br/>
+import org.tigris.scarab.util.ScarabException;<br/>
+import org.tigris.scarab.attribute.OptionAttribute;<br/>
+import org.tigris.scarab.attribute.StringAttribute;<br/>
+<br/>
+<br/>
+/** <br/>
+ * A utility class to build up and carry out a search for <br/>
+ * similar issues.  It subclasses Issue for functionality, it is <br/>
+ * not a more specific type of Issue.<br/>
+ */<br/>
+public class IssueSearch <br/>
+    extends Issue<br/>
+{<br/>
+    public static final String ASC = "asc";<br/>
+    public static final String DESC = "desc";<br/>
+<br/>
+    public static final String CREATED_BY_KEY = "created_by";<br/>
+    public static final String ANY_KEY = "any";<br/>
+<br/>
+    private static final NumberKey ALL_TEXT = new NumberKey("0");<br/>
+<br/>
+    // column names only<br/>
+    private static final String AV_OPTION_ID = <br/>
+        AttributeValuePeer.OPTION_ID.substring(<br/>
+        AttributeValuePeer.OPTION_ID.indexOf('.')+1);<br/>
+    private static final String AV_ISSUE_ID = <br/>
+        AttributeValuePeer.ISSUE_ID.substring(<br/>
+        AttributeValuePeer.ISSUE_ID.indexOf('.')+1);<br/>
+    private static final String AV_USER_ID =<br/>
+        AttributeValuePeer.USER_ID.substring(<br/>
+        AttributeValuePeer.USER_ID.indexOf('.')+1);<br/>
+<br/>
+    private static final String ACTIVITYSETALIAS = "srchcobyactset";<br/>
+    private static final String USERAVALIAS = "srchuav";<br/>
+    private static final String ACTIVITYALIAS = "srchcobyact";<br/>
+<br/>
+    private static final String CREATED_BY = "CREATED_BY";<br/>
+    private static final String TYPE_ID = "TYPE_ID";<br/>
+    private static final String ATTRIBUTE_ID = "ATTRIBUTE_ID";<br/>
+    private static final String USER_ID = "USER_ID";<br/>
+    private static final String DELETED = "DELETED";<br/>
+<br/>
+    private static final String ACT_TRAN_ID = <br/>
+        ActivityPeer.TRANSACTION_ID.substring(<br/>
+        ActivityPeer.TRANSACTION_ID.indexOf('.')+1);<br/>
+    private static final String ACTSET_TRAN_ID = <br/>
+        ActivitySetPeer.TRANSACTION_ID.substring(<br/>
+        ActivitySetPeer.TRANSACTION_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_TRANSACTION_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_TRAN_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_TRAN_ID__EQUALS__ACTIVITYSETALIAS_TRAN_ID =<br/>
+        ACTIVITYALIAS_TRANSACTION_ID + "=" + <br/>
+        ACTIVITYSETALIAS + "." + ACTSET_TRAN_ID;<br/>
+<br/>
+    private static final String ACT_ISSUE_ID = <br/>
+        ActivityPeer.ISSUE_ID.substring(ActivityPeer.ISSUE_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_ISSUE_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_ISSUE_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID =<br/>
+        ACTIVITYALIAS_ISSUE_ID + "=" + IssuePeer.ISSUE_ID;<br/>
+<br/>
+    private static final String ACT_ATTR_ID = <br/>
+        ActivityPeer.ATTRIBUTE_ID.substring(<br/>
+        ActivityPeer.ATTRIBUTE_ID.indexOf('.')+1);<br/>
+    private static final String AV_ATTR_ID = <br/>
+        AttributeValuePeer.ATTRIBUTE_ID.substring(<br/>
+        AttributeValuePeer.ATTRIBUTE_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_ATTRIBUTE_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_ATTR_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_ATTR_ID__EQUALS__USERAVALIAS_ATTR_ID =<br/>
+        ACTIVITYALIAS_ATTRIBUTE_ID + "=" + USERAVALIAS + "." + AV_ATTR_ID;<br/>
+<br/>
+    private static final String USERAVALIAS_ISSUE_ID =<br/>
+        USERAVALIAS + "." + AV_ISSUE_ID;<br/>
+    private static final String <br/>
+        USERAVALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID =<br/>
+        USERAVALIAS_ISSUE_ID + "=" + IssuePeer.ISSUE_ID;<br/>
+<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_ISSUE_ID__EQUALS__USERAVALIAS_ISSUE_ID =<br/>
+        ACTIVITYALIAS_ISSUE_ID + "=" + USERAVALIAS + "." + AV_ISSUE_ID;<br/>
+<br/>
+    private static final String ACT_NEW_USER_ID = <br/>
+        ActivityPeer.NEW_USER_ID.substring(<br/>
+        ActivityPeer.NEW_USER_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_NEW_USER_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_NEW_USER_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_NEW_USER_ID__EQUALS__USERAVALIAS_USER_ID =<br/>
+        ACTIVITYALIAS_NEW_USER_ID + "=" + USERAVALIAS + "." + AV_USER_ID;<br/>
+<br/>
+    private static String WHERE = " WHERE ";<br/>
+    private static String FROM = " FROM ";<br/>
+    private static String ORDER_BY = " ORDER BY ";<br/>
+    private static String BASE_OPTION_SORT_LEFT_JOIN = <br/>
+        " LEFT OUTER JOIN SCARAB_R_MODULE_OPTION sortRMO ON " + <br/>
+        "(SCARAB_ISSUE.MODULE_ID=sortRMO.MODULE_ID AND SCARAB_ISSUE.TYPE_ID=" +<br/>
+        "sortRMO.ISSUE_TYPE_ID AND sortRMO.OPTION_ID=";<br/>
+<br/>
+    private static int NO_ATTRIBUTE_SORT = -1;<br/>
+<br/>
+    private SimpleDateFormat formatter;<br/>
+<br/>
+    private String searchWords;<br/>
+    private String commentQuery;<br/>
+    private NumberKey[] textScope;<br/>
+    private String minId;<br/>
+    private String maxId;<br/>
+    private String minDate;<br/>
+    private String maxDate;<br/>
+    private int minVotes;<br/>
+    <br/>
+    private NumberKey stateChangeAttributeId;<br/>
+    private NumberKey stateChangeFromOptionId;<br/>
+    private NumberKey stateChangeToOptionId;<br/>
+    private String stateChangeFromDate;<br/>
+    private String stateChangeToDate;<br/>
+<br/>
+    private NumberKey sortAttributeId;<br/>
+    private String sortPolarity;<br/>
+    private MITList mitList;<br/>
+<br/>
+    private List userIdList;<br/>
+    private List userSearchCriteriaList;<br/>
+    private List lastUsedAVList;<br/>
+    private boolean modified;<br/>
+<br/>
+    private int lastTotalIssueCount = -1;<br/>
+    private List lastMatchingIssueIds = null;<br/>
+    private List lastQueryResults = null;<br/>
+<br/>
+    // the attribute columns that will be shown<br/>
+    private List issueListAttributeColumns;<br/>
+<br/>
+    // used to cache a few modules and issuetypes to make listing<br/>
+    // a result set faster.<br/>
+    private LRUMap moduleMap = new LRUMap(20);<br/>
+    private LRUMap rmitMap = new LRUMap(20);<br/>
+    <br/>
+     <br/>
+    public IssueSearch(Issue issue)<br/>
+        throws Exception<br/>
+    {<br/>
+        this(issue.getModule(), issue.getIssueType());<br/>
+<br/>
+        Iterator avs = issue.getAttributeValues().iterator();<br/>
+        List newAvs = getAttributeValues();<br/>
+        while (avs.hasNext())<br/>
+        {<br/>
+            newAvs.add( ((AttributeValue)avs.next()).copy() );<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public IssueSearch(Module module, IssueType issueType)<br/>
+        throws Exception<br/>
+    {<br/>
+        super(module, issueType);<br/>
+    }<br/>
+<br/>
+    public IssueSearch(MITList mitList)<br/>
+        throws Exception<br/>
+    {<br/>
+        super();<br/>
+        if (mitList == null || mitList.size() == 0) <br/>
+        {<br/>
+            throw new IllegalArgumentException("A non-null list with at" +<br/>
+               " least one item is required.");<br/>
+        }<br/>
+        if (mitList.isSingleModuleIssueType()) <br/>
+        {<br/>
+            MITListItem item = mitList.getFirstItem();<br/>
+            setModuleId(item.getModuleId());<br/>
+            setTypeId(item.getIssueTypeId());<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            this.mitList = mitList;   <br/>
+            if (mitList.isSingleModule()) <br/>
+            {<br/>
+                setModule(mitList.getModule());<br/>
+            }<br/>
+            if (mitList.isSingleIssueType()) <br/>
+            {<br/>
+                setIssueType(mitList.getIssueType());<br/>
+            }<br/>
+        }        <br/>
+    }<br/>
+<br/>
+<br/>
+    public boolean isXMITSearch()<br/>
+    {<br/>
+        return mitList != null &amp;&amp; !mitList.isSingleModuleIssueType();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * List of attributes to show with each issue.<br/>
+     *<br/>
+     * @param rmuas a &lt;code&gt;List&lt;/code&gt; of RModuleUserAttribute objects<br/>
+     */<br/>
+    public void setIssueListAttributeColumns(List rmuas)<br/>
+    {<br/>
+        //FIXME! implement logic to determine if a new search is required.<br/>
+        issueListAttributeColumns = rmuas;<br/>
+    }<br/>
+<br/>
+    public List getIssueListAttributeColumns()<br/>
+    {<br/>
+        return issueListAttributeColumns;<br/>
+    }<br/>
+<br/>
+    public SequencedHashMap getCommonAttributeValuesMap()<br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap result = null;<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            result = getMITAttributeValuesMap();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = super.getModuleAttributeValuesMap();<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are relevant to the issue's current module.<br/>
+     * Empty AttributeValues that are relevant for the module, but have <br/>
+     * not been set for the issue are included.  The values are ordered<br/>
+     * according to the module's preference<br/>
+     */<br/>
+    private SequencedHashMap getMITAttributeValuesMap() <br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap result = null;<br/>
+<br/>
+        List attributes = null;<br/>
+        //HashMap siaValuesMap = null;<br/>
+<br/>
+        attributes = mitList.getCommonAttributes();<br/>
+        //siaValuesMap = getAttributeValuesMap();<br/>
+        if (attributes != null) <br/>
+        {<br/>
+            result = new SequencedHashMap((int)(1.25*attributes.size() + 1));<br/>
+            Iterator i = attributes.iterator();<br/>
+            while (i.hasNext()) <br/>
+            {<br/>
+                Attribute attribute = (Attribute)i.next();<br/>
+                String key = attribute.getName().toUpperCase();<br/>
+                /*<br/>
+                  if ( siaValuesMap.containsKey(key) ) <br/>
+                  {<br/>
+                  result.put( key, siaValuesMap.get(key) );<br/>
+                  }<br/>
+                  else <br/>
+                  {<br/>
+                */<br/>
+                AttributeValue aval = AttributeValue<br/>
+                    .getNewInstance(attribute, this);<br/>
+                addAttributeValue(aval);<br/>
+                result.put(key, aval);<br/>
+                //}<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public List getUserAttributes()<br/>
+        throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            result = mitList.getCommonUserAttributes();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = getModule().getUserAttributes(getIssueType());<br/>
+        }<br/>
+        return result;        <br/>
+    } <br/>
+<br/>
+    public List getLeafRModuleOptions(Attribute attribute)<br/>
+        throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            result = mitList.getCommonLeafRModuleOptions(attribute);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = getModule()<br/>
+                .getLeafRModuleOptions(attribute, getIssueType());<br/>
+        }<br/>
+        return result;        <br/>
+    } <br/>
+<br/>
+    public List getCommonOptionTree(Attribute attribute)<br/>
+        throws Exception<br/>
+    {<br/>
+        return mitList.getCommonRModuleOptionTree(attribute);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the value of searchWords.<br/>
+     * @return value of searchWords.<br/>
+     */<br/>
+    public String getSearchWords() <br/>
+    {<br/>
+        return searchWords;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of searchWords.<br/>
+     * @param v  Value to assign to searchWords.<br/>
+     */<br/>
+    public void setSearchWords(String  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.searchWords)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.searchWords = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of commentQuery.<br/>
+     * @return value of commentQuery.<br/>
+     */<br/>
+    public String getCommentQuery() <br/>
+    {<br/>
+        return commentQuery;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of commentQuery.<br/>
+     * @param v  Value to assign to commentQuery.<br/>
+     */<br/>
+    public void setCommentQuery(String  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.commentQuery)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.commentQuery = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Get the value of textScope.  if the scope is not set then all<br/>
+     * text attributes are returned.  if there are no relevant text<br/>
+     * attributes null will be returned.<br/>
+     * @return value of textScope.<br/>
+     */<br/>
+    public NumberKey[] getTextScope()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( textScope == null ) <br/>
+        {<br/>
+            textScope = getTextScopeForAll();<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            for ( int i=textScope.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                if ( textScope[i].equals(ALL_TEXT) ) <br/>
+                {<br/>
+                    textScope = getTextScopeForAll();<br/>
+                    break;<br/>
+                }       <br/>
+            }<br/>
+        }<br/>
+        return textScope;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Sets the text search scope to all quick search text attributes.<br/>
+     */<br/>
+    private NumberKey[] getTextScopeForAll()<br/>
+        throws Exception<br/>
+    {<br/>
+        NumberKey[] textScope = null;<br/>
+        List textAttributes = getQuickSearchTextAttributeValues();<br/>
+        if ( textAttributes != null ) <br/>
+        {<br/>
+            textScope = new NumberKey[textAttributes.size()];<br/>
+            for ( int j=textAttributes.size()-1; j&gt;=0; j-- ) <br/>
+            {<br/>
+                textScope[j] = ((AttributeValue)<br/>
+                                textAttributes.get(j)).getAttributeId();<br/>
+            }<br/>
+        }<br/>
+        return textScope;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set the value of textScope.<br/>
+     * @param v  Value to assign to textScope.<br/>
+     */<br/>
+    public void setTextScope(NumberKey[]  v) <br/>
+        throws Exception<br/>
+    {<br/>
+        if (v != null) <br/>
+        {<br/>
+            for ( int i=v.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                if ( v[i].equals(ALL_TEXT) ) <br/>
+                {<br/>
+                    v = getTextScopeForAll();<br/>
+                    break;<br/>
+                }       <br/>
+            }<br/>
+        }<br/>
+<br/>
+        // note previous block may have made v == null though its not likely<br/>
+        // (don't replace the if with an else)<br/>
+        if (v == null) <br/>
+        {<br/>
+            modified |= this.textScope != null;<br/>
+            this.textScope = null;<br/>
+        }<br/>
+        else if (this.textScope != null &amp;&amp; this.textScope.length == v.length)<br/>
+        {<br/>
+            for ( int i=v.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                if ( !v[i].equals(this.textScope[i]) ) <br/>
+                {<br/>
+                    modified = true;<br/>
+                    this.textScope = v;            <br/>
+                    break;<br/>
+                }       <br/>
+            }<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            modified = true;<br/>
+            this.textScope = v;            <br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get the value of minId.<br/>
+     * @return value of minId.<br/>
+     */<br/>
+    public String getMinId() <br/>
+    {<br/>
+        return minId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of minId.<br/>
+     * @param v  Value to assign to minId.<br/>
+     */<br/>
+    public void setMinId(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.minId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.minId = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of maxId.<br/>
+     * @return value of maxId.<br/>
+     */<br/>
+    public String getMaxId() <br/>
+    {<br/>
+        return maxId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of maxId.<br/>
+     * @param v  Value to assign to maxId.<br/>
+     */<br/>
+    public void setMaxId(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.maxId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.maxId = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Get the value of minDate.<br/>
+     * @return value of minDate.<br/>
+     */<br/>
+    public String getMinDate() <br/>
+    {<br/>
+        return minDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of minDate.<br/>
+     * @param v  Value to assign to minDate.<br/>
+     */<br/>
+    public void setMinDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.minDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.minDate = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of maxDate.<br/>
+     * @return value of maxDate.<br/>
+     */<br/>
+    public String getMaxDate() <br/>
+    {<br/>
+        return maxDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of maxDate.<br/>
+     * @param v  Value to assign to maxDate.<br/>
+     */<br/>
+    public void setMaxDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.maxDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.maxDate = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Get the value of minVotes.<br/>
+     * @return value of minVotes.<br/>
+     */<br/>
+    public int getMinVotes() <br/>
+    {<br/>
+        return minVotes;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of minVotes.<br/>
+     * @param v  Value to assign to minVotes.<br/>
+     */<br/>
+    public void setMinVotes(int  v) <br/>
+    {<br/>
+        if (v != this.minVotes) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.minVotes = v;<br/>
+        }<br/>
+    }    <br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get the value of stateChangeAttributeId.<br/>
+     * @return value of stateChangeAttributeId.<br/>
+     */<br/>
+    public NumberKey getStateChangeAttributeId() <br/>
+    {<br/>
+        if ( stateChangeAttributeId == null ) <br/>
+        {<br/>
+            return AttributePeer.STATUS__PK;<br/>
+        }<br/>
+        return stateChangeAttributeId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeAttributeId.<br/>
+     * @param v  Value to assign to stateChangeAttributeId.<br/>
+     */<br/>
+    public void setStateChangeAttributeId(NumberKey  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeAttributeId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeAttributeId = v;<br/>
+        }<br/>
+    }<br/>
+        <br/>
+    /**<br/>
+     * Get the value of stateChangeFromOptionId.<br/>
+     * @return value of stateChangeFromOptionId.<br/>
+     */<br/>
+    public NumberKey getStateChangeFromOptionId() <br/>
+    {<br/>
+        return stateChangeFromOptionId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeFromOptionId.<br/>
+     * @param v  Value to assign to stateChangeFromOptionId.<br/>
+     */<br/>
+    public void setStateChangeFromOptionId(NumberKey  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeFromOptionId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeFromOptionId = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Get the value of stateChangeToOptionId.<br/>
+     * @return value of stateChangeToOptionId.<br/>
+     */<br/>
+    public NumberKey getStateChangeToOptionId() <br/>
+    {<br/>
+        return stateChangeToOptionId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeToOptionId.<br/>
+     * @param v  Value to assign to stateChangeToOptionId.<br/>
+     */<br/>
+    public void setStateChangeToOptionId(NumberKey  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeToOptionId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeToOptionId = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of stateChangeFromDate.<br/>
+     * @return value of stateChangeFromDate.<br/>
+     */<br/>
+    public String getStateChangeFromDate() <br/>
+    {<br/>
+        return stateChangeFromDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeFromDate.<br/>
+     * @param v  Value to assign to stateChangeFromDate.<br/>
+     */<br/>
+    public void setStateChangeFromDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeFromDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeFromDate = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Get the value of stateChangeToDate.<br/>
+     * @return value of stateChangeToDate.<br/>
+     */<br/>
+    public String getStateChangeToDate() <br/>
+    {<br/>
+        return stateChangeToDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeToDate.<br/>
+     * @param v  Value to assign to stateChangeToDate.<br/>
+     */<br/>
+    public void setStateChangeToDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeToDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeToDate = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Get the value of sortAttributeId.<br/>
+     * @return value of SortAttributeId.<br/>
+     */<br/>
+    public NumberKey getSortAttributeId() <br/>
+    {<br/>
+        return sortAttributeId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of sortAttributeId.<br/>
+     * @param v  Value to assign to sortAttributeId.<br/>
+     */<br/>
+    public void setSortAttributeId(NumberKey v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.sortAttributeId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.sortAttributeId = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+<br/>
+    /**<br/>
+     * Get the value of sortPolarity.<br/>
+     * @return value of sortPolarity.<br/>
+     */<br/>
+    public String getSortPolarity() <br/>
+    {<br/>
+        String polarity = null;<br/>
+        if ( DESC.equals(sortPolarity) ) <br/>
+        {<br/>
+            polarity = DESC;<br/>
+        }        <br/>
+        else <br/>
+        {<br/>
+            polarity = ASC;<br/>
+        }<br/>
+        return polarity;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of sortPolarity.<br/>
+     * @param v  Value to assign to sortPolarity.<br/>
+     */<br/>
+    public void setSortPolarity(String  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.sortPolarity)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.sortPolarity = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Describe &lt;code&gt;addUserSearch&lt;/code&gt; method here.<br/>
+     *<br/>
+     * @param userId a &lt;code&gt;String&lt;/code&gt; represention of the PrimaryKey<br/>
+     * @param searchCriteria a &lt;code&gt;String&lt;/code&gt; either a String <br/>
+     * representation of an Attribute PrimaryKey, or the Strings "created_by" <br/>
+     * "any"<br/>
+     */<br/>
+    public void addUserCriteria(String userId, String searchCriteria)<br/>
+    {<br/>
+        if (userId == null) <br/>
+        {<br/>
+            throw new IllegalArgumentException("userId cannot be null.");<br/>
+        }<br/>
+        if (searchCriteria == null) <br/>
+        {<br/>
+            searchCriteria = ANY_KEY;<br/>
+        }<br/>
+<br/>
+        if (userIdList == null) <br/>
+        {<br/>
+            userIdList = new ArrayList(4);<br/>
+            userSearchCriteriaList = new ArrayList(4);<br/>
+        }<br/>
+        boolean newCriteria = true;<br/>
+        for (int i=userIdList.size()-1; i&gt;=0; i--) <br/>
+        {<br/>
+            if (userId.equals(userIdList.get(i)) &amp;&amp;<br/>
+                searchCriteria.equals(userSearchCriteriaList.get(i))) <br/>
+            {<br/>
+                newCriteria = false;<br/>
+                break;<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        if (newCriteria) <br/>
+        {<br/>
+            modified = true;<br/>
+            userIdList.add(userId);<br/>
+            userSearchCriteriaList.add(searchCriteria);            <br/>
+        }<br/>
+    }<br/>
+<br/>
+    private boolean isAVListModified()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        boolean result = false;<br/>
+        if (lastUsedAVList == null) <br/>
+        {<br/>
+            result = true;<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            List avList = getAttributeValues();<br/>
+            int max = avList.size();<br/>
+            if (lastUsedAVList.size() == max) <br/>
+            {<br/>
+                for (int i=0; i&lt;max; i++) <br/>
+                {<br/>
+                    AttributeValue a1 = (AttributeValue)avList.get(i);<br/>
+                    AttributeValue a2 = (AttributeValue)lastUsedAVList.get(i);<br/>
+                    if ( !ObjectUtils.equals(a1.getOptionId(), a2.getOptionId())<br/>
+                         || !ObjectUtils.equals(a1.getUserId(), a2.getUserId())<br/>
+                         //|| a1.getNumericValue() != a2.getNumericValue()<br/>
+                         || !ObjectUtils.equals(a1.getValue(), a2.getValue()))<br/>
+                    {<br/>
+                        result = true;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = true;<br/>
+            }<br/>
+        }        <br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * <br/>
+     *<br/>
+     * @return a &lt;code&gt;boolean&lt;/code&gt; value<br/>
+     */<br/>
+    private void checkModified()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        if (modified || isAVListModified()) <br/>
+        {<br/>
+            modified = false;<br/>
+            lastTotalIssueCount = -1;<br/>
+            lastMatchingIssueIds = null;<br/>
+            lastQueryResults = null;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public NumberKey getALL_TEXT()<br/>
+    {<br/>
+        return ALL_TEXT;<br/>
+    }<br/>
+<br/>
+    public List getQuickSearchTextAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getTextAttributeValues(true);<br/>
+    }<br/>
+<br/>
+    public List getTextAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getTextAttributeValues(false);<br/>
+    }<br/>
+<br/>
+    private List getTextAttributeValues(boolean quickSearchOnly)<br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap searchValues = getCommonAttributeValuesMap();<br/>
+        List searchAttributes = new ArrayList(searchValues.size());<br/>
+<br/>
+        for ( int i=0; i&lt;searchValues.size(); i++ ) <br/>
+        {<br/>
+            AttributeValue searchValue = <br/>
+                (AttributeValue)searchValues.getValue(i);<br/>
+            if ( (!quickSearchOnly || searchValue.isQuickSearchAttribute())<br/>
+                 &amp;&amp; searchValue.getAttribute().isTextAttribute() ) <br/>
+            {<br/>
+                searchAttributes.add(searchValue);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return searchAttributes;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns OptionAttributes which have been marked for Quick search.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public List getQuickSearchOptionAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getOptionAttributeValues(true);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns OptionAttributes which have been marked for Quick search.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public List getOptionAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getOptionAttributeValues(false);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns OptionAttributes which have been marked for Quick search.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    private List getOptionAttributeValues(boolean quickSearchOnly)<br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap searchValues = getCommonAttributeValuesMap();<br/>
+        List searchAttributeValues = new ArrayList(searchValues.size());<br/>
+<br/>
+        for ( int i=0; i&lt;searchValues.size(); i++ ) <br/>
+        {<br/>
+            AttributeValue searchValue = <br/>
+                (AttributeValue)searchValues.getValue(i);<br/>
+            if ( (!quickSearchOnly || searchValue.isQuickSearchAttribute())<br/>
+                 &amp;&amp; searchValue instanceof OptionAttribute ) <br/>
+            {<br/>
+                searchAttributeValues.add(searchValue);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return searchAttributeValues;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * remove unset AttributeValues.<br/>
+     *<br/>
+     * @param attValues a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    private List removeUnsetValues(List attValues)<br/>
+    {<br/>
+        int size = attValues.size();<br/>
+        List setAVs = new ArrayList(size);<br/>
+        for ( int i=0; i&lt;size; i++ ) <br/>
+        {<br/>
+            AttributeValue attVal = (AttributeValue) attValues.get(i);<br/>
+            if ( attVal.getOptionId() != null || attVal.getValue() != null<br/>
+                 || attVal.getUserId() != null ) <br/>
+            {<br/>
+                setAVs.add(attVal);<br/>
+            }<br/>
+        }<br/>
+        return setAVs;<br/>
+    }<br/>
+<br/>
+    private void addMinimumVotes(Criteria crit)<br/>
+    {<br/>
+        if ( minVotes &gt; 0 ) <br/>
+        {<br/>
+            crit.addJoin(AttributeValuePeer.ISSUE_ID, IssuePeer.ISSUE_ID)<br/>
+                .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                     AttributePeer.TOTAL_VOTES__PK)<br/>
+                .add(AttributeValuePeer.NUMERIC_VALUE, minVotes,<br/>
+                     Criteria.GREATER_EQUAL);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void addIssueIdRange(Criteria crit)<br/>
+        throws ScarabException, Exception<br/>
+    {<br/>
+        // check limits to see which ones are present<br/>
+        // if neither are present, do nothing<br/>
+        if ( (minId != null &amp;&amp; minId.length() != 0)<br/>
+              || (maxId != null &amp;&amp; maxId.length() != 0) ) <br/>
+        {<br/>
+            Issue.FederatedId minFid = null;<br/>
+            Issue.FederatedId maxFid = null;<br/>
+            if ( minId == null || minId.length() == 0 ) <br/>
+            {<br/>
+                maxFid = new Issue.FederatedId(maxId);<br/>
+                setDefaults(null, maxFid);<br/>
+                if (maxFid.getDomain() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_DOMAIN, maxFid.getDomain());<br/>
+                }<br/>
+                if (maxFid.getPrefix() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_PREFIX, maxFid.getPrefix());<br/>
+                }<br/>
+                crit.add(IssuePeer.ID_COUNT, maxFid.getCount(), <br/>
+                         Criteria.LESS_EQUAL);<br/>
+            }<br/>
+            else if ( maxId == null || maxId.length() == 0 ) <br/>
+            {<br/>
+                minFid = new Issue.FederatedId(minId);<br/>
+                setDefaults(minFid, null);<br/>
+                if (minFid.getDomain() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_DOMAIN, minFid.getDomain());<br/>
+                }<br/>
+                if (minFid.getPrefix() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_PREFIX, minFid.getPrefix());<br/>
+                }<br/>
+                crit.add(IssuePeer.ID_COUNT, minFid.getCount(), <br/>
+                         Criteria.GREATER_EQUAL);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                minFid = new Issue.FederatedId(minId);<br/>
+                maxFid = new Issue.FederatedId(maxId);<br/>
+                setDefaults(minFid, maxFid);<br/>
+                <br/>
+                // make sure min id is less than max id and that the character<br/>
+                // parts are equal otherwise skip the query, there are no <br/>
+                // matches<br/>
+                if ( minFid.getCount() &lt;= maxFid.getCount() <br/>
+                     &amp;&amp; StringUtils.equals(minFid.getPrefix(), maxFid.getPrefix())<br/>
+                     &amp;&amp; StringUtils<br/>
+                     .equals( minFid.getDomain(), maxFid.getDomain() ))<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion(<br/>
+                        IssuePeer.ID_COUNT, new Integer(minFid.getCount()), <br/>
+                        Criteria.GREATER_EQUAL);<br/>
+                    c1.and(crit.getNewCriterion(<br/>
+                        IssuePeer.ID_COUNT, new Integer(maxFid.getCount()), <br/>
+                        Criteria.LESS_EQUAL) );<br/>
+                    crit.add(c1);<br/>
+                    if (minFid.getDomain() != null) <br/>
+                    {<br/>
+                        crit.add(IssuePeer.ID_DOMAIN, minFid.getDomain());<br/>
+                    }<br/>
+                    if (minFid.getPrefix() != null) <br/>
+                    {<br/>
+                        crit.add(IssuePeer.ID_PREFIX, minFid.getPrefix());<br/>
+                    }<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    throw new ScarabException("Incompatible issue Ids: " +<br/>
+                                              minId + " and " + maxId);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * give reasonable defaults if module code was not specified<br/>
+     */<br/>
+    private void setDefaults(FederatedId minFid, <br/>
+                             FederatedId maxFid)<br/>
+        throws Exception<br/>
+    {<br/>
+        Module module = getModule();<br/>
+        if (module != null) <br/>
+        {<br/>
+            if ( minFid != null &amp;&amp; minFid.getDomain() == null ) <br/>
+            {<br/>
+                minFid.setDomain(module.getDomain());<br/>
+            }<br/>
+            if ( maxFid != null &amp;&amp; maxFid.getDomain() == null ) <br/>
+            {<br/>
+                maxFid.setDomain(module.getDomain());<br/>
+            }<br/>
+            if ( minFid != null &amp;&amp; minFid.getPrefix() == null ) <br/>
+            {<br/>
+                minFid.setPrefix(module.getCode());<br/>
+            }            <br/>
+        }<br/>
+        if ( maxFid != null &amp;&amp; maxFid.getPrefix() == null ) <br/>
+        {<br/>
+            if (minFid == null) <br/>
+            {<br/>
+                maxFid.setPrefix(module.getCode());                <br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                maxFid.setPrefix(minFid.getPrefix());        <br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void addCreatedDateRange(Criteria crit)<br/>
+        throws ScarabException, Exception<br/>
+    {<br/>
+        Date minUtilDate = parseDate(getMinDate(), false);<br/>
+        Date maxUtilDate = parseDate(getMaxDate(), true);<br/>
+        if ( minUtilDate != null || maxUtilDate != null ) <br/>
+        {<br/>
+            addDateRange(ActivitySetPeer.CREATED_DATE, <br/>
+                         minUtilDate, maxUtilDate, crit);<br/>
+            crit.addJoin(ActivitySetPeer.TRANSACTION_ID, <br/>
+                         ActivityPeer.TRANSACTION_ID);<br/>
+            crit.addJoin(ActivityPeer.ISSUE_ID, IssuePeer.ISSUE_ID);<br/>
+            crit.add(ActivitySetPeer.TYPE_ID, <br/>
+                     ActivitySetTypePeer.CREATE_ISSUE__PK);<br/>
+            // there could be multiple attributes modified during the creation<br/>
+            // which will lead to duplicate issue selection, so we need to <br/>
+            // specify only unique issues<br/>
+            crit.setDistinct();<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Attempts to parse a String as a Date given in MM/DD/YYYY form or a<br/>
+     * Date and Time given in 24 hour clock MM/DD/YYYY HH:mm.  Returns null<br/>
+     * if the String did not contain a suitable format<br/>
+     *<br/>
+     * @param dateString a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @param addTwentyFourHours if no time is given in the date string and<br/>
+     * this flag is true, then 24 hours - 1 msec will be added to the date.<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value<br/>
+     */<br/>
+    public Date parseDate(String dateString, boolean addTwentyFourHours)<br/>
+        throws ParseException<br/>
+    {<br/>
+        Date date = null;<br/>
+        if ( dateString != null ) <br/>
+        {<br/>
+            if ( dateString.indexOf(':') == -1 )<br/>
+            {<br/>
+                String[] patterns = {"MM/dd/yy", "yyyy-MM-dd"};<br/>
+                date = parseDate(dateString, patterns);<br/>
+        <br/>
+                // one last try with the default locale format<br/>
+                if ( date == null ) <br/>
+                {<br/>
+                    date = DateFormat.getDateInstance().parse(dateString);<br/>
+                }<br/>
+<br/>
+                // add 24 hours to max date so it is inclusive<br/>
+                if ( addTwentyFourHours ) <br/>
+                {                <br/>
+                    date.setTime(date.getTime() + 86399999);<br/>
+                }<br/>
+            }<br/>
+            else<br/>
+            {<br/>
+                String[] patterns = {"MM/dd/yy HH:mm", "yyyy-MM-dd HH:mm"};<br/>
+                date = parseDate(dateString, patterns);<br/>
+        <br/>
+                // one last try with the default locale format<br/>
+                if ( date == null ) <br/>
+                {<br/>
+                    date = DateFormat.getDateTimeInstance().parse(dateString);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        return date;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Attempts to parse a String as a Date given in MM/DD/YYYY form or a<br/>
+     * Date and Time given in 24 hour clock MM/DD/YYYY HH:mm.  Returns null<br/>
+     * if the String did not contain a suitable format<br/>
+     *<br/>
+     * @param s a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @param patterns if no time is given in the date string and<br/>
+     * this flag is true, then 24 hours - 1 msec will be added to the date.<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value<br/>
+     * @throws ParseException if input String is null<br/>
+     */<br/>
+    private Date parseDate(String s, String[] patterns)<br/>
+        throws ParseException<br/>
+    {<br/>
+        /* FIXME: the contract for this method is strange<br/>
+           it is returning a null value when encountering a ParseException,<br/>
+           and throwing a ParseException when having a wrong input*/<br/>
+        Date date = null;<br/>
+<br/>
+        if ( s == null ) <br/>
+        {<br/>
+            throw new ParseException("Input string was null", -1);<br/>
+        }<br/>
+<br/>
+        if (formatter == null) <br/>
+        {<br/>
+            formatter = new SimpleDateFormat();<br/>
+        }<br/>
+        <br/>
+        for ( int i=0; i&lt;patterns.length; i++) <br/>
+        {<br/>
+            formatter.applyPattern(patterns[i]);<br/>
+            try<br/>
+            {<br/>
+                date = formatter.parse(s);<br/>
+            }<br/>
+            catch (ParseException e)<br/>
+            {<br/>
+                // ignore<br/>
+            }<br/>
+            if ( date != null ) <br/>
+            {<br/>
+                break;<br/>
+            }<br/>
+        }<br/>
+        return date;<br/>
+    }<br/>
+<br/>
+<br/>
+    private void addDateRange(String column, Date minUtilDate,<br/>
+                              Date maxUtilDate, Criteria crit)<br/>
+        throws ScarabException<br/>
+    {<br/>
+        // check limits to see which ones are present<br/>
+        // if neither are present, do nothing<br/>
+        if ( minUtilDate != null || maxUtilDate != null ) <br/>
+        {<br/>
+            if ( minUtilDate == null ) <br/>
+            {<br/>
+                crit.add(column, maxUtilDate, Criteria.LESS_THAN);<br/>
+            }<br/>
+            else if ( maxUtilDate == null ) <br/>
+            {<br/>
+                crit.add(column, minUtilDate, Criteria.GREATER_EQUAL);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                // make sure min id is less than max id and that the character<br/>
+                // parts are equal otherwise skip the query, there are no <br/>
+                // matches<br/>
+                if ( minUtilDate.before(maxUtilDate) )<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion(<br/>
+                        column, minUtilDate,  Criteria.GREATER_EQUAL);<br/>
+                    c1.and(crit.getNewCriterion(<br/>
+                        column, maxUtilDate,  Criteria.LESS_EQUAL) );<br/>
+                    crit.add(c1);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    throw new ScarabException("maxDate " + maxUtilDate + <br/>
+                        "is before minDate " + minUtilDate);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns a List of matching issues.  if no OptionAttributes were<br/>
+     * found in the input list, criteria is unaltered.<br/>
+     *<br/>
+     * @param attValues a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    private void addSelectedAttributes(Criteria crit, List attValues)<br/>
+        throws Exception<br/>
+    {<br/>
+        Criteria.Criterion c = null;<br/>
+        boolean atLeastOne = false;<br/>
+        HashMap aliasIndices = new HashMap((int)(attValues.size()*1.25));<br/>
+        for ( int j=0; j&lt;attValues.size(); j++ ) <br/>
+        {<br/>
+            List chainedValues = ((AttributeValue)attValues.get(j))<br/>
+                .getValueList();<br/>
+        for ( int i=0; i&lt;chainedValues.size(); i++ ) <br/>
+        {<br/>
+            //pull any chained values out to create a flat list<br/>
+            AttributeValue aval = (AttributeValue)chainedValues.get(i);<br/>
+            if ( aval instanceof OptionAttribute )<br/>
+            {<br/>
+                // we will add at least one option attribute to the criteria<br/>
+                atLeastOne = true;<br/>
+                Criteria.Criterion c2 = null;<br/>
+                // check if this is a new attribute or another possible value<br/>
+                String index = aval.getAttributeId().toString();<br/>
+                if ( aliasIndices.containsKey(index) ) <br/>
+                {<br/>
+                    // this represents another possible value for an attribute<br/>
+                    // OR it to the other possibilities<br/>
+                    Criteria.Criterion prevCrit = <br/>
+                        (Criteria.Criterion )aliasIndices.get(index);<br/>
+                    c2 = buildOptionCriterion(aval);<br/>
+                    prevCrit.or(c2);<br/>
+                }<br/>
+                else<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion("av"+index,<br/>
+                        AV_ISSUE_ID, "av" + index + '.' + AV_ISSUE_ID + '=' + <br/>
+                        IssuePeer.ISSUE_ID, Criteria.CUSTOM); <br/>
+                    crit.addAlias("av"+index, AttributeValuePeer.TABLE_NAME);<br/>
+                    c2 = buildOptionCriterion(aval);<br/>
+                    aliasIndices.put(index, c2);<br/>
+                    Criteria.Criterion c3 = crit.getNewCriterion("av"+index,<br/>
+                        "DELETED", Boolean.FALSE, Criteria.EQUAL);<br/>
+                    c1.and(c2).and(c3);<br/>
+                    if ( c == null ) <br/>
+                    {<br/>
+                        c = c1;<br/>
+                    }<br/>
+                    else <br/>
+                    {<br/>
+                        c.and(c1);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        }<br/>
+        if ( atLeastOne ) <br/>
+        {<br/>
+            crit.add(c);            <br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * This method builds a Criterion for a single attribute value.<br/>
+     * It is used in the addOptionAttributes method<br/>
+     *<br/>
+     * @param aval an &lt;code&gt;AttributeValue&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Criteria.Criterion&lt;/code&gt; value<br/>
+     */<br/>
+    private Criteria.Criterion buildOptionCriterion(AttributeValue aval)<br/>
+        throws Exception<br/>
+    {<br/>
+        Criteria crit = new Criteria();<br/>
+        Criteria.Criterion criterion = null;        <br/>
+        String index = aval.getAttributeId().toString();<br/>
+        List descendants = null;<br/>
+        // it would be a more correct query to separate the descendant<br/>
+        // options by module and do something like<br/>
+        // ... (module_id=1 and option_id in (1,2,3)) OR (module_id=5...<br/>
+        // but we are not checking which options are active here so i<br/>
+        // don't think the complexity of the query is needed.  might want<br/>
+        // to revisit, especially the part about ignoring active setting.<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            descendants = <br/>
+                mitList.getDescendantsUnion(aval.getAttributeOption());<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            IssueType issueType = getIssueType();<br/>
+            descendants = getModule()<br/>
+                .getRModuleOption(aval.getAttributeOption(), issueType)<br/>
+                .getDescendants(issueType);<br/>
+        }<br/>
+        <br/>
+        if ( descendants.size() == 0 ) <br/>
+        {<br/>
+            criterion = crit.getNewCriterion( "av"+index, AV_OPTION_ID,<br/>
+                aval.getOptionId(), Criteria.EQUAL);<br/>
+        }<br/>
+        else<br/>
+        { <br/>
+            NumberKey[] ids = new NumberKey[descendants.size()];<br/>
+            for ( int j=ids.length-1; j&gt;=0; j-- ) <br/>
+            {<br/>
+                ids[j] = ((RModuleOption)descendants.get(j))<br/>
+                    .getOptionId();<br/>
+            }<br/>
+            criterion = crit.getNewCriterion( "av"+index, AV_OPTION_ID,<br/>
+                                              ids, Criteria.IN);<br/>
+        }<br/>
+        <br/>
+        return criterion;<br/>
+    }<br/>
+<br/>
+<br/>
+    private void addUserCriteria(Criteria crit)<br/>
+    {<br/>
+        if (userIdList != null) <br/>
+        {<br/>
+            boolean isAnyUserAV = false;<br/>
+            boolean isAnyCreatedBy = false;<br/>
+            Iterator iter = userSearchCriteriaList.iterator();<br/>
+            while (iter.hasNext())<br/>
+            {<br/>
+                String userCriteria = (String)iter.next();<br/>
+               if (CREATED_BY_KEY.equals(userCriteria)) <br/>
+               {<br/>
+                   isAnyCreatedBy = true;<br/>
+               }<br/>
+               else if (ANY_KEY.equals(userCriteria)) <br/>
+               {<br/>
+                   isAnyCreatedBy = true;<br/>
+                   isAnyUserAV = true;<br/>
+               }               <br/>
+               else <br/>
+               {<br/>
+                   isAnyUserAV = true;<br/>
+               }<br/>
+            }<br/>
+<br/>
+            for (int i =0; i&lt;userIdList.size(); i++)<br/>
+            {<br/>
+               String userId = (String)userIdList.get(i);<br/>
+               String attrId = (String)userSearchCriteriaList.get(i);<br/>
+<br/>
+               addUserCriteria(userId, attrId, isAnyCreatedBy, isAnyUserAV, crit);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    public void addUserCriteria(String userId, String attrId, <br/>
+        boolean isAnyCreatedBy, boolean isAnyUserAttr, Criteria crit)<br/>
+    {<br/>
+        if (attrId == null)<br/>
+        {<br/>
+            attrId = ANY_KEY;<br/>
+        }<br/>
+<br/>
+        Criteria.Criterion newCrit = null;<br/>
+        if (attrId.equals(CREATED_BY_KEY) || attrId.equals(ANY_KEY))<br/>
+        {<br/>
+            // Build Criteria for created by<br/>
+            newCrit = crit.getNewCriterion(<br/>
+                ACTIVITYSETALIAS, CREATED_BY, userId, Criteria.EQUAL);<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                ACTIVITYSETALIAS, TYPE_ID, <br/>
+                ActivitySetTypePeer.CREATE_ISSUE__PK, Criteria.EQUAL) );<br/>
+            //addJoin(ActivitySetPeer.TRANSACTION_ID, <br/>
+            //        ActivityPeer.TRANSACTION_ID)<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                ACTIVITYALIAS_TRANSACTION_ID,<br/>
+                ACTIVITYALIAS_TRAN_ID__EQUALS__ACTIVITYSETALIAS_TRAN_ID, <br/>
+                Criteria.CUSTOM) );<br/>
+            //addJoin(ActivityPeer.ISSUE_ID, IssuePeer.ISSUE_ID)<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                ACTIVITYALIAS_ISSUE_ID,<br/>
+                ACTIVITYALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID,<br/>
+                Criteria.CUSTOM) );<br/>
+<br/>
+            if (isAnyUserAttr) <br/>
+            {<br/>
+                // this addition improves timing and reduces dupes<br/>
+                // AND srchact0.ISSUE_ID=srchuav0.ISSUE_ID<br/>
+                // AND srchact0.ATTRIBUTE_ID=srchuav0.ATTRIBUTE_ID<br/>
+                newCrit.and( crit.getNewCriterion(<br/>
+                    ACTIVITYALIAS_ISSUE_ID,<br/>
+                    ACTIVITYALIAS_ISSUE_ID__EQUALS__USERAVALIAS_ISSUE_ID,<br/>
+                    Criteria.CUSTOM) );                <br/>
+                newCrit.and( crit.getNewCriterion(<br/>
+                    ACTIVITYALIAS_ATTRIBUTE_ID,<br/>
+                    ACTIVITYALIAS_ATTR_ID__EQUALS__USERAVALIAS_ATTR_ID, <br/>
+                        Criteria.CUSTOM) );  <br/>
+            }<br/>
+<br/>
+            crit.addAlias(ACTIVITYALIAS, ActivityPeer.TABLE_NAME);<br/>
+            crit.addAlias(ACTIVITYSETALIAS, ActivitySetPeer.TABLE_NAME);<br/>
+<br/>
+            if (attrId.equals(ANY_KEY))<br/>
+            {<br/>
+                newCrit.or(getUserCriterion(crit, userId, isAnyCreatedBy));<br/>
+            }   <br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            // A user attribute was selected to search on <br/>
+            newCrit = getUserCriterion(crit, userId, isAnyCreatedBy);<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                USERAVALIAS, ATTRIBUTE_ID, attrId, Criteria.EQUAL) );<br/>
+        }<br/>
+<br/>
+        Criteria.Criterion firstCrit = crit.getCriterion(<br/>
+            ACTIVITYSETALIAS, CREATED_BY);<br/>
+        if (firstCrit == null) <br/>
+        {<br/>
+            firstCrit = <br/>
+                crit.getCriterion(USERAVALIAS, USER_ID);<br/>
+        }<br/>
+        if (firstCrit == null) <br/>
+        {            <br/>
+                crit.and(newCrit);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            firstCrit.or(newCrit);<br/>
+        }            <br/>
+    }<br/>
+<br/>
+<br/>
+    private Criteria.Criterion getUserCriterion(Criteria crit, String userId, <br/>
+                                               boolean isAnyCreatedBy)<br/>
+    {<br/>
+        crit.addAlias(USERAVALIAS, AttributeValuePeer.TABLE_NAME);<br/>
+        <br/>
+        // Get results of searching across user attributes<br/>
+        Criteria.Criterion attrCrit = crit.getNewCriterion(<br/>
+            USERAVALIAS, USER_ID, userId, Criteria.EQUAL);<br/>
+        attrCrit.and( crit.getNewCriterion(<br/>
+            USERAVALIAS, DELETED, Boolean.FALSE, Criteria.EQUAL) );<br/>
+        //addJoin(AttributeValuePeer.ISSUE_ID, IssuePeer.ISSUE_ID)<br/>
+        attrCrit.and( crit.getNewCriterion(<br/>
+            USERAVALIAS_ISSUE_ID,<br/>
+            USERAVALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID,<br/>
+            Criteria.CUSTOM) );<br/>
+        if (isAnyCreatedBy) <br/>
+        {<br/>
+            // the addition of the following improves timing and reduces dupes<br/>
+            // AND srchuav0.USER_ID = srchact0.NEW_USER_ID<br/>
+            // AND srchact0.ISSUE_ID=srchuav0.ISSUE_ID<br/>
+            // AND srchact0.ATTRIBUTE_ID=srchuav0.ATTRIBUTE_ID<br/>
+            // AND srchact0.TRANSACTION_ID=srchactset0.TRANSACTION_ID<br/>
+            attrCrit.and( crit.getNewCriterion( ACTIVITYALIAS_NEW_USER_ID,<br/>
+                ACTIVITYALIAS_NEW_USER_ID__EQUALS__USERAVALIAS_USER_ID, <br/>
+                Criteria.CUSTOM) );<br/>
+            attrCrit.and( crit.getNewCriterion( ACTIVITYALIAS_ISSUE_ID,<br/>
+                ACTIVITYALIAS_ISSUE_ID__EQUALS__USERAVALIAS_ISSUE_ID,<br/>
+                Criteria.CUSTOM) );                <br/>
+            attrCrit.and( crit.getNewCriterion( ACTIVITYALIAS_ATTRIBUTE_ID,<br/>
+                ACTIVITYALIAS_ATTR_ID__EQUALS__USERAVALIAS_ATTR_ID,<br/>
+                Criteria.CUSTOM) );                <br/>
+            attrCrit.and( crit.getNewCriterion( <br/>
+                ACTIVITYALIAS_TRANSACTION_ID,<br/>
+                ACTIVITYALIAS_TRAN_ID__EQUALS__ACTIVITYSETALIAS_TRAN_ID, <br/>
+                Criteria.CUSTOM) );<br/>
+        }<br/>
+<br/>
+        return attrCrit;<br/>
+    }<br/>
+<br/>
+<br/>
+    private NumberKey[] getTextMatches(List attValues)<br/>
+        throws Exception<br/>
+    {<br/>
+        boolean searchCriteriaExists = false;<br/>
+        NumberKey[] matchingIssueIds = null;<br/>
+        SearchIndex searchIndex = SearchFactory.getInstance();<br/>
+        if (searchIndex == null)<br/>
+        {<br/>
+            // Check your configuration.<br/>
+            throw new Exception("No index available to search");<br/>
+        }<br/>
+        if ( getSearchWords() != null &amp;&amp; getSearchWords().length() != 0 )<br/>
+        {<br/>
+            searchIndex.addQuery(getTextScope(), getSearchWords());<br/>
+            searchCriteriaExists = true;<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            for ( int i=0; i&lt;attValues.size(); i++ ) <br/>
+            {<br/>
+                AttributeValue aval = (AttributeValue)attValues.get(i);<br/>
+                if ( aval instanceof StringAttribute <br/>
+                     &amp;&amp; aval.getValue() != null <br/>
+                     &amp;&amp; aval.getValue().length() != 0 )<br/>
+                {<br/>
+                    searchCriteriaExists = true;<br/>
+                    NumberKey[] id = {aval.getAttributeId()};<br/>
+                    searchIndex<br/>
+                        .addQuery(id, aval.getValue());<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // add comment attachments<br/>
+        String commentQuery = getCommentQuery();<br/>
+        if (commentQuery != null &amp;&amp; commentQuery.trim().length() &gt; 0) <br/>
+        {<br/>
+            NumberKey[] id = {AttachmentTypePeer.COMMENT_PK};<br/>
+            searchIndex.addAttachmentQuery(id, commentQuery);            <br/>
+            searchCriteriaExists = true;<br/>
+        }<br/>
+<br/>
+        if (searchCriteriaExists) <br/>
+        {<br/>
+            matchingIssueIds = searchIndex.getRelatedIssues();    <br/>
+        }<br/>
+<br/>
+        return matchingIssueIds;<br/>
+    }<br/>
+<br/>
+    private void addStateChangeQuery(Criteria crit)<br/>
+        throws Exception<br/>
+    {<br/>
+        NumberKey oldOptionId = getStateChangeFromOptionId();<br/>
+        NumberKey newOptionId = getStateChangeToOptionId();<br/>
+        if ( oldOptionId != null || newOptionId != null )<br/>
+        {<br/>
+            if ( oldOptionId == null ) <br/>
+            {<br/>
+                crit.add(ActivityPeer.NEW_OPTION_ID, newOptionId);<br/>
+            }<br/>
+            else if ( newOptionId == null ) <br/>
+            {<br/>
+                crit.add(ActivityPeer.OLD_OPTION_ID, oldOptionId);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                // make sure the old and new options are different, otherwise<br/>
+                // do not add to criteria.<br/>
+                if ( !oldOptionId.equals(newOptionId) )<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion(<br/>
+                        ActivityPeer.OLD_OPTION_ID, oldOptionId,  <br/>
+                        Criteria.EQUAL);<br/>
+                    c1.and(crit.getNewCriterion(<br/>
+                        ActivityPeer.NEW_OPTION_ID, newOptionId, <br/>
+                        Criteria.EQUAL) );<br/>
+                    crit.add(c1);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    // might want to log user error here<br/>
+                }<br/>
+            }<br/>
+            //crit.add(ActivityPeer.ATTRIBUTE_ID, getStateChangeAttributeId());<br/>
+            crit.addJoin(IssuePeer.ISSUE_ID, ActivityPeer.ISSUE_ID);<br/>
+<br/>
+            // add dates, if given<br/>
+            Date minUtilDate = parseDate(getStateChangeFromDate(), false);<br/>
+            Date maxUtilDate = parseDate(getStateChangeToDate(), true);<br/>
+            if ( minUtilDate != null || maxUtilDate != null ) <br/>
+            {<br/>
+                addDateRange(ActivitySetPeer.CREATED_DATE, <br/>
+                             minUtilDate, maxUtilDate, crit);<br/>
+                crit.addJoin(ActivitySetPeer.TRANSACTION_ID, <br/>
+                             ActivityPeer.TRANSACTION_ID);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private NumberKey[] addCoreSearchCriteria(Criteria crit)<br/>
+        throws Exception<br/>
+    {<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            mitList.addToCriteria(crit);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            crit.add(IssuePeer.MODULE_ID, getModule().getModuleId());<br/>
+            crit.add(IssuePeer.TYPE_ID, getIssueType().getIssueTypeId());<br/>
+        }<br/>
+        crit.add(IssuePeer.DELETED, false);<br/>
+<br/>
+        // add option values<br/>
+        lastUsedAVList = getAttributeValues();<br/>
+<br/>
+        // remove unset AttributeValues before searching<br/>
+        List setAttValues = removeUnsetValues(lastUsedAVList);        <br/>
+        addSelectedAttributes(crit, setAttValues);<br/>
+<br/>
+        // search for issues based on text<br/>
+        NumberKey[] matchingIssueIds = getTextMatches(setAttValues);<br/>
+<br/>
+        if ( matchingIssueIds == null || matchingIssueIds.length &gt; 0 )<br/>
+        {            <br/>
+            addIssueIdRange(crit);<br/>
+            addCreatedDateRange(crit);<br/>
+            addMinimumVotes(crit);<br/>
+<br/>
+            // add user values<br/>
+            addUserCriteria(crit);<br/>
+<br/>
+            // add text search matches<br/>
+            addIssuePKsCriteria(crit, matchingIssueIds);<br/>
+<br/>
+            // state change query<br/>
+            addStateChangeQuery(crit);<br/>
+        }<br/>
+        return matchingIssueIds;<br/>
+    }<br/>
+<br/>
+    private void addIssuePKsCriteria(Criteria crit, NumberKey[] ids)<br/>
+    {<br/>
+       if (ids != null &amp;&amp; ids.length &gt; 0)<br/>
+       {<br/>
+           crit.add(IssuePeer.ISSUE_ID, ids, Criteria.IN);<br/>
+       }     <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a List of Issues that match the criteria given by this<br/>
+     * SearchIssue's searchWords and the quick search attribute values.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public List getQueryResults()<br/>
+        throws Exception<br/>
+    {<br/>
+        checkModified();<br/>
+        if (lastQueryResults == null) <br/>
+        {<br/>
+            List rows = null;<br/>
+            Criteria crit = new Criteria();<br/>
+            crit.setDistinct();<br/>
+            NumberKey[] matchingIssueIds = addCoreSearchCriteria(crit);<br/>
+            // the matchingIssueIds are text search matches.  if length == 0,<br/>
+            // then no need to search further.  if null then there was no<br/>
+            // text to search, so continue the search process.<br/>
+            if ( matchingIssueIds == null || matchingIssueIds.length &gt; 0 ) <br/>
+            {            <br/>
+                // Get matching issues, with sort criteria<br/>
+                lastQueryResults = sortResults(crit);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                lastQueryResults = new ArrayList(0);<br/>
+            }            <br/>
+        }<br/>
+        <br/>
+        return lastQueryResults;<br/>
+    }<br/>
+<br/>
+<br/>
+    public int getIssueCount()<br/>
+        throws Exception<br/>
+    {<br/>
+        checkModified();<br/>
+        int count = 0;<br/>
+        if (lastTotalIssueCount &gt;= 0) <br/>
+        {<br/>
+            count = lastTotalIssueCount;<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            Criteria crit = new Criteria();<br/>
+            NumberKey[] matchingIssueIds = addCoreSearchCriteria(crit);<br/>
+            if ( matchingIssueIds == null || matchingIssueIds.length &gt; 0 ) <br/>
+            {<br/>
+                crit.addSelectColumn(<br/>
+                    "count(DISTINCT " + IssuePeer.ISSUE_ID + ')');<br/>
+                List records = IssuePeer.doSelectVillageRecords(crit);<br/>
+                count = ((Record)records.get(0)).getValue(1).asInt();<br/>
+            }<br/>
+            lastTotalIssueCount = count;<br/>
+        }<br/>
+<br/>
+        return count;<br/>
+    }<br/>
+<br/>
+    private List sortResults(Criteria crit)<br/>
+        throws Exception<br/>
+    {<br/>
+        List matchingIssues = null;<br/>
+        if (getSortAttributeId() == null)<br/>
+        {<br/>
+            //sort by unique id<br/>
+            matchingIssues = sortByUniqueId(crit);<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            //sort by unique id<br/>
+            matchingIssues = sortByAttribute(crit);<br/>
+        }<br/>
+        return matchingIssues;<br/>
+    }<br/>
+<br/>
+    private List sortByAttribute(Criteria crit) throws Exception<br/>
+    {<br/>
+        NumberKey sortAttrId = getSortAttributeId();<br/>
+        Attribute att = AttributeManager.getInstance(sortAttrId);<br/>
+<br/>
+        crit.addSelectColumn(IssuePeer.ISSUE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.MODULE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.TYPE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.ID_PREFIX);<br/>
+        crit.addSelectColumn(IssuePeer.ID_COUNT);<br/>
+<br/>
+        // add the attribute value columns that will be shown in the list.<br/>
+        // these are joined using a left outer join, so the additional<br/>
+        // columns do not affect the results of the search (no additional<br/>
+        // criteria are added to the where clause.)  Criteria object does<br/>
+        // not provide support for outer joins, so we will need to manipulate<br/>
+        // the query manually<br/>
+        String baseSql = BasePeer.createQueryString(crit);<br/>
+        StringBuffer sb = new StringBuffer(baseSql.length() + 500);<br/>
+        sb.append(baseSql);<br/>
+<br/>
+        List rmuas = getIssueListAttributeColumns();<br/>
+        int valueListSize = rmuas.size();<br/>
+        StringBuffer outerJoin = new StringBuffer(10 * valueListSize + 20);<br/>
+        StringBuffer selectColumns = new StringBuffer(20 * valueListSize);<br/>
+<br/>
+        int sortAttrPos = -1;<br/>
+        int count = 0;<br/>
+        for (Iterator i = rmuas.iterator(); i.hasNext(); count++) <br/>
+        {<br/>
+            RModuleUserAttribute rmua = (RModuleUserAttribute)i.next();<br/>
+            // locate the sort attribute position so we can move any <br/>
+            // unset results to the end of the list.<br/>
+            NumberKey attrPK = rmua.getAttributeId();<br/>
+            if (attrPK.equals(sortAttrId)) <br/>
+            {<br/>
+                sortAttrPos = count;<br/>
+            }<br/>
+            String id = attrPK.toString();<br/>
+            String alias = "av" + id;<br/>
+            // add column to SELECT column clause<br/>
+            selectColumns.append(',').append(alias).append(".VALUE");<br/>
+            // if no criteria was specified for a displayed attribute<br/>
+            // add it as an outer join<br/>
+            if (crit.getTableForAlias(alias) == null) <br/>
+            {<br/>
+                outerJoin.append(<br/>
+                    " LEFT OUTER JOIN SCARAB_ISSUE_ATTRIBUTE_VALUE ")<br/>
+                    .append(alias).append(" ON (SCARAB_ISSUE.ISSUE_ID=")<br/>
+                    .append(alias).append(".ISSUE_ID AND ").append(alias)<br/>
+                    .append(".DELETED=0 AND ").append(alias)<br/>
+                    .append(".ATTRIBUTE_ID=").append(id).append(')');<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // a VALUE sort column will be handled by the above <br/>
+        // but we need add more sql for option sorting<br/>
+        String sortColumn = null;<br/>
+        String sortId = sortAttrId.toString();<br/>
+        if ( att.isOptionAttribute())<br/>
+        {<br/>
+            // add the sort column<br/>
+            sortColumn = "sortRMO.PREFERRED_ORDER";<br/>
+            selectColumns.append(',').append(sortColumn);<br/>
+            // join the RMO table to the AttributeValue alias we are sorting<br/>
+            outerJoin.append(BASE_OPTION_SORT_LEFT_JOIN).append("av")<br/>
+                .append(sortId).append(".OPTION_ID)");<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            sortColumn = "av" + sortId + ".VALUE";<br/>
+        }<br/>
+<br/>
+        // add left outer join<br/>
+        sb.insert(baseSql.indexOf(WHERE), outerJoin.toString());<br/>
+        // add attribute columns for the table<br/>
+        sb.insert(baseSql.indexOf(FROM), selectColumns.toString());<br/>
+        // add order by clause<br/>
+        sb.append(ORDER_BY).append(sortColumn);<br/>
+        if (getSortPolarity().equals("desc"))<br/>
+        {<br/>
+            sb.append(" DESC");<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            sb.append(" ASC");<br/>
+        }<br/>
+        // add pk sort so that rows can be combined easily<br/>
+        sb.append(',').append(IssuePeer.ISSUE_ID).append(" ASC");<br/>
+        <br/>
+        // return a List of QueryResult objects<br/>
+        return buildQueryResults(BasePeer.executeQuery(sb.toString()), <br/>
+                                 sortAttrPos, valueListSize);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sorts on issue unique id (default)<br/>
+     */<br/>
+    private List sortByUniqueId(Criteria crit) <br/>
+        throws Exception<br/>
+    {<br/>
+        crit.addSelectColumn(IssuePeer.ISSUE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.MODULE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.TYPE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.ID_PREFIX);<br/>
+        crit.addSelectColumn(IssuePeer.ID_COUNT);<br/>
+<br/>
+        if (getSortPolarity().equals("desc"))<br/>
+        {<br/>
+            crit.addDescendingOrderByColumn(IssuePeer.ID_COUNT);<br/>
+        } <br/>
+        else<br/>
+        {<br/>
+            crit.addAscendingOrderByColumn(IssuePeer.ID_COUNT);<br/>
+        }<br/>
+        // add pk sort so that rows can be combined easily<br/>
+        crit.addAscendingOrderByColumn(IssuePeer.ISSUE_ID);<br/>
+        <br/>
+        // add the attribute value columns that will be shown in the list.<br/>
+        // these are joined using a left outer join, so the additional<br/>
+        // columns do not affect the results of the search (no additional<br/>
+        // criteria are added to the where clause.)  Criteria object does<br/>
+        // not provide support for outer joins, so we will need to manipulate<br/>
+        // the query manually<br/>
+        String sql = BasePeer.createQueryString(crit);<br/>
+        int valueListSize = -1;<br/>
+        List rmuas = getIssueListAttributeColumns();<br/>
+        if (rmuas != null) <br/>
+        {<br/>
+            StringBuffer sb = new StringBuffer(sql.length() + 500);<br/>
+            sb.append(sql);<br/>
+            valueListSize = rmuas.size();<br/>
+            StringBuffer outerJoin = new StringBuffer(10 * valueListSize + 20);<br/>
+            StringBuffer selectColumns = new StringBuffer(20 * valueListSize);<br/>
+            <br/>
+            for (Iterator i = rmuas.iterator(); i.hasNext();) <br/>
+            {<br/>
+                RModuleUserAttribute rmua = (RModuleUserAttribute)i.next();<br/>
+                String id = rmua.getAttributeId().toString();<br/>
+                String alias = "av" + id;<br/>
+                // add column to SELECT column clause<br/>
+                selectColumns.append(',').append(alias).append(".VALUE");<br/>
+                // if no criteria was specified for a displayed attribute<br/>
+                // add it as an outer join<br/>
+                if (crit.getTableForAlias(alias) == null) <br/>
+                {<br/>
+                    outerJoin.append(<br/>
+                        " LEFT OUTER JOIN SCARAB_ISSUE_ATTRIBUTE_VALUE ")<br/>
+                        .append(alias).append(" ON (SCARAB_ISSUE.ISSUE_ID=")<br/>
+                        .append(alias).append(".ISSUE_ID AND ").append(alias)<br/>
+                        .append(".DELETED=0 AND ").append(alias)<br/>
+                        .append(".ATTRIBUTE_ID=").append(id).append(')');<br/>
+                }<br/>
+            }<br/>
+        <br/>
+            // add left outer join<br/>
+            sb.insert(sql.indexOf(WHERE), outerJoin.toString());<br/>
+            // add attribute columns for the table<br/>
+            sb.insert(sql.indexOf(FROM), selectColumns.toString());<br/>
+            sql = sb.toString();<br/>
+        }<br/>
+<br/>
+        // return a List of QueryResult objects<br/>
+        return buildQueryResults(BasePeer.executeQuery(sql), <br/>
+                                 NO_ATTRIBUTE_SORT, valueListSize);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * provides common code for use by the sortByUniqueId and sortByAttribute<br/>
+     * methods.  Assembles a list of Record objects into a list of QueryResults.<br/>
+     *<br/>
+     * @param records a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @param sortAttrPos an &lt;code&gt;int&lt;/code&gt; value<br/>
+     * @param valueListSize an &lt;code&gt;int&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    private List buildQueryResults(List records, int sortAttrPos, <br/>
+                                   int valueListSize)<br/>
+        throws Exception<br/>
+    {<br/>
+        List queryResults = new ArrayList(records.size());<br/>
+        // if we are sorting on an attribute column and some records have<br/>
+        // null (non-existent) values for that attribute we separate them<br/>
+        // for presentation at the end of the list.  Otherwise for certain<br/>
+        // polarity they will be shown first.<br/>
+        List heldRows = null;<br/>
+        if (sortAttrPos &gt;= 0) <br/>
+        {<br/>
+            heldRows = new ArrayList();<br/>
+        }<br/>
+        <br/>
+        String prevPk = null;<br/>
+        QueryResult qr = null;<br/>
+        for (Iterator i = records.iterator(); i.hasNext();) <br/>
+        {<br/>
+            Record rec = (Record)i.next();<br/>
+            String pk = rec.getValue(1).asString();<br/>
+            // each attribute can result in a different Record object.  We have<br/>
+            // sorted on the pk column in addition to any other sort, so that<br/>
+            // all attributes for a given issue will be grouped.  The following<br/>
+            // code maps these multiple Records into a single QueryResult per<br/>
+            // issue<br/>
+            if (pk.equals(prevPk)) <br/>
+            {<br/>
+                if (valueListSize &gt; 0) <br/>
+                {<br/>
+                    List values = qr.getAttributeValues();<br/>
+                    for (int j=0; j &lt; valueListSize; j++) <br/>
+                    {<br/>
+                        String s = rec.getValue(j+6).asString();<br/>
+                        // it's possible that multiple Records could have the<br/>
+                        // same value for a given attribute, but we do not want<br/>
+                        // to add the same value many times, so we check for<br/>
+                        // this possibility below.  See the code in the else<br/>
+                        // block about 10 lines down to see how the values lists<br/>
+                        // are arranged to allow for multiple values.<br/>
+                        List prevValues = (List)values.get(j);<br/>
+                        boolean newValue = true;<br/>
+                        for (int k=0; k&lt;prevValues.size(); k++) <br/>
+                        {<br/>
+                            if (ObjectUtils.equals(prevValues.get(k), s)) <br/>
+                            {<br/>
+                                newValue = false;<br/>
+                                break;<br/>
+                            }<br/>
+                        }                    <br/>
+                        if (newValue) <br/>
+                        {<br/>
+                            prevValues.add(s);<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                // the current Record is a new issue<br/>
+                qr = new QueryResult(this);<br/>
+                qr.setIssueId(pk);<br/>
+                qr.setModuleId(rec.getValue(2).asIntegerObj());<br/>
+                qr.setIssueTypeId(rec.getValue(3).asIntegerObj());<br/>
+                qr.setIdPrefix(rec.getValue(4).asString());<br/>
+                qr.setIdCount(rec.getValue(5).asString());<br/>
+                boolean holdRow = false;<br/>
+                if (valueListSize &gt; 0) <br/>
+                {<br/>
+                    List values = new ArrayList(valueListSize);<br/>
+                    for (int j = 0; j &lt; valueListSize; j++) <br/>
+                    {<br/>
+                        String s = rec.getValue(j+6).asString();<br/>
+                        // check if we are sorting on this value and hold the<br/>
+                        // result to the end of the list, if the value is null.<br/>
+                        if (j == sortAttrPos &amp;&amp; s == null) <br/>
+                        {<br/>
+                            holdRow = true;<br/>
+                        }<br/>
+<br/>
+                        // some attributes can be multivalued, so store a list<br/>
+                        // for each attribute containing the values<br/>
+                        ArrayList multiVal = new ArrayList(2);<br/>
+                        multiVal.add(s);<br/>
+                        values.add(multiVal);<br/>
+                    }<br/>
+                    qr.setAttributeValues(values);<br/>
+                }<br/>
+                if (holdRow) <br/>
+                {<br/>
+                    heldRows.add(qr);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    queryResults.add(qr);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+            <br/>
+        if (heldRows != null) <br/>
+        {<br/>
+            queryResults.addAll(heldRows);<br/>
+        }<br/>
+        <br/>
+        return queryResults;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Used by QueryResult to avoid multiple db hits in the event caching<br/>
+     * is not being used application-wide.  It is used if the IssueList.vm<br/>
+     * template is printing the module names next to each issue id.<br/>
+     * As this IssueSearch object is short-lived, use of a simple Map based<br/>
+     * cache is ok, need to re-examine if the lifespan is increased.<br/>
+     *<br/>
+     * @param id an &lt;code&gt;Integer&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     * @exception TorqueException if an error occurs<br/>
+     */<br/>
+    Module getModule(Integer id)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        Module module = (Module)moduleMap.get(id);<br/>
+        if (module == null)<br/>
+        {<br/>
+            module = ModuleManager.getInstance(new NumberKey(id.intValue()));<br/>
+            moduleMap.put(id, module);<br/>
+        }<br/>
+        return module;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Used by QueryResult to avoid multiple db hits in the event caching<br/>
+     * is not being used application-wide.  It is used if the IssueList.vm<br/>
+     * template is printing the issue type names next to each issue id.<br/>
+     * As this IssueSearch object is short-lived, use of a simple Map based<br/>
+     * cache is ok, need to re-examine if the lifespan is increased.<br/>
+     *<br/>
+     * @param moduleId an &lt;code&gt;Integer&lt;/code&gt; value<br/>
+     * @param issueTypeId an &lt;code&gt;Integer&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;RModuleIssueType&lt;/code&gt; value<br/>
+     * @exception TorqueException if an error occurs<br/>
+     */<br/>
+    RModuleIssueType getRModuleIssueType(Integer moduleId, Integer issueTypeId)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        NumberKey[] nks = {new NumberKey(moduleId.intValue()), <br/>
+                           new NumberKey(issueTypeId.intValue())};<br/>
+        ObjectKey key = new ComboKey(nks);<br/>
+        RModuleIssueType rmit = (RModuleIssueType)rmitMap.get(key);<br/>
+        if (rmit == null)<br/>
+        {<br/>
+            rmit = RModuleIssueTypeManager.getInstance(key);<br/>
+            rmitMap.put(key, rmit);<br/>
+        }<br/>
+        return rmit;<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_IssueSearch_1.66.java</h1>
+<div class="code">
+<div class="id">
+package org.tigris.scarab.util.word;<br/>
+<br/>
+/* ================================================================<br/>
+ * Copyright (c) 2000-2002 CollabNet.  All rights reserved.<br/>
+ * <br/>
+ * Redistribution and use in source and binary forms, with or without<br/>
+ * modification, are permitted provided that the following conditions are<br/>
+ * met:<br/>
+ * <br/>
+ * 1. Redistributions of source code must retain the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer.<br/>
+ * <br/>
+ * 2. Redistributions in binary form must reproduce the above copyright<br/>
+ * notice, this list of conditions and the following disclaimer in the<br/>
+ * documentation and/or other materials provided with the distribution.<br/>
+ * <br/>
+ * 3. The end-user documentation included with the redistribution, if<br/>
+ * any, must include the following acknowlegement: "This product includes<br/>
+ * software developed by Collab.Net &lt;http://www.Collab.Net/&gt;."<br/>
+ * Alternately, this acknowlegement may appear in the software itself, if<br/>
+ * and wherever such third-party acknowlegements normally appear.<br/>
+ * <br/>
+ * 4. The hosted project names must not be used to endorse or promote<br/>
+ * products derived from this software without prior written<br/>
+ * permission. For written permission, please contact info@collab.net.<br/>
+ * <br/>
+ * 5. Products derived from this software may not use the "Tigris" or <br/>
+ * "Scarab" names nor may "Tigris" or "Scarab" appear in their names without <br/>
+ * prior written permission of Collab.Net.<br/>
+ * <br/>
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED<br/>
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.<br/>
+ * IN NO EVENT SHALL COLLAB.NET OR ITS CONTRIBUTORS BE LIABLE FOR ANY<br/>
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL<br/>
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE<br/>
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS<br/>
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER<br/>
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR<br/>
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF<br/>
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.<br/>
+ *<br/>
+ * ====================================================================<br/>
+ * <br/>
+ * This software consists of voluntary contributions made by many<br/>
+ * individuals on behalf of Collab.Net.<br/>
+ */ <br/>
+<br/>
+// JDK classes<br/>
+import java.util.HashMap;<br/>
+import java.util.List;<br/>
+import java.util.Iterator;<br/>
+import java.util.Vector;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Date;<br/>
+import java.util.Collections;<br/>
+import java.text.DateFormat;<br/>
+import java.text.SimpleDateFormat;<br/>
+import java.text.ParseException;<br/>
+<br/>
+import com.workingdogs.village.Record;<br/>
+import org.apache.torque.om.NumberKey;<br/>
+import org.apache.torque.om.ComboKey;<br/>
+import org.apache.torque.om.ObjectKey;<br/>
+import org.apache.torque.util.Criteria;<br/>
+import org.apache.torque.util.BasePeer;<br/>
+import org.apache.torque.TorqueException;<br/>
+import org.apache.commons.collections.SequencedHashMap;<br/>
+import org.apache.commons.collections.LRUMap;<br/>
+import org.apache.commons.lang.StringUtils;<br/>
+import org.apache.commons.lang.ObjectUtils;<br/>
+<br/>
+// Scarab classes<br/>
+import org.tigris.scarab.om.Attribute;<br/>
+import org.tigris.scarab.om.AttributeManager;<br/>
+import org.tigris.scarab.om.AttributeOptionPeer;<br/>
+import org.tigris.scarab.om.AttachmentTypePeer;<br/>
+import org.tigris.scarab.om.Issue;<br/>
+import org.tigris.scarab.om.IssueType;<br/>
+import org.tigris.scarab.om.IssuePeer;<br/>
+import org.tigris.scarab.om.AttributeValuePeer;<br/>
+import org.tigris.scarab.om.AttributeValue;<br/>
+import org.tigris.scarab.om.AttributePeer;<br/>
+import org.tigris.scarab.om.ActivityPeer;<br/>
+import org.tigris.scarab.om.ActivitySetPeer;<br/>
+import org.tigris.scarab.om.ActivitySetTypePeer;<br/>
+import org.tigris.scarab.om.RModuleOptionPeer;<br/>
+import org.tigris.scarab.om.RModuleOption;<br/>
+import org.tigris.scarab.om.RModuleIssueType;<br/>
+import org.tigris.scarab.om.RModuleIssueTypeManager;<br/>
+import org.tigris.scarab.om.Module;<br/>
+import org.tigris.scarab.om.ModuleManager;<br/>
+import org.tigris.scarab.om.MITList;<br/>
+import org.tigris.scarab.om.MITListItem;<br/>
+import org.tigris.scarab.om.RModuleUserAttribute;<br/>
+<br/>
+import org.tigris.scarab.util.ScarabException;<br/>
+import org.tigris.scarab.attribute.OptionAttribute;<br/>
+import org.tigris.scarab.attribute.StringAttribute;<br/>
+<br/>
+<br/>
+/** <br/>
+ * A utility class to build up and carry out a search for <br/>
+ * similar issues.  It subclasses Issue for functionality, it is <br/>
+ * not a more specific type of Issue.<br/>
+ */<br/>
+public class IssueSearch <br/>
+    extends Issue<br/>
+{<br/>
+    public static final String ASC = "asc";<br/>
+    public static final String DESC = "desc";<br/>
+<br/>
+    public static final String CREATED_BY_KEY = "created_by";<br/>
+    public static final String ANY_KEY = "any";<br/>
+<br/>
+    private static final NumberKey ALL_TEXT = new NumberKey("0");<br/>
+<br/>
+    // column names only<br/>
+    private static final String AV_OPTION_ID = <br/>
+        AttributeValuePeer.OPTION_ID.substring(<br/>
+        AttributeValuePeer.OPTION_ID.indexOf('.')+1);<br/>
+    private static final String AV_ISSUE_ID = <br/>
+        AttributeValuePeer.ISSUE_ID.substring(<br/>
+        AttributeValuePeer.ISSUE_ID.indexOf('.')+1);<br/>
+    private static final String AV_USER_ID =<br/>
+        AttributeValuePeer.USER_ID.substring(<br/>
+        AttributeValuePeer.USER_ID.indexOf('.')+1);<br/>
+<br/>
+    private static final String ACTIVITYSETALIAS = "srchcobyactset";<br/>
+    private static final String USERAVALIAS = "srchuav";<br/>
+    private static final String ACTIVITYALIAS = "srchcobyact";<br/>
+<br/>
+    private static final String CREATED_BY = "CREATED_BY";<br/>
+    private static final String TYPE_ID = "TYPE_ID";<br/>
+    private static final String ATTRIBUTE_ID = "ATTRIBUTE_ID";<br/>
+    private static final String USER_ID = "USER_ID";<br/>
+    private static final String DELETED = "DELETED";<br/>
+<br/>
+    private static final String ACT_TRAN_ID = <br/>
+        ActivityPeer.TRANSACTION_ID.substring(<br/>
+        ActivityPeer.TRANSACTION_ID.indexOf('.')+1);<br/>
+    private static final String ACTSET_TRAN_ID = <br/>
+        ActivitySetPeer.TRANSACTION_ID.substring(<br/>
+        ActivitySetPeer.TRANSACTION_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_TRANSACTION_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_TRAN_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_TRAN_ID__EQUALS__ACTIVITYSETALIAS_TRAN_ID =<br/>
+        ACTIVITYALIAS_TRANSACTION_ID + "=" + <br/>
+        ACTIVITYSETALIAS + "." + ACTSET_TRAN_ID;<br/>
+<br/>
+    private static final String ACT_ISSUE_ID = <br/>
+        ActivityPeer.ISSUE_ID.substring(ActivityPeer.ISSUE_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_ISSUE_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_ISSUE_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID =<br/>
+        ACTIVITYALIAS_ISSUE_ID + "=" + IssuePeer.ISSUE_ID;<br/>
+<br/>
+    private static final String ACT_ATTR_ID = <br/>
+        ActivityPeer.ATTRIBUTE_ID.substring(<br/>
+        ActivityPeer.ATTRIBUTE_ID.indexOf('.')+1);<br/>
+    private static final String AV_ATTR_ID = <br/>
+        AttributeValuePeer.ATTRIBUTE_ID.substring(<br/>
+        AttributeValuePeer.ATTRIBUTE_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_ATTRIBUTE_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_ATTR_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_ATTR_ID__EQUALS__USERAVALIAS_ATTR_ID =<br/>
+        ACTIVITYALIAS_ATTRIBUTE_ID + "=" + USERAVALIAS + "." + AV_ATTR_ID;<br/>
+<br/>
+    private static final String USERAVALIAS_ISSUE_ID =<br/>
+        USERAVALIAS + "." + AV_ISSUE_ID;<br/>
+    private static final String <br/>
+        USERAVALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID =<br/>
+        USERAVALIAS_ISSUE_ID + "=" + IssuePeer.ISSUE_ID;<br/>
+<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_ISSUE_ID__EQUALS__USERAVALIAS_ISSUE_ID =<br/>
+        ACTIVITYALIAS_ISSUE_ID + "=" + USERAVALIAS + "." + AV_ISSUE_ID;<br/>
+<br/>
+    private static final String ACT_NEW_USER_ID = <br/>
+        ActivityPeer.NEW_USER_ID.substring(<br/>
+        ActivityPeer.NEW_USER_ID.indexOf('.')+1);<br/>
+    private static final String ACTIVITYALIAS_NEW_USER_ID =<br/>
+        ACTIVITYALIAS + "." + ACT_NEW_USER_ID;<br/>
+    private static final String <br/>
+        ACTIVITYALIAS_NEW_USER_ID__EQUALS__USERAVALIAS_USER_ID =<br/>
+        ACTIVITYALIAS_NEW_USER_ID + "=" + USERAVALIAS + "." + AV_USER_ID;<br/>
+<br/>
+    private static String WHERE = " WHERE ";<br/>
+    private static String FROM = " FROM ";<br/>
+    private static String ORDER_BY = " ORDER BY ";<br/>
+    private static String BASE_OPTION_SORT_LEFT_JOIN = <br/>
+        " LEFT OUTER JOIN SCARAB_R_MODULE_OPTION sortRMO ON " + <br/>
+        "(SCARAB_ISSUE.MODULE_ID=sortRMO.MODULE_ID AND SCARAB_ISSUE.TYPE_ID=" +<br/>
+        "sortRMO.ISSUE_TYPE_ID AND sortRMO.OPTION_ID=";<br/>
+<br/>
+    private static int NO_ATTRIBUTE_SORT = -1;<br/>
+<br/>
+    private SimpleDateFormat formatter;<br/>
+<br/>
+    private String searchWords;<br/>
+    private String commentQuery;<br/>
+    private NumberKey[] textScope;<br/>
+    private String minId;<br/>
+    private String maxId;<br/>
+    private String minDate;<br/>
+    private String maxDate;<br/>
+    private int minVotes;<br/>
+    <br/>
+    private NumberKey stateChangeAttributeId;<br/>
+    private NumberKey stateChangeFromOptionId;<br/>
+    private NumberKey stateChangeToOptionId;<br/>
+    private String stateChangeFromDate;<br/>
+    private String stateChangeToDate;<br/>
+<br/>
+    private NumberKey sortAttributeId;<br/>
+    private String sortPolarity;<br/>
+    private MITList mitList;<br/>
+<br/>
+    private List userIdList;<br/>
+    private List userSearchCriteriaList;<br/>
+    private List lastUsedAVList;<br/>
+    private boolean modified;<br/>
+<br/>
+    private int lastTotalIssueCount = -1;<br/>
+    private List lastMatchingIssueIds = null;<br/>
+    private List lastQueryResults = null;<br/>
+<br/>
+    // the attribute columns that will be shown<br/>
+    private List issueListAttributeColumns;<br/>
+<br/>
+    // used to cache a few modules and issuetypes to make listing<br/>
+    // a result set faster.<br/>
+    private LRUMap moduleMap = new LRUMap(20);<br/>
+    private LRUMap rmitMap = new LRUMap(20);<br/>
+    <br/>
+     <br/>
+    public IssueSearch(Issue issue)<br/>
+        throws Exception<br/>
+    {<br/>
+        this(issue.getModule(), issue.getIssueType());<br/>
+<br/>
+        Iterator avs = issue.getAttributeValues().iterator();<br/>
+        List newAvs = getAttributeValues();<br/>
+        while (avs.hasNext())<br/>
+        {<br/>
+            newAvs.add( ((AttributeValue)avs.next()).copy() );<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public IssueSearch(Module module, IssueType issueType)<br/>
+        throws Exception<br/>
+    {<br/>
+        super(module, issueType);<br/>
+    }<br/>
+<br/>
+    public IssueSearch(MITList mitList)<br/>
+        throws Exception<br/>
+    {<br/>
+        super();<br/>
+        if (mitList == null || mitList.size() == 0) <br/>
+        {<br/>
+            throw new IllegalArgumentException("A non-null list with at" +<br/>
+               " least one item is required.");<br/>
+        }<br/>
+        if (mitList.isSingleModuleIssueType()) <br/>
+        {<br/>
+            MITListItem item = mitList.getFirstItem();<br/>
+            setModuleId(item.getModuleId());<br/>
+            setTypeId(item.getIssueTypeId());<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            this.mitList = mitList;   <br/>
+            if (mitList.isSingleModule()) <br/>
+            {<br/>
+                setModule(mitList.getModule());<br/>
+            }<br/>
+            if (mitList.isSingleIssueType()) <br/>
+            {<br/>
+                setIssueType(mitList.getIssueType());<br/>
+            }<br/>
+        }        <br/>
+    }<br/>
+<br/>
+<br/>
+    public boolean isXMITSearch()<br/>
+    {<br/>
+        return mitList != null &amp;&amp; !mitList.isSingleModuleIssueType();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * List of attributes to show with each issue.<br/>
+     *<br/>
+     * @param rmuas a &lt;code&gt;List&lt;/code&gt; of RModuleUserAttribute objects<br/>
+     */<br/>
+    public void setIssueListAttributeColumns(List rmuas)<br/>
+    {<br/>
+        //FIXME! implement logic to determine if a new search is required.<br/>
+        issueListAttributeColumns = rmuas;<br/>
+    }<br/>
+<br/>
+    public List getIssueListAttributeColumns()<br/>
+    {<br/>
+        return issueListAttributeColumns;<br/>
+    }<br/>
+<br/>
+    public SequencedHashMap getCommonAttributeValuesMap()<br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap result = null;<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            result = getMITAttributeValuesMap();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = super.getModuleAttributeValuesMap();<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * AttributeValues that are relevant to the issue's current module.<br/>
+     * Empty AttributeValues that are relevant for the module, but have <br/>
+     * not been set for the issue are included.  The values are ordered<br/>
+     * according to the module's preference<br/>
+     */<br/>
+    private SequencedHashMap getMITAttributeValuesMap() <br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap result = null;<br/>
+<br/>
+        List attributes = null;<br/>
+        //HashMap siaValuesMap = null;<br/>
+<br/>
+        attributes = mitList.getCommonAttributes();<br/>
+        //siaValuesMap = getAttributeValuesMap();<br/>
+        if (attributes != null) <br/>
+        {<br/>
+            result = new SequencedHashMap((int)(1.25*attributes.size() + 1));<br/>
+            Iterator i = attributes.iterator();<br/>
+            while (i.hasNext()) <br/>
+            {<br/>
+                Attribute attribute = (Attribute)i.next();<br/>
+                String key = attribute.getName().toUpperCase();<br/>
+                /*<br/>
+                  if ( siaValuesMap.containsKey(key) ) <br/>
+                  {<br/>
+                  result.put( key, siaValuesMap.get(key) );<br/>
+                  }<br/>
+                  else <br/>
+                  {<br/>
+                */<br/>
+                AttributeValue aval = AttributeValue<br/>
+                    .getNewInstance(attribute, this);<br/>
+                addAttributeValue(aval);<br/>
+                result.put(key, aval);<br/>
+                //}<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public List getUserAttributes()<br/>
+        throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            result = mitList.getCommonUserAttributes();<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = getModule().getUserAttributes(getIssueType());<br/>
+        }<br/>
+        return result;        <br/>
+    } <br/>
+<br/>
+    public List getLeafRModuleOptions(Attribute attribute)<br/>
+        throws Exception<br/>
+    {<br/>
+        List result = null;<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            result = mitList.getCommonLeafRModuleOptions(attribute);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            result = getModule()<br/>
+                .getLeafRModuleOptions(attribute, getIssueType());<br/>
+        }<br/>
+        return result;        <br/>
+    } <br/>
+<br/>
+    public List getCommonOptionTree(Attribute attribute)<br/>
+        throws Exception<br/>
+    {<br/>
+        return mitList.getCommonRModuleOptionTree(attribute);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the value of searchWords.<br/>
+     * @return value of searchWords.<br/>
+     */<br/>
+    public String getSearchWords() <br/>
+    {<br/>
+        return searchWords;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of searchWords.<br/>
+     * @param v  Value to assign to searchWords.<br/>
+     */<br/>
+    public void setSearchWords(String  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.searchWords)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.searchWords = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of commentQuery.<br/>
+     * @return value of commentQuery.<br/>
+     */<br/>
+    public String getCommentQuery() <br/>
+    {<br/>
+        return commentQuery;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of commentQuery.<br/>
+     * @param v  Value to assign to commentQuery.<br/>
+     */<br/>
+    public void setCommentQuery(String  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.commentQuery)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.commentQuery = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Get the value of textScope.  if the scope is not set then all<br/>
+     * text attributes are returned.  if there are no relevant text<br/>
+     * attributes null will be returned.<br/>
+     * @return value of textScope.<br/>
+     */<br/>
+    public NumberKey[] getTextScope()<br/>
+        throws Exception<br/>
+    {<br/>
+        if ( textScope == null ) <br/>
+        {<br/>
+            textScope = getTextScopeForAll();<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            for ( int i=textScope.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                if ( textScope[i].equals(ALL_TEXT) ) <br/>
+                {<br/>
+                    textScope = getTextScopeForAll();<br/>
+                    break;<br/>
+                }       <br/>
+            }<br/>
+        }<br/>
+        return textScope;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Sets the text search scope to all quick search text attributes.<br/>
+     */<br/>
+    private NumberKey[] getTextScopeForAll()<br/>
+        throws Exception<br/>
+    {<br/>
+        NumberKey[] textScope = null;<br/>
+        List textAttributes = getQuickSearchTextAttributeValues();<br/>
+        if ( textAttributes != null ) <br/>
+        {<br/>
+            textScope = new NumberKey[textAttributes.size()];<br/>
+            for ( int j=textAttributes.size()-1; j&gt;=0; j-- ) <br/>
+            {<br/>
+                textScope[j] = ((AttributeValue)<br/>
+                                textAttributes.get(j)).getAttributeId();<br/>
+            }<br/>
+        }<br/>
+        return textScope;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set the value of textScope.<br/>
+     * @param v  Value to assign to textScope.<br/>
+     */<br/>
+    public void setTextScope(NumberKey[]  v) <br/>
+        throws Exception<br/>
+    {<br/>
+        if (v != null) <br/>
+        {<br/>
+            for ( int i=v.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                if ( v[i].equals(ALL_TEXT) ) <br/>
+                {<br/>
+                    v = getTextScopeForAll();<br/>
+                    break;<br/>
+                }       <br/>
+            }<br/>
+        }<br/>
+<br/>
+        // note previous block may have made v == null though its not likely<br/>
+        // (don't replace the if with an else)<br/>
+        if (v == null) <br/>
+        {<br/>
+            modified |= this.textScope != null;<br/>
+            this.textScope = null;<br/>
+        }<br/>
+        else if (this.textScope != null &amp;&amp; this.textScope.length == v.length)<br/>
+        {<br/>
+            for ( int i=v.length-1; i&gt;=0; i-- ) <br/>
+            {<br/>
+                if ( !v[i].equals(this.textScope[i]) ) <br/>
+                {<br/>
+                    modified = true;<br/>
+                    this.textScope = v;            <br/>
+                    break;<br/>
+                }       <br/>
+            }<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            modified = true;<br/>
+            this.textScope = v;            <br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get the value of minId.<br/>
+     * @return value of minId.<br/>
+     */<br/>
+    public String getMinId() <br/>
+    {<br/>
+        return minId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of minId.<br/>
+     * @param v  Value to assign to minId.<br/>
+     */<br/>
+    public void setMinId(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.minId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.minId = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of maxId.<br/>
+     * @return value of maxId.<br/>
+     */<br/>
+    public String getMaxId() <br/>
+    {<br/>
+        return maxId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of maxId.<br/>
+     * @param v  Value to assign to maxId.<br/>
+     */<br/>
+    public void setMaxId(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.maxId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.maxId = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Get the value of minDate.<br/>
+     * @return value of minDate.<br/>
+     */<br/>
+    public String getMinDate() <br/>
+    {<br/>
+        return minDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of minDate.<br/>
+     * @param v  Value to assign to minDate.<br/>
+     */<br/>
+    public void setMinDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.minDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.minDate = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of maxDate.<br/>
+     * @return value of maxDate.<br/>
+     */<br/>
+    public String getMaxDate() <br/>
+    {<br/>
+        return maxDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of maxDate.<br/>
+     * @param v  Value to assign to maxDate.<br/>
+     */<br/>
+    public void setMaxDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.maxDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.maxDate = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Get the value of minVotes.<br/>
+     * @return value of minVotes.<br/>
+     */<br/>
+    public int getMinVotes() <br/>
+    {<br/>
+        return minVotes;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of minVotes.<br/>
+     * @param v  Value to assign to minVotes.<br/>
+     */<br/>
+    public void setMinVotes(int  v) <br/>
+    {<br/>
+        if (v != this.minVotes) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.minVotes = v;<br/>
+        }<br/>
+    }    <br/>
+<br/>
+<br/>
+    /**<br/>
+     * Get the value of stateChangeAttributeId.<br/>
+     * @return value of stateChangeAttributeId.<br/>
+     */<br/>
+    public NumberKey getStateChangeAttributeId() <br/>
+    {<br/>
+        if ( stateChangeAttributeId == null ) <br/>
+        {<br/>
+            return AttributePeer.STATUS__PK;<br/>
+        }<br/>
+        return stateChangeAttributeId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeAttributeId.<br/>
+     * @param v  Value to assign to stateChangeAttributeId.<br/>
+     */<br/>
+    public void setStateChangeAttributeId(NumberKey  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeAttributeId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeAttributeId = v;<br/>
+        }<br/>
+    }<br/>
+        <br/>
+    /**<br/>
+     * Get the value of stateChangeFromOptionId.<br/>
+     * @return value of stateChangeFromOptionId.<br/>
+     */<br/>
+    public NumberKey getStateChangeFromOptionId() <br/>
+    {<br/>
+        return stateChangeFromOptionId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeFromOptionId.<br/>
+     * @param v  Value to assign to stateChangeFromOptionId.<br/>
+     */<br/>
+    public void setStateChangeFromOptionId(NumberKey  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeFromOptionId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeFromOptionId = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Get the value of stateChangeToOptionId.<br/>
+     * @return value of stateChangeToOptionId.<br/>
+     */<br/>
+    public NumberKey getStateChangeToOptionId() <br/>
+    {<br/>
+        return stateChangeToOptionId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeToOptionId.<br/>
+     * @param v  Value to assign to stateChangeToOptionId.<br/>
+     */<br/>
+    public void setStateChangeToOptionId(NumberKey  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeToOptionId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeToOptionId = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Get the value of stateChangeFromDate.<br/>
+     * @return value of stateChangeFromDate.<br/>
+     */<br/>
+    public String getStateChangeFromDate() <br/>
+    {<br/>
+        return stateChangeFromDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeFromDate.<br/>
+     * @param v  Value to assign to stateChangeFromDate.<br/>
+     */<br/>
+    public void setStateChangeFromDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeFromDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeFromDate = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Get the value of stateChangeToDate.<br/>
+     * @return value of stateChangeToDate.<br/>
+     */<br/>
+    public String getStateChangeToDate() <br/>
+    {<br/>
+        return stateChangeToDate;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of stateChangeToDate.<br/>
+     * @param v  Value to assign to stateChangeToDate.<br/>
+     */<br/>
+    public void setStateChangeToDate(String  v) <br/>
+    {<br/>
+        if ( v != null &amp;&amp; v.length() == 0 ) <br/>
+        {<br/>
+            v = null;<br/>
+        }<br/>
+        if (!ObjectUtils.equals(v, this.stateChangeToDate)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.stateChangeToDate = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Get the value of sortAttributeId.<br/>
+     * @return value of SortAttributeId.<br/>
+     */<br/>
+    public NumberKey getSortAttributeId() <br/>
+    {<br/>
+        return sortAttributeId;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of sortAttributeId.<br/>
+     * @param v  Value to assign to sortAttributeId.<br/>
+     */<br/>
+    public void setSortAttributeId(NumberKey v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.sortAttributeId)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.sortAttributeId = v;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+<br/>
+    /**<br/>
+     * Get the value of sortPolarity.<br/>
+     * @return value of sortPolarity.<br/>
+     */<br/>
+    public String getSortPolarity() <br/>
+    {<br/>
+        String polarity = null;<br/>
+        if ( DESC.equals(sortPolarity) ) <br/>
+        {<br/>
+            polarity = DESC;<br/>
+        }        <br/>
+        else <br/>
+        {<br/>
+            polarity = ASC;<br/>
+        }<br/>
+        return polarity;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Set the value of sortPolarity.<br/>
+     * @param v  Value to assign to sortPolarity.<br/>
+     */<br/>
+    public void setSortPolarity(String  v) <br/>
+    {<br/>
+        if (!ObjectUtils.equals(v, this.sortPolarity)) <br/>
+        {<br/>
+            modified = true;<br/>
+            this.sortPolarity = v;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Describe &lt;code&gt;addUserSearch&lt;/code&gt; method here.<br/>
+     *<br/>
+     * @param userId a &lt;code&gt;String&lt;/code&gt; represention of the PrimaryKey<br/>
+     * @param searchCriteria a &lt;code&gt;String&lt;/code&gt; either a String <br/>
+     * representation of an Attribute PrimaryKey, or the Strings "created_by" <br/>
+     * "any"<br/>
+     */<br/>
+    public void addUserCriteria(String userId, String searchCriteria)<br/>
+    {<br/>
+        if (userId == null) <br/>
+        {<br/>
+            throw new IllegalArgumentException("userId cannot be null.");<br/>
+        }<br/>
+        if (searchCriteria == null) <br/>
+        {<br/>
+            searchCriteria = ANY_KEY;<br/>
+        }<br/>
+<br/>
+        if (userIdList == null) <br/>
+        {<br/>
+            userIdList = new ArrayList(4);<br/>
+            userSearchCriteriaList = new ArrayList(4);<br/>
+        }<br/>
+        boolean newCriteria = true;<br/>
+        for (int i=userIdList.size()-1; i&gt;=0; i--) <br/>
+        {<br/>
+            if (userId.equals(userIdList.get(i)) &amp;&amp;<br/>
+                searchCriteria.equals(userSearchCriteriaList.get(i))) <br/>
+            {<br/>
+                newCriteria = false;<br/>
+                break;<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        if (newCriteria) <br/>
+        {<br/>
+            modified = true;<br/>
+            userIdList.add(userId);<br/>
+            userSearchCriteriaList.add(searchCriteria);            <br/>
+        }<br/>
+    }<br/>
+<br/>
+    private boolean isAVListModified()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        boolean result = false;<br/>
+        if (lastUsedAVList == null) <br/>
+        {<br/>
+            result = true;<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            List avList = getAttributeValues();<br/>
+            int max = avList.size();<br/>
+            if (lastUsedAVList.size() == max) <br/>
+            {<br/>
+                for (int i=0; i&lt;max; i++) <br/>
+                {<br/>
+                    AttributeValue a1 = (AttributeValue)avList.get(i);<br/>
+                    AttributeValue a2 = (AttributeValue)lastUsedAVList.get(i);<br/>
+                    if ( !ObjectUtils.equals(a1.getOptionId(), a2.getOptionId())<br/>
+                         || !ObjectUtils.equals(a1.getUserId(), a2.getUserId())<br/>
+                         //|| a1.getNumericValue() != a2.getNumericValue()<br/>
+                         || !ObjectUtils.equals(a1.getValue(), a2.getValue()))<br/>
+                    {<br/>
+                        result = true;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                result = true;<br/>
+            }<br/>
+        }        <br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * <br/>
+     *<br/>
+     * @return a &lt;code&gt;boolean&lt;/code&gt; value<br/>
+     */<br/>
+    private void checkModified()<br/>
+        throws TorqueException<br/>
+    {<br/>
+        if (modified || isAVListModified()) <br/>
+        {<br/>
+            modified = false;<br/>
+            lastTotalIssueCount = -1;<br/>
+            lastMatchingIssueIds = null;<br/>
+            lastQueryResults = null;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public NumberKey getALL_TEXT()<br/>
+    {<br/>
+        return ALL_TEXT;<br/>
+    }<br/>
+<br/>
+    public List getQuickSearchTextAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getTextAttributeValues(true);<br/>
+    }<br/>
+<br/>
+    public List getTextAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getTextAttributeValues(false);<br/>
+    }<br/>
+<br/>
+    private List getTextAttributeValues(boolean quickSearchOnly)<br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap searchValues = getCommonAttributeValuesMap();<br/>
+        List searchAttributes = new ArrayList(searchValues.size());<br/>
+<br/>
+        for ( int i=0; i&lt;searchValues.size(); i++ ) <br/>
+        {<br/>
+            AttributeValue searchValue = <br/>
+                (AttributeValue)searchValues.getValue(i);<br/>
+            if ( (!quickSearchOnly || searchValue.isQuickSearchAttribute())<br/>
+                 &amp;&amp; searchValue.getAttribute().isTextAttribute() ) <br/>
+            {<br/>
+                searchAttributes.add(searchValue);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return searchAttributes;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns OptionAttributes which have been marked for Quick search.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public List getQuickSearchOptionAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getOptionAttributeValues(true);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns OptionAttributes which have been marked for Quick search.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public List getOptionAttributeValues()<br/>
+        throws Exception<br/>
+    {<br/>
+        return getOptionAttributeValues(false);<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns OptionAttributes which have been marked for Quick search.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    private List getOptionAttributeValues(boolean quickSearchOnly)<br/>
+        throws Exception<br/>
+    {<br/>
+        SequencedHashMap searchValues = getCommonAttributeValuesMap();<br/>
+        List searchAttributeValues = new ArrayList(searchValues.size());<br/>
+<br/>
+        for ( int i=0; i&lt;searchValues.size(); i++ ) <br/>
+        {<br/>
+            AttributeValue searchValue = <br/>
+                (AttributeValue)searchValues.getValue(i);<br/>
+            if ( (!quickSearchOnly || searchValue.isQuickSearchAttribute())<br/>
+                 &amp;&amp; searchValue instanceof OptionAttribute ) <br/>
+            {<br/>
+                searchAttributeValues.add(searchValue);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return searchAttributeValues;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * remove unset AttributeValues.<br/>
+     *<br/>
+     * @param attValues a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    private List removeUnsetValues(List attValues)<br/>
+    {<br/>
+        int size = attValues.size();<br/>
+        List setAVs = new ArrayList(size);<br/>
+        for ( int i=0; i&lt;size; i++ ) <br/>
+        {<br/>
+            AttributeValue attVal = (AttributeValue) attValues.get(i);<br/>
+            if ( attVal.getOptionId() != null || attVal.getValue() != null<br/>
+                 || attVal.getUserId() != null ) <br/>
+            {<br/>
+                setAVs.add(attVal);<br/>
+            }<br/>
+        }<br/>
+        return setAVs;<br/>
+    }<br/>
+<br/>
+    private void addMinimumVotes(Criteria crit)<br/>
+    {<br/>
+        if ( minVotes &gt; 0 ) <br/>
+        {<br/>
+            crit.addJoin(AttributeValuePeer.ISSUE_ID, IssuePeer.ISSUE_ID)<br/>
+                .add(AttributeValuePeer.ATTRIBUTE_ID, <br/>
+                     AttributePeer.TOTAL_VOTES__PK)<br/>
+                .add(AttributeValuePeer.NUMERIC_VALUE, minVotes,<br/>
+                     Criteria.GREATER_EQUAL);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void addIssueIdRange(Criteria crit)<br/>
+        throws ScarabException, Exception<br/>
+    {<br/>
+        // check limits to see which ones are present<br/>
+        // if neither are present, do nothing<br/>
+        if ( (minId != null &amp;&amp; minId.length() != 0)<br/>
+              || (maxId != null &amp;&amp; maxId.length() != 0) ) <br/>
+        {<br/>
+            Issue.FederatedId minFid = null;<br/>
+            Issue.FederatedId maxFid = null;<br/>
+            if ( minId == null || minId.length() == 0 ) <br/>
+            {<br/>
+                maxFid = new Issue.FederatedId(maxId);<br/>
+                setDefaults(null, maxFid);<br/>
+                if (maxFid.getDomain() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_DOMAIN, maxFid.getDomain());<br/>
+                }<br/>
+                if (maxFid.getPrefix() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_PREFIX, maxFid.getPrefix());<br/>
+                }<br/>
+                crit.add(IssuePeer.ID_COUNT, maxFid.getCount(), <br/>
+                         Criteria.LESS_EQUAL);<br/>
+            }<br/>
+            else if ( maxId == null || maxId.length() == 0 ) <br/>
+            {<br/>
+                minFid = new Issue.FederatedId(minId);<br/>
+                setDefaults(minFid, null);<br/>
+                if (minFid.getDomain() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_DOMAIN, minFid.getDomain());<br/>
+                }<br/>
+                if (minFid.getPrefix() != null) <br/>
+                {<br/>
+                    crit.add(IssuePeer.ID_PREFIX, minFid.getPrefix());<br/>
+                }<br/>
+                crit.add(IssuePeer.ID_COUNT, minFid.getCount(), <br/>
+                         Criteria.GREATER_EQUAL);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                minFid = new Issue.FederatedId(minId);<br/>
+                maxFid = new Issue.FederatedId(maxId);<br/>
+                setDefaults(minFid, maxFid);<br/>
+                <br/>
+                // make sure min id is less than max id and that the character<br/>
+                // parts are equal otherwise skip the query, there are no <br/>
+                // matches<br/>
+                if ( minFid.getCount() &lt;= maxFid.getCount() <br/>
+                     &amp;&amp; StringUtils.equals(minFid.getPrefix(), maxFid.getPrefix())<br/>
+                     &amp;&amp; StringUtils<br/>
+                     .equals( minFid.getDomain(), maxFid.getDomain() ))<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion(<br/>
+                        IssuePeer.ID_COUNT, new Integer(minFid.getCount()), <br/>
+                        Criteria.GREATER_EQUAL);<br/>
+                    c1.and(crit.getNewCriterion(<br/>
+                        IssuePeer.ID_COUNT, new Integer(maxFid.getCount()), <br/>
+                        Criteria.LESS_EQUAL) );<br/>
+                    crit.add(c1);<br/>
+                    if (minFid.getDomain() != null) <br/>
+                    {<br/>
+                        crit.add(IssuePeer.ID_DOMAIN, minFid.getDomain());<br/>
+                    }<br/>
+                    if (minFid.getPrefix() != null) <br/>
+                    {<br/>
+                        crit.add(IssuePeer.ID_PREFIX, minFid.getPrefix());<br/>
+                    }<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    throw new ScarabException("Incompatible issue Ids: " +<br/>
+                                              minId + " and " + maxId);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * give reasonable defaults if module code was not specified<br/>
+     */<br/>
+    private void setDefaults(FederatedId minFid, <br/>
+                             FederatedId maxFid)<br/>
+        throws Exception<br/>
+    {<br/>
+        Module module = getModule();<br/>
+        if (module != null) <br/>
+        {<br/>
+            if ( minFid != null &amp;&amp; minFid.getDomain() == null ) <br/>
+            {<br/>
+                minFid.setDomain(module.getDomain());<br/>
+            }<br/>
+            if ( maxFid != null &amp;&amp; maxFid.getDomain() == null ) <br/>
+            {<br/>
+                maxFid.setDomain(module.getDomain());<br/>
+            }<br/>
+            if ( minFid != null &amp;&amp; minFid.getPrefix() == null ) <br/>
+            {<br/>
+                minFid.setPrefix(module.getCode());<br/>
+            }            <br/>
+        }<br/>
+        if ( maxFid != null &amp;&amp; maxFid.getPrefix() == null ) <br/>
+        {<br/>
+            if (minFid == null) <br/>
+            {<br/>
+                maxFid.setPrefix(module.getCode());                <br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                maxFid.setPrefix(minFid.getPrefix());        <br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void addCreatedDateRange(Criteria crit)<br/>
+        throws ScarabException, Exception<br/>
+    {<br/>
+        Date minUtilDate = parseDate(getMinDate(), false);<br/>
+        Date maxUtilDate = parseDate(getMaxDate(), true);<br/>
+        if ( minUtilDate != null || maxUtilDate != null ) <br/>
+        {<br/>
+            addDateRange(ActivitySetPeer.CREATED_DATE, <br/>
+                         minUtilDate, maxUtilDate, crit);<br/>
+            crit.addJoin(ActivitySetPeer.TRANSACTION_ID, <br/>
+                         ActivityPeer.TRANSACTION_ID);<br/>
+            crit.addJoin(ActivityPeer.ISSUE_ID, IssuePeer.ISSUE_ID);<br/>
+            crit.add(ActivitySetPeer.TYPE_ID, <br/>
+                     ActivitySetTypePeer.CREATE_ISSUE__PK);<br/>
+            // there could be multiple attributes modified during the creation<br/>
+            // which will lead to duplicate issue selection, so we need to <br/>
+            // specify only unique issues<br/>
+            crit.setDistinct();<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Attempts to parse a String as a Date given in MM/DD/YYYY form or a<br/>
+     * Date and Time given in 24 hour clock MM/DD/YYYY HH:mm.  Returns null<br/>
+     * if the String did not contain a suitable format<br/>
+     *<br/>
+     * @param dateString a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @param addTwentyFourHours if no time is given in the date string and<br/>
+     * this flag is true, then 24 hours - 1 msec will be added to the date.<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value<br/>
+     */<br/>
+    public Date parseDate(String dateString, boolean addTwentyFourHours)<br/>
+        throws ParseException<br/>
+    {<br/>
+        Date date = null;<br/>
+        if ( dateString != null ) <br/>
+        {<br/>
+            if ( dateString.indexOf(':') == -1 )<br/>
+            {<br/>
+                String[] patterns = {"MM/dd/yy", "yyyy-MM-dd"};<br/>
+                date = parseDate(dateString, patterns);<br/>
+        <br/>
+                // one last try with the default locale format<br/>
+                if ( date == null ) <br/>
+                {<br/>
+                    date = DateFormat.getDateInstance().parse(dateString);<br/>
+                }<br/>
+<br/>
+                // add 24 hours to max date so it is inclusive<br/>
+                if ( addTwentyFourHours ) <br/>
+                {                <br/>
+                    date.setTime(date.getTime() + 86399999);<br/>
+                }<br/>
+            }<br/>
+            else<br/>
+            {<br/>
+                String[] patterns = {"MM/dd/yy HH:mm", "yyyy-MM-dd HH:mm"};<br/>
+                date = parseDate(dateString, patterns);<br/>
+        <br/>
+                // one last try with the default locale format<br/>
+                if ( date == null ) <br/>
+                {<br/>
+                    date = DateFormat.getDateTimeInstance().parse(dateString);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        return date;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Attempts to parse a String as a Date given in MM/DD/YYYY form or a<br/>
+     * Date and Time given in 24 hour clock MM/DD/YYYY HH:mm.  Returns null<br/>
+     * if the String did not contain a suitable format<br/>
+     *<br/>
+     * @param s a &lt;code&gt;String&lt;/code&gt; value<br/>
+     * @param patterns if no time is given in the date string and<br/>
+     * this flag is true, then 24 hours - 1 msec will be added to the date.<br/>
+     * @return a &lt;code&gt;Date&lt;/code&gt; value<br/>
+     * @throws ParseException if input String is null<br/>
+     */<br/>
+    private Date parseDate(String s, String[] patterns)<br/>
+        throws ParseException<br/>
+    {<br/>
+        /* FIXME: the contract for this method is strange<br/>
+           it is returning a null value when encountering a ParseException,<br/>
+           and throwing a ParseException when having a wrong input*/<br/>
+        Date date = null;<br/>
+<br/>
+        if ( s == null ) <br/>
+        {<br/>
+            throw new ParseException("Input string was null", -1);<br/>
+        }<br/>
+<br/>
+        if (formatter == null) <br/>
+        {<br/>
+            formatter = new SimpleDateFormat();<br/>
+        }<br/>
+        <br/>
+        for ( int i=0; i&lt;patterns.length; i++) <br/>
+        {<br/>
+            formatter.applyPattern(patterns[i]);<br/>
+            try<br/>
+            {<br/>
+                date = formatter.parse(s);<br/>
+            }<br/>
+            catch (ParseException e)<br/>
+            {<br/>
+                // ignore<br/>
+            }<br/>
+            if ( date != null ) <br/>
+            {<br/>
+                break;<br/>
+            }<br/>
+        }<br/>
+        return date;<br/>
+    }<br/>
+<br/>
+<br/>
+    private void addDateRange(String column, Date minUtilDate,<br/>
+                              Date maxUtilDate, Criteria crit)<br/>
+        throws ScarabException<br/>
+    {<br/>
+        // check limits to see which ones are present<br/>
+        // if neither are present, do nothing<br/>
+        if ( minUtilDate != null || maxUtilDate != null ) <br/>
+        {<br/>
+            if ( minUtilDate == null ) <br/>
+            {<br/>
+                crit.add(column, maxUtilDate, Criteria.LESS_THAN);<br/>
+            }<br/>
+            else if ( maxUtilDate == null ) <br/>
+            {<br/>
+                crit.add(column, minUtilDate, Criteria.GREATER_EQUAL);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                // make sure min id is less than max id and that the character<br/>
+                // parts are equal otherwise skip the query, there are no <br/>
+                // matches<br/>
+                if ( minUtilDate.before(maxUtilDate) )<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion(<br/>
+                        column, minUtilDate,  Criteria.GREATER_EQUAL);<br/>
+                    c1.and(crit.getNewCriterion(<br/>
+                        column, maxUtilDate,  Criteria.LESS_EQUAL) );<br/>
+                    crit.add(c1);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    throw new ScarabException("maxDate " + maxUtilDate + <br/>
+                        "is before minDate " + minUtilDate);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Returns a List of matching issues.  if no OptionAttributes were<br/>
+     * found in the input list, criteria is unaltered.<br/>
+     *<br/>
+     * @param attValues a &lt;code&gt;List&lt;/code&gt; value<br/>
+     */<br/>
+    private void addSelectedAttributes(Criteria crit, List attValues)<br/>
+        throws Exception<br/>
+    {<br/>
+        Criteria.Criterion c = null;<br/>
+        boolean atLeastOne = false;<br/>
+        HashMap aliasIndices = new HashMap((int)(attValues.size()*1.25));<br/>
+        for ( int j=0; j&lt;attValues.size(); j++ ) <br/>
+        {<br/>
+            List chainedValues = ((AttributeValue)attValues.get(j))<br/>
+                .getValueList();<br/>
+        for ( int i=0; i&lt;chainedValues.size(); i++ ) <br/>
+        {<br/>
+            //pull any chained values out to create a flat list<br/>
+            AttributeValue aval = (AttributeValue)chainedValues.get(i);<br/>
+            if ( aval instanceof OptionAttribute )<br/>
+            {<br/>
+                // we will add at least one option attribute to the criteria<br/>
+                atLeastOne = true;<br/>
+                Criteria.Criterion c2 = null;<br/>
+                // check if this is a new attribute or another possible value<br/>
+                String index = aval.getAttributeId().toString();<br/>
+                if ( aliasIndices.containsKey(index) ) <br/>
+                {<br/>
+                    // this represents another possible value for an attribute<br/>
+                    // OR it to the other possibilities<br/>
+                    Criteria.Criterion prevCrit = <br/>
+                        (Criteria.Criterion )aliasIndices.get(index);<br/>
+                    c2 = buildOptionCriterion(aval);<br/>
+                    prevCrit.or(c2);<br/>
+                }<br/>
+                else<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion("av"+index,<br/>
+                        AV_ISSUE_ID, "av" + index + '.' + AV_ISSUE_ID + '=' + <br/>
+                        IssuePeer.ISSUE_ID, Criteria.CUSTOM); <br/>
+                    crit.addAlias("av"+index, AttributeValuePeer.TABLE_NAME);<br/>
+                    c2 = buildOptionCriterion(aval);<br/>
+                    aliasIndices.put(index, c2);<br/>
+                    Criteria.Criterion c3 = crit.getNewCriterion("av"+index,<br/>
+                        "DELETED", Boolean.FALSE, Criteria.EQUAL);<br/>
+                    c1.and(c2).and(c3);<br/>
+                    if ( c == null ) <br/>
+                    {<br/>
+                        c = c1;<br/>
+                    }<br/>
+                    else <br/>
+                    {<br/>
+                        c.and(c1);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        }<br/>
+        if ( atLeastOne ) <br/>
+        {<br/>
+            crit.add(c);            <br/>
+        }<br/>
+    }<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * This method builds a Criterion for a single attribute value.<br/>
+     * It is used in the addOptionAttributes method<br/>
+     *<br/>
+     * @param aval an &lt;code&gt;AttributeValue&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Criteria.Criterion&lt;/code&gt; value<br/>
+     */<br/>
+    private Criteria.Criterion buildOptionCriterion(AttributeValue aval)<br/>
+        throws Exception<br/>
+    {<br/>
+        Criteria crit = new Criteria();<br/>
+        Criteria.Criterion criterion = null;        <br/>
+        String index = aval.getAttributeId().toString();<br/>
+        List descendants = null;<br/>
+        // it would be a more correct query to separate the descendant<br/>
+        // options by module and do something like<br/>
+        // ... (module_id=1 and option_id in (1,2,3)) OR (module_id=5...<br/>
+        // but we are not checking which options are active here so i<br/>
+        // don't think the complexity of the query is needed.  might want<br/>
+        // to revisit, especially the part about ignoring active setting.<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            descendants = <br/>
+                mitList.getDescendantsUnion(aval.getAttributeOption());<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            IssueType issueType = getIssueType();<br/>
+            descendants = getModule()<br/>
+                .getRModuleOption(aval.getAttributeOption(), issueType)<br/>
+                .getDescendants(issueType);<br/>
+        }<br/>
+        <br/>
+        if ( descendants.size() == 0 ) <br/>
+        {<br/>
+            criterion = crit.getNewCriterion( "av"+index, AV_OPTION_ID,<br/>
+                aval.getOptionId(), Criteria.EQUAL);<br/>
+        }<br/>
+        else<br/>
+        { <br/>
+            NumberKey[] ids = new NumberKey[descendants.size()];<br/>
+            for ( int j=ids.length-1; j&gt;=0; j-- ) <br/>
+            {<br/>
+                ids[j] = ((RModuleOption)descendants.get(j))<br/>
+                    .getOptionId();<br/>
+            }<br/>
+            criterion = crit.getNewCriterion( "av"+index, AV_OPTION_ID,<br/>
+                                              ids, Criteria.IN);<br/>
+        }<br/>
+        <br/>
+        return criterion;<br/>
+    }<br/>
+<br/>
+<br/>
+    private void addUserCriteria(Criteria crit)<br/>
+    {<br/>
+        if (userIdList != null) <br/>
+        {<br/>
+            boolean isAnyUserAV = false;<br/>
+            boolean isAnyCreatedBy = false;<br/>
+            Iterator iter = userSearchCriteriaList.iterator();<br/>
+            while (iter.hasNext())<br/>
+            {<br/>
+                String userCriteria = (String)iter.next();<br/>
+               if (CREATED_BY_KEY.equals(userCriteria)) <br/>
+               {<br/>
+                   isAnyCreatedBy = true;<br/>
+               }<br/>
+               else if (ANY_KEY.equals(userCriteria)) <br/>
+               {<br/>
+                   isAnyCreatedBy = true;<br/>
+                   isAnyUserAV = true;<br/>
+               }               <br/>
+               else <br/>
+               {<br/>
+                   isAnyUserAV = true;<br/>
+               }<br/>
+            }<br/>
+<br/>
+            for (int i =0; i&lt;userIdList.size(); i++)<br/>
+            {<br/>
+               String userId = (String)userIdList.get(i);<br/>
+               String attrId = (String)userSearchCriteriaList.get(i);<br/>
+<br/>
+               addUserCriteria(userId, attrId, isAnyCreatedBy, isAnyUserAV, crit);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    public void addUserCriteria(String userId, String attrId, <br/>
+        boolean isAnyCreatedBy, boolean isAnyUserAttr, Criteria crit)<br/>
+    {<br/>
+        if (attrId == null)<br/>
+        {<br/>
+            attrId = ANY_KEY;<br/>
+        }<br/>
+<br/>
+        Criteria.Criterion newCrit = null;<br/>
+        if (attrId.equals(CREATED_BY_KEY) || attrId.equals(ANY_KEY))<br/>
+        {<br/>
+            // Build Criteria for created by<br/>
+            newCrit = crit.getNewCriterion(<br/>
+                ACTIVITYSETALIAS, CREATED_BY, userId, Criteria.EQUAL);<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                ACTIVITYSETALIAS, TYPE_ID, <br/>
+                ActivitySetTypePeer.CREATE_ISSUE__PK, Criteria.EQUAL) );<br/>
+            //addJoin(ActivitySetPeer.TRANSACTION_ID, <br/>
+            //        ActivityPeer.TRANSACTION_ID)<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                ACTIVITYALIAS_TRANSACTION_ID,<br/>
+                ACTIVITYALIAS_TRAN_ID__EQUALS__ACTIVITYSETALIAS_TRAN_ID, <br/>
+                Criteria.CUSTOM) );<br/>
+            //addJoin(ActivityPeer.ISSUE_ID, IssuePeer.ISSUE_ID)<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                ACTIVITYALIAS_ISSUE_ID,<br/>
+                ACTIVITYALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID,<br/>
+                Criteria.CUSTOM) );<br/>
+<br/>
+            if (isAnyUserAttr) <br/>
+            {<br/>
+                // this addition improves timing and reduces dupes<br/>
+                // AND srchact0.ISSUE_ID=srchuav0.ISSUE_ID<br/>
+                // AND srchact0.ATTRIBUTE_ID=srchuav0.ATTRIBUTE_ID<br/>
+                newCrit.and( crit.getNewCriterion(<br/>
+                    ACTIVITYALIAS_ISSUE_ID,<br/>
+                    ACTIVITYALIAS_ISSUE_ID__EQUALS__USERAVALIAS_ISSUE_ID,<br/>
+                    Criteria.CUSTOM) );                <br/>
+                newCrit.and( crit.getNewCriterion(<br/>
+                    ACTIVITYALIAS_ATTRIBUTE_ID,<br/>
+                    ACTIVITYALIAS_ATTR_ID__EQUALS__USERAVALIAS_ATTR_ID, <br/>
+                        Criteria.CUSTOM) );  <br/>
+            }<br/>
+<br/>
+            crit.addAlias(ACTIVITYALIAS, ActivityPeer.TABLE_NAME);<br/>
+            crit.addAlias(ACTIVITYSETALIAS, ActivitySetPeer.TABLE_NAME);<br/>
+<br/>
+            if (attrId.equals(ANY_KEY))<br/>
+            {<br/>
+                newCrit.or(getUserCriterion(crit, userId, isAnyCreatedBy));<br/>
+            }   <br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            // A user attribute was selected to search on <br/>
+            newCrit = getUserCriterion(crit, userId, isAnyCreatedBy);<br/>
+            newCrit.and( crit.getNewCriterion(<br/>
+                USERAVALIAS, ATTRIBUTE_ID, attrId, Criteria.EQUAL) );<br/>
+        }<br/>
+<br/>
+        Criteria.Criterion firstCrit = crit.getCriterion(<br/>
+            ACTIVITYSETALIAS, CREATED_BY);<br/>
+        if (firstCrit == null) <br/>
+        {<br/>
+            firstCrit = <br/>
+                crit.getCriterion(USERAVALIAS, USER_ID);<br/>
+        }<br/>
+        if (firstCrit == null) <br/>
+        {            <br/>
+                crit.and(newCrit);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            firstCrit.or(newCrit);<br/>
+        }            <br/>
+    }<br/>
+<br/>
+<br/>
+    private Criteria.Criterion getUserCriterion(Criteria crit, String userId, <br/>
+                                               boolean isAnyCreatedBy)<br/>
+    {<br/>
+        crit.addAlias(USERAVALIAS, AttributeValuePeer.TABLE_NAME);<br/>
+        <br/>
+        // Get results of searching across user attributes<br/>
+        Criteria.Criterion attrCrit = crit.getNewCriterion(<br/>
+            USERAVALIAS, USER_ID, userId, Criteria.EQUAL);<br/>
+        attrCrit.and( crit.getNewCriterion(<br/>
+            USERAVALIAS, DELETED, Boolean.FALSE, Criteria.EQUAL) );<br/>
+        //addJoin(AttributeValuePeer.ISSUE_ID, IssuePeer.ISSUE_ID)<br/>
+        attrCrit.and( crit.getNewCriterion(<br/>
+            USERAVALIAS_ISSUE_ID,<br/>
+            USERAVALIAS_ISSUE_ID__EQUALS__ISSUEPEER_ISSUE_ID,<br/>
+            Criteria.CUSTOM) );<br/>
+        if (isAnyCreatedBy) <br/>
+        {<br/>
+            // the addition of the following improves timing and reduces dupes<br/>
+            // AND srchuav0.USER_ID = srchact0.NEW_USER_ID<br/>
+            // AND srchact0.ISSUE_ID=srchuav0.ISSUE_ID<br/>
+            // AND srchact0.ATTRIBUTE_ID=srchuav0.ATTRIBUTE_ID<br/>
+            // AND srchact0.TRANSACTION_ID=srchactset0.TRANSACTION_ID<br/>
+            attrCrit.and( crit.getNewCriterion( ACTIVITYALIAS_NEW_USER_ID,<br/>
+                ACTIVITYALIAS_NEW_USER_ID__EQUALS__USERAVALIAS_USER_ID, <br/>
+                Criteria.CUSTOM) );<br/>
+            attrCrit.and( crit.getNewCriterion( ACTIVITYALIAS_ISSUE_ID,<br/>
+                ACTIVITYALIAS_ISSUE_ID__EQUALS__USERAVALIAS_ISSUE_ID,<br/>
+                Criteria.CUSTOM) );                <br/>
+            attrCrit.and( crit.getNewCriterion( ACTIVITYALIAS_ATTRIBUTE_ID,<br/>
+                ACTIVITYALIAS_ATTR_ID__EQUALS__USERAVALIAS_ATTR_ID,<br/>
+                Criteria.CUSTOM) );                <br/>
+            attrCrit.and( crit.getNewCriterion( <br/>
+                ACTIVITYALIAS_TRANSACTION_ID,<br/>
+                ACTIVITYALIAS_TRAN_ID__EQUALS__ACTIVITYSETALIAS_TRAN_ID, <br/>
+                Criteria.CUSTOM) );<br/>
+        }<br/>
+<br/>
+        return attrCrit;<br/>
+    }<br/>
+<br/>
+<br/>
+    private NumberKey[] getTextMatches(List attValues)<br/>
+        throws Exception<br/>
+    {<br/>
+        boolean searchCriteriaExists = false;<br/>
+        NumberKey[] matchingIssueIds = null;<br/>
+        SearchIndex searchIndex = SearchFactory.getInstance();<br/>
+        if (searchIndex == null)<br/>
+        {<br/>
+            // Check your configuration.<br/>
+            throw new Exception("No index available to search");<br/>
+        }<br/>
+        if ( getSearchWords() != null &amp;&amp; getSearchWords().length() != 0 )<br/>
+        {<br/>
+            searchIndex.addQuery(getTextScope(), getSearchWords());<br/>
+            searchCriteriaExists = true;<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            for ( int i=0; i&lt;attValues.size(); i++ ) <br/>
+            {<br/>
+                AttributeValue aval = (AttributeValue)attValues.get(i);<br/>
+                if ( aval instanceof StringAttribute <br/>
+                     &amp;&amp; aval.getValue() != null <br/>
+                     &amp;&amp; aval.getValue().length() != 0 )<br/>
+                {<br/>
+                    searchCriteriaExists = true;<br/>
+                    NumberKey[] id = {aval.getAttributeId()};<br/>
+                    searchIndex<br/>
+                        .addQuery(id, aval.getValue());<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // add comment attachments<br/>
+        String commentQuery = getCommentQuery();<br/>
+        if (commentQuery != null &amp;&amp; commentQuery.trim().length() &gt; 0) <br/>
+        {<br/>
+            NumberKey[] id = {AttachmentTypePeer.COMMENT_PK};<br/>
+            searchIndex.addAttachmentQuery(id, commentQuery);            <br/>
+            searchCriteriaExists = true;<br/>
+        }<br/>
+<br/>
+        if (searchCriteriaExists) <br/>
+        {<br/>
+            matchingIssueIds = searchIndex.getRelatedIssues();    <br/>
+        }<br/>
+<br/>
+        return matchingIssueIds;<br/>
+    }<br/>
+<br/>
+    private void addStateChangeQuery(Criteria crit)<br/>
+        throws Exception<br/>
+    {<br/>
+        NumberKey oldOptionId = getStateChangeFromOptionId();<br/>
+        NumberKey newOptionId = getStateChangeToOptionId();<br/>
+        if ( oldOptionId != null || newOptionId != null )<br/>
+        {<br/>
+            if ( oldOptionId == null ) <br/>
+            {<br/>
+                crit.add(ActivityPeer.NEW_OPTION_ID, newOptionId);<br/>
+            }<br/>
+            else if ( newOptionId == null ) <br/>
+            {<br/>
+                crit.add(ActivityPeer.OLD_OPTION_ID, oldOptionId);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                // make sure the old and new options are different, otherwise<br/>
+                // do not add to criteria.<br/>
+                if ( !oldOptionId.equals(newOptionId) )<br/>
+                {<br/>
+                    Criteria.Criterion c1 = crit.getNewCriterion(<br/>
+                        ActivityPeer.OLD_OPTION_ID, oldOptionId,  <br/>
+                        Criteria.EQUAL);<br/>
+                    c1.and(crit.getNewCriterion(<br/>
+                        ActivityPeer.NEW_OPTION_ID, newOptionId, <br/>
+                        Criteria.EQUAL) );<br/>
+                    crit.add(c1);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    // might want to log user error here<br/>
+                }<br/>
+            }<br/>
+            //crit.add(ActivityPeer.ATTRIBUTE_ID, getStateChangeAttributeId());<br/>
+            crit.addJoin(IssuePeer.ISSUE_ID, ActivityPeer.ISSUE_ID);<br/>
+<br/>
+            // add dates, if given<br/>
+            Date minUtilDate = parseDate(getStateChangeFromDate(), false);<br/>
+            Date maxUtilDate = parseDate(getStateChangeToDate(), true);<br/>
+            if ( minUtilDate != null || maxUtilDate != null ) <br/>
+            {<br/>
+                addDateRange(ActivitySetPeer.CREATED_DATE, <br/>
+                             minUtilDate, maxUtilDate, crit);<br/>
+                crit.addJoin(ActivitySetPeer.TRANSACTION_ID, <br/>
+                             ActivityPeer.TRANSACTION_ID);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private NumberKey[] addCoreSearchCriteria(Criteria crit)<br/>
+        throws Exception<br/>
+    {<br/>
+        if (isXMITSearch()) <br/>
+        {<br/>
+            mitList.addToCriteria(crit);<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            crit.add(IssuePeer.MODULE_ID, getModule().getModuleId());<br/>
+            crit.add(IssuePeer.TYPE_ID, getIssueType().getIssueTypeId());<br/>
+        }<br/>
+        crit.add(IssuePeer.DELETED, false);<br/>
+<br/>
+        // add option values<br/>
+        lastUsedAVList = getAttributeValues();<br/>
+<br/>
+        // remove unset AttributeValues before searching<br/>
+        List setAttValues = removeUnsetValues(lastUsedAVList);        <br/>
+        addSelectedAttributes(crit, setAttValues);<br/>
+<br/>
+        // search for issues based on text<br/>
+        NumberKey[] matchingIssueIds = getTextMatches(setAttValues);<br/>
+<br/>
+        if ( matchingIssueIds == null || matchingIssueIds.length &gt; 0 )<br/>
+        {            <br/>
+            addIssueIdRange(crit);<br/>
+            addCreatedDateRange(crit);<br/>
+            addMinimumVotes(crit);<br/>
+<br/>
+            // add user values<br/>
+            addUserCriteria(crit);<br/>
+<br/>
+            // add text search matches<br/>
+            addIssuePKsCriteria(crit, matchingIssueIds);<br/>
+<br/>
+            // state change query<br/>
+            addStateChangeQuery(crit);<br/>
+        }<br/>
+        return matchingIssueIds;<br/>
+    }<br/>
+<br/>
+    private void addIssuePKsCriteria(Criteria crit, NumberKey[] ids)<br/>
+    {<br/>
+       if (ids != null &amp;&amp; ids.length &gt; 0)<br/>
+       {<br/>
+           crit.add(IssuePeer.ISSUE_ID, ids, Criteria.IN);<br/>
+       }     <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get a List of Issues that match the criteria given by this<br/>
+     * SearchIssue's searchWords and the quick search attribute values.<br/>
+     *<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    public List getQueryResults()<br/>
+        throws Exception<br/>
+    {<br/>
+        checkModified();<br/>
+        if (lastQueryResults == null) <br/>
+        {<br/>
+            List rows = null;<br/>
+            Criteria crit = new Criteria();<br/>
+            crit.setDistinct();<br/>
+            NumberKey[] matchingIssueIds = addCoreSearchCriteria(crit);<br/>
+            // the matchingIssueIds are text search matches.  if length == 0,<br/>
+            // then no need to search further.  if null then there was no<br/>
+            // text to search, so continue the search process.<br/>
+            if ( matchingIssueIds == null || matchingIssueIds.length &gt; 0 ) <br/>
+            {            <br/>
+                // Get matching issues, with sort criteria<br/>
+                lastQueryResults = sortResults(crit);<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                lastQueryResults = new ArrayList(0);<br/>
+            }            <br/>
+        }<br/>
+        <br/>
+        return lastQueryResults;<br/>
+    }<br/>
+<br/>
+<br/>
+    public int getIssueCount()<br/>
+        throws Exception<br/>
+    {<br/>
+        checkModified();<br/>
+        int count = 0;<br/>
+        if (lastTotalIssueCount &gt;= 0) <br/>
+        {<br/>
+            count = lastTotalIssueCount;<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            Criteria crit = new Criteria();<br/>
+            NumberKey[] matchingIssueIds = addCoreSearchCriteria(crit);<br/>
+            if ( matchingIssueIds == null || matchingIssueIds.length &gt; 0 ) <br/>
+            {<br/>
+                crit.addSelectColumn(<br/>
+                    "count(DISTINCT " + IssuePeer.ISSUE_ID + ')');<br/>
+                List records = IssuePeer.doSelectVillageRecords(crit);<br/>
+                count = ((Record)records.get(0)).getValue(1).asInt();<br/>
+            }<br/>
+            lastTotalIssueCount = count;<br/>
+        }<br/>
+<br/>
+        return count;<br/>
+    }<br/>
+<br/>
+    private List sortResults(Criteria crit)<br/>
+        throws Exception<br/>
+    {<br/>
+        List matchingIssues = null;<br/>
+        if (getSortAttributeId() == null)<br/>
+        {<br/>
+            //sort by unique id<br/>
+            matchingIssues = sortByUniqueId(crit);<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            //sort by unique id<br/>
+            matchingIssues = sortByAttribute(crit);<br/>
+        }<br/>
+        return matchingIssues;<br/>
+    }<br/>
+<br/>
+    private List sortByAttribute(Criteria crit) throws Exception<br/>
+    {<br/>
+        NumberKey sortAttrId = getSortAttributeId();<br/>
+        Attribute att = AttributeManager.getInstance(sortAttrId);<br/>
+<br/>
+        crit.addSelectColumn(IssuePeer.ISSUE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.MODULE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.TYPE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.ID_PREFIX);<br/>
+        crit.addSelectColumn(IssuePeer.ID_COUNT);<br/>
+<br/>
+        // add the attribute value columns that will be shown in the list.<br/>
+        // these are joined using a left outer join, so the additional<br/>
+        // columns do not affect the results of the search (no additional<br/>
+        // criteria are added to the where clause.)  Criteria object does<br/>
+        // not provide support for outer joins, so we will need to manipulate<br/>
+        // the query manually<br/>
+        String baseSql = BasePeer.createQueryString(crit);<br/>
+        StringBuffer sb = new StringBuffer(baseSql.length() + 500);<br/>
+        sb.append(baseSql);<br/>
+<br/>
+        List rmuas = getIssueListAttributeColumns();<br/>
+        int valueListSize = rmuas.size();<br/>
+        StringBuffer outerJoin = new StringBuffer(10 * valueListSize + 20);<br/>
+        StringBuffer selectColumns = new StringBuffer(20 * valueListSize);<br/>
+<br/>
+        int sortAttrPos = -1;<br/>
+        int count = 0;<br/>
+        for (Iterator i = rmuas.iterator(); i.hasNext(); count++) <br/>
+        {<br/>
+            RModuleUserAttribute rmua = (RModuleUserAttribute)i.next();<br/>
+            // locate the sort attribute position so we can move any <br/>
+            // unset results to the end of the list.<br/>
+            NumberKey attrPK = rmua.getAttributeId();<br/>
+            if (attrPK.equals(sortAttrId)) <br/>
+            {<br/>
+                sortAttrPos = count;<br/>
+            }<br/>
+            String id = attrPK.toString();<br/>
+            String alias = "av" + id;<br/>
+            // add column to SELECT column clause<br/>
+            selectColumns.append(',').append(alias).append(".VALUE");<br/>
+            // if no criteria was specified for a displayed attribute<br/>
+            // add it as an outer join<br/>
+            if (crit.getTableForAlias(alias) == null) <br/>
+            {<br/>
+                outerJoin.append(<br/>
+                    " LEFT OUTER JOIN SCARAB_ISSUE_ATTRIBUTE_VALUE ")<br/>
+                    .append(alias).append(" ON (SCARAB_ISSUE.ISSUE_ID=")<br/>
+                    .append(alias).append(".ISSUE_ID AND ").append(alias)<br/>
+                    .append(".DELETED=0 AND ").append(alias)<br/>
+                    .append(".ATTRIBUTE_ID=").append(id).append(')');<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // a VALUE sort column will be handled by the above <br/>
+        // but we need add more sql for option sorting<br/>
+        String sortColumn = null;<br/>
+        String sortId = sortAttrId.toString();<br/>
+        if ( att.isOptionAttribute())<br/>
+        {<br/>
+            // add the sort column<br/>
+            sortColumn = "sortRMO.PREFERRED_ORDER";<br/>
+            selectColumns.append(',').append(sortColumn);<br/>
+            // join the RMO table to the AttributeValue alias we are sorting<br/>
+            outerJoin.append(BASE_OPTION_SORT_LEFT_JOIN).append("av")<br/>
+                .append(sortId).append(".OPTION_ID)");<br/>
+        }<br/>
+        else <br/>
+        {<br/>
+            sortColumn = "av" + sortId + ".VALUE";<br/>
+        }<br/>
+<br/>
+        // add left outer join<br/>
+        sb.insert(baseSql.indexOf(WHERE), outerJoin.toString());<br/>
+        // add attribute columns for the table<br/>
+        sb.insert(baseSql.indexOf(FROM), selectColumns.toString());<br/>
+        // add order by clause<br/>
+        sb.append(ORDER_BY).append(sortColumn);<br/>
+        if (getSortPolarity().equals("desc"))<br/>
+        {<br/>
+            sb.append(" DESC");<br/>
+        }<br/>
+        else<br/>
+        {<br/>
+            sb.append(" ASC");<br/>
+        }<br/>
+        // add pk sort so that rows can be combined easily<br/>
+        sb.append(',').append(IssuePeer.ISSUE_ID).append(" ASC");<br/>
+        <br/>
+        // return a List of QueryResult objects<br/>
+        return buildQueryResults(BasePeer.executeQuery(sb.toString()), <br/>
+                                 sortAttrPos, valueListSize);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sorts on issue unique id (default)<br/>
+     */<br/>
+    private List sortByUniqueId(Criteria crit) <br/>
+        throws Exception<br/>
+    {<br/>
+        crit.addSelectColumn(IssuePeer.ISSUE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.MODULE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.TYPE_ID);<br/>
+        crit.addSelectColumn(IssuePeer.ID_PREFIX);<br/>
+        crit.addSelectColumn(IssuePeer.ID_COUNT);<br/>
+<br/>
+        if (getSortPolarity().equals("desc"))<br/>
+        {<br/>
+            crit.addDescendingOrderByColumn(IssuePeer.ID_COUNT);<br/>
+        } <br/>
+        else<br/>
+        {<br/>
+            crit.addAscendingOrderByColumn(IssuePeer.ID_COUNT);<br/>
+        }<br/>
+        // add pk sort so that rows can be combined easily<br/>
+        crit.addAscendingOrderByColumn(IssuePeer.ISSUE_ID);<br/>
+        <br/>
+        // add the attribute value columns that will be shown in the list.<br/>
+        // these are joined using a left outer join, so the additional<br/>
+        // columns do not affect the results of the search (no additional<br/>
+        // criteria are added to the where clause.)  Criteria object does<br/>
+        // not provide support for outer joins, so we will need to manipulate<br/>
+        // the query manually<br/>
+        String sql = BasePeer.createQueryString(crit);<br/>
+        int valueListSize = -1;<br/>
+        List rmuas = getIssueListAttributeColumns();<br/>
+        if (rmuas != null) <br/>
+        {<br/>
+            StringBuffer sb = new StringBuffer(sql.length() + 500);<br/>
+            sb.append(sql);<br/>
+            valueListSize = rmuas.size();<br/>
+            StringBuffer outerJoin = new StringBuffer(10 * valueListSize + 20);<br/>
+            StringBuffer selectColumns = new StringBuffer(20 * valueListSize);<br/>
+            <br/>
+            for (Iterator i = rmuas.iterator(); i.hasNext();) <br/>
+            {<br/>
+                RModuleUserAttribute rmua = (RModuleUserAttribute)i.next();<br/>
+                String id = rmua.getAttributeId().toString();<br/>
+                String alias = "av" + id;<br/>
+                // add column to SELECT column clause<br/>
+                selectColumns.append(',').append(alias).append(".VALUE");<br/>
+                // if no criteria was specified for a displayed attribute<br/>
+                // add it as an outer join<br/>
+                if (crit.getTableForAlias(alias) == null) <br/>
+                {<br/>
+                    outerJoin.append(<br/>
+                        " LEFT OUTER JOIN SCARAB_ISSUE_ATTRIBUTE_VALUE ")<br/>
+                        .append(alias).append(" ON (SCARAB_ISSUE.ISSUE_ID=")<br/>
+                        .append(alias).append(".ISSUE_ID AND ").append(alias)<br/>
+                        .append(".DELETED=0 AND ").append(alias)<br/>
+                        .append(".ATTRIBUTE_ID=").append(id).append(')');<br/>
+                }<br/>
+            }<br/>
+        <br/>
+            // add left outer join<br/>
+            sb.insert(sql.indexOf(WHERE), outerJoin.toString());<br/>
+            // add attribute columns for the table<br/>
+            sb.insert(sql.indexOf(FROM), selectColumns.toString());<br/>
+            sql = sb.toString();<br/>
+        }<br/>
+<br/>
+        // return a List of QueryResult objects<br/>
+        return buildQueryResults(BasePeer.executeQuery(sql), <br/>
+                                 NO_ATTRIBUTE_SORT, valueListSize);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * provides common code for use by the sortByUniqueId and sortByAttribute<br/>
+     * methods.  Assembles a list of Record objects into a list of QueryResults.<br/>
+     *<br/>
+     * @param records a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @param sortAttrPos an &lt;code&gt;int&lt;/code&gt; value<br/>
+     * @param valueListSize an &lt;code&gt;int&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;List&lt;/code&gt; value<br/>
+     * @exception Exception if an error occurs<br/>
+     */<br/>
+    private List buildQueryResults(List records, int sortAttrPos, <br/>
+                                   int valueListSize)<br/>
+        throws Exception<br/>
+    {<br/>
+        List queryResults = new ArrayList(records.size());<br/>
+        // if we are sorting on an attribute column and some records have<br/>
+        // null (non-existent) values for that attribute we separate them<br/>
+        // for presentation at the end of the list.  Otherwise for certain<br/>
+        // polarity they will be shown first.<br/>
+        List heldRows = null;<br/>
+        if (sortAttrPos &gt;= 0) <br/>
+        {<br/>
+            heldRows = new ArrayList();<br/>
+        }<br/>
+        <br/>
+        String prevPk = null;<br/>
+        QueryResult qr = null;<br/>
+        for (Iterator i = records.iterator(); i.hasNext();) <br/>
+        {<br/>
+            Record rec = (Record)i.next();<br/>
+            String pk = rec.getValue(1).asString();<br/>
+            // each attribute can result in a different Record object.  We have<br/>
+            // sorted on the pk column in addition to any other sort, so that<br/>
+            // all attributes for a given issue will be grouped.  The following<br/>
+            // code maps these multiple Records into a single QueryResult per<br/>
+            // issue<br/>
+            if (pk.equals(prevPk)) <br/>
+            {<br/>
+                if (valueListSize &gt; 0) <br/>
+                {<br/>
+                    List values = qr.getAttributeValues();<br/>
+                    for (int j=0; j &lt; valueListSize; j++) <br/>
+                    {<br/>
+                        String s = rec.getValue(j+6).asString();<br/>
+                        // it's possible that multiple Records could have the<br/>
+                        // same value for a given attribute, but we do not want<br/>
+                        // to add the same value many times, so we check for<br/>
+                        // this possibility below.  See the code in the else<br/>
+                        // block about 10 lines down to see how the values lists<br/>
+                        // are arranged to allow for multiple values.<br/>
+                        List prevValues = (List)values.get(j);<br/>
+                        boolean newValue = true;<br/>
+                        for (int k=0; k&lt;prevValues.size(); k++) <br/>
+                        {<br/>
+                            if (ObjectUtils.equals(prevValues.get(k), s)) <br/>
+                            {<br/>
+                                newValue = false;<br/>
+                                break;<br/>
+                            }<br/>
+                        }                    <br/>
+                        if (newValue) <br/>
+                        {<br/>
+                            prevValues.add(s);<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+            else <br/>
+            {<br/>
+                // the current Record is a new issue<br/>
+                <span class="add"><span class="add"><span class="add">prevPk</span> = <span class="add">pk</span></span>;</span><br/>
+                qr = new QueryResult(this);<br/>
+                qr.setIssueId(pk);<br/>
+                qr.setModuleId(rec.getValue(2).asIntegerObj());<br/>
+                qr.setIssueTypeId(rec.getValue(3).asIntegerObj());<br/>
+                qr.setIdPrefix(rec.getValue(4).asString());<br/>
+                qr.setIdCount(rec.getValue(5).asString());<br/>
+                boolean holdRow = false;<br/>
+                if (valueListSize &gt; 0) <br/>
+                {<br/>
+                    List values = new ArrayList(valueListSize);<br/>
+                    for (int j = 0; j &lt; valueListSize; j++) <br/>
+                    {<br/>
+                        String s = rec.getValue(j+6).asString();<br/>
+                        // check if we are sorting on this value and hold the<br/>
+                        // result to the end of the list, if the value is null.<br/>
+                        if (j == sortAttrPos &amp;&amp; s == null) <br/>
+                        {<br/>
+                            holdRow = true;<br/>
+                        }<br/>
+<br/>
+                        // some attributes can be multivalued, so store a list<br/>
+                        // for each attribute containing the values<br/>
+                        ArrayList multiVal = new ArrayList(2);<br/>
+                        multiVal.add(s);<br/>
+                        values.add(multiVal);<br/>
+                    }<br/>
+                    qr.setAttributeValues(values);<br/>
+                }<br/>
+                if (holdRow) <br/>
+                {<br/>
+                    heldRows.add(qr);<br/>
+                }<br/>
+                else <br/>
+                {<br/>
+                    queryResults.add(qr);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+            <br/>
+        if (heldRows != null) <br/>
+        {<br/>
+            queryResults.addAll(heldRows);<br/>
+        }<br/>
+        <br/>
+        return queryResults;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Used by QueryResult to avoid multiple db hits in the event caching<br/>
+     * is not being used application-wide.  It is used if the IssueList.vm<br/>
+     * template is printing the module names next to each issue id.<br/>
+     * As this IssueSearch object is short-lived, use of a simple Map based<br/>
+     * cache is ok, need to re-examine if the lifespan is increased.<br/>
+     *<br/>
+     * @param id an &lt;code&gt;Integer&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;Module&lt;/code&gt; value<br/>
+     * @exception TorqueException if an error occurs<br/>
+     */<br/>
+    Module getModule(Integer id)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        Module module = (Module)moduleMap.get(id);<br/>
+        if (module == null)<br/>
+        {<br/>
+            module = ModuleManager.getInstance(new NumberKey(id.intValue()));<br/>
+            moduleMap.put(id, module);<br/>
+        }<br/>
+        return module;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Used by QueryResult to avoid multiple db hits in the event caching<br/>
+     * is not being used application-wide.  It is used if the IssueList.vm<br/>
+     * template is printing the issue type names next to each issue id.<br/>
+     * As this IssueSearch object is short-lived, use of a simple Map based<br/>
+     * cache is ok, need to re-examine if the lifespan is increased.<br/>
+     *<br/>
+     * @param moduleId an &lt;code&gt;Integer&lt;/code&gt; value<br/>
+     * @param issueTypeId an &lt;code&gt;Integer&lt;/code&gt; value<br/>
+     * @return a &lt;code&gt;RModuleIssueType&lt;/code&gt; value<br/>
+     * @exception TorqueException if an error occurs<br/>
+     */<br/>
+    RModuleIssueType getRModuleIssueType(Integer moduleId, Integer issueTypeId)<br/>
+        throws TorqueException<br/>
+    {<br/>
+        NumberKey[] nks = {new NumberKey(moduleId.intValue()), <br/>
+                           new NumberKey(issueTypeId.intValue())};<br/>
+        ObjectKey key = new ComboKey(nks);<br/>
+        RModuleIssueType rmit = (RModuleIssueType)rmitMap.get(key);<br/>
+        if (rmit == null)<br/>
+        {<br/>
+            rmit = RModuleIssueTypeManager.getInstance(key);<br/>
+            rmitMap.put(key, rmit);<br/>
+        }<br/>
+        return rmit;<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

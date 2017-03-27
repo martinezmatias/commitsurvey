@@ -1,0 +1,1 @@
+Fixed a null pointer dereference

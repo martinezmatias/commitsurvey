@@ -1,0 +1,609 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_UMLChangeDispatch_1.6.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+<br/>
+// File: UMLChangeDispatch.java<br/>
+// Classes: UMLChangeDispatch<br/>
+// Original Author:<br/>
+// $Id: UMLChangeDispatch.java,v 1.6 2002-07-05 08:43:30 mkl Exp $<br/>
+<br/>
+// 23 Apr 2002: Jeremy Bennett (mail@jeremybennett.com). Added named constants<br/>
+// for the various event types.<br/>
+<br/>
+<br/>
+package org.argouml.uml.ui;<br/>
+<br/>
+import org.argouml.uml.ui.behavior.common_behavior.*;<br/>
+<br/>
+import javax.swing.event.*;<br/>
+import java.awt.*;<br/>
+<br/>
+import ru.novosoft.uml.*;<br/>
+<br/>
+/**<br/>
+ *  This class is used to dispatch a NSUML change event (which may occur on a non-UI)<br/>
+ *  thread) to user interface components.  The class is created in response to a <br/>
+ *  NSUML change event being captures by a UMLUserInterfaceContainer and then<br/>
+ *  is passed as an argument to InvokeLater to be run on the user interface thread.<br/>
+ */<br/>
+public class UMLChangeDispatch implements Runnable, UMLUserInterfaceComponent {<br/>
+    private MElementEvent _event;<br/>
+    private int _eventType;<br/>
+    private Container _container;<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a target changed event &lt;em&gt;and&lt;/em&gt; add a NSUML listener to<br/>
+     *   the target afterwards.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int TARGET_CHANGED_ADD = -1;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a target changed event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int TARGET_CHANGED = 0;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML property set event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int PROPERTY_SET = 1;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML list role item set event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int LIST_ROLE_ITEM_SET = 2;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML recovered event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int RECOVERED = 3;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML removed event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int REMOVED = 4;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML role added event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int ROLE_ADDED = 5;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML role removed event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int ROLE_REMOVED = 6;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a target reasserted event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int TARGET_REASSERTED = 7;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a default (target changed) event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int DEFAULT = TARGET_CHANGED;<br/>
+<br/>
+<br/>
+    /**<br/>
+     *  Creates a UMLChangeDispatch.  eventType is overriden if a call to <br/>
+     *  one of the event functions is called.<br/>
+     *  @param container user interface container to which changes are dispatched.<br/>
+     *  @param eventType -1 will add event listener to new target, 0 for default.<br/>
+     *      <br/>
+     */<br/>
+    public UMLChangeDispatch(Container container,int eventType) {<br/>
+        _container = container;<br/>
+        _eventType = eventType;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *   configures this instance to dispatch a targetChanged event.<br/>
+     */<br/>
+    public void targetChanged()<br/>
+    {<br/>
+        _eventType = 0;<br/>
+    }<br/>
+<br/>
+    public void targetReasserted() {<br/>
+        _eventType = 7;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *   configures this instance to dispatch a propertySet event.<br/>
+     *   @param mee NSUML event<br/>
+     */<br/>
+    public void propertySet(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 1;<br/>
+    }<br/>
+           <br/>
+    /**<br/>
+     *   configures this instance to dispatch a listRoleItemSet event.<br/>
+     *   @param mee NSUML event<br/>
+     */<br/>
+    public void listRoleItemSet(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 2;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *   configures this instance to dispatch a recovered event.<br/>
+     *   @param mee NSUML event.<br/>
+     */<br/>
+    public void recovered(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 3;<br/>
+    }<br/>
+    <br/>
+    /**  <br/>
+     *    configures this instance to dispatch a removed event.<br/>
+     *    @param mee NSUML event.<br/>
+     */<br/>
+    public void removed(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 4;<br/>
+    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    /**<br/>
+     *    configures this instance to dispatch a roleAdded event.<br/>
+     *    @param mee NSUML event.<br/>
+     */<br/>
+    public void roleAdded(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 5;<br/>
+    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    /**<br/>
+     *    configures this instance to dispatch a roleRemoved event.<br/>
+     *    @param mee NSUML event<br/>
+     */<br/>
+    public void roleRemoved(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 6;<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     *    Called by InvokeLater on user interface thread.  Dispatches<br/>
+     *    event to all contained objects implementing<br/>
+     *    UMLUserInterfaceComponent.  If event == -1, adds change listener to<br/>
+     *    new target on completion of dispatch.<br/>
+     */<br/>
+    public void run() {<br/>
+        dispatch(_container);<br/>
+        //<br/>
+        //   now that we have finished all the UI updating<br/>
+        //<br/>
+        //   if we were doing an object change then<br/>
+        //      add a listener to our new target<br/>
+        //<br/>
+        if(_eventType == -1 &amp;&amp; _container instanceof PropPanel &amp;&amp;<br/>
+           !((_container instanceof PropPanelObject) ||<br/>
+            (_container instanceof PropPanelNodeInstance) ||<br/>
+            (_container instanceof PropPanelComponentInstance))) {<br/>
+            PropPanel propPanel = (PropPanel) _container;<br/>
+            Object target = propPanel.getTarget();<br/>
+            if(target instanceof MBase) {<br/>
+                propPanel.addMElementListener((MBase) target);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *    Iterates through all children of this container.  If a child<br/>
+     *    is another container then calls dispatch iteratively, if<br/>
+     *    a child supports UMLUserInterfaceComponent then calls the<br/>
+     *    appropriate method.<br/>
+     *    @param container AWT container<br/>
+     */<br/>
+    private void dispatch(Container container) {<br/>
+        int count = container.getComponentCount();<br/>
+        Component component;<br/>
+        UMLUserInterfaceComponent uiComp;<br/>
+        for(int i = 0; i &lt; count; i++) {<br/>
+            component = container.getComponent(i);<br/>
+            if(component instanceof Container)<br/>
+                dispatch((Container) component);<br/>
+            if(component instanceof UMLUserInterfaceComponent) {<br/>
+                uiComp = (UMLUserInterfaceComponent) component;<br/>
+                switch(_eventType) {<br/>
+                    case -1:<br/>
+                    case 0:<br/>
+                        uiComp.targetChanged();<br/>
+                        break;<br/>
+                    <br/>
+                    case 1:<br/>
+                        uiComp.propertySet(_event);<br/>
+                        break;<br/>
+                    <br/>
+                    case 2:<br/>
+                        uiComp.listRoleItemSet(_event);<br/>
+                        break;<br/>
+                    <br/>
+                    case 3:<br/>
+                        uiComp.recovered(_event);<br/>
+                        break;<br/>
+                    <br/>
+                    case 4:<br/>
+                        uiComp.removed(_event);<br/>
+                        break;<br/>
+                        <br/>
+                    case 5:<br/>
+                        uiComp.roleAdded(_event);<br/>
+                        break;<br/>
+                        <br/>
+                    case 6:<br/>
+                        uiComp.roleRemoved(_event);<br/>
+                        break;<br/>
+<br/>
+                    case 7:<br/>
+                        uiComp.targetReasserted();<br/>
+                        break;<br/>
+                }<br/>
+            }       <br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_UMLChangeDispatch_1.7.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+<br/>
+// File: UMLChangeDispatch.java<br/>
+// Classes: UMLChangeDispatch<br/>
+// Original Author:<br/>
+// $Id: UMLChangeDispatch.java,v 1.7 2002-07-15 10:30:27 linus Exp $<br/>
+<br/>
+// 23 Apr 2002: Jeremy Bennett (mail@jeremybennett.com). Added named constants<br/>
+// for the various event types.<br/>
+// 15 Juli 2002: Jaap Branderhorst (jaap.branderhorst@xs4all.nl). <br/>
+// Removed double registration of MEventListeners<br/>
+<br/>
+<br/>
+package org.argouml.uml.ui;<br/>
+<br/>
+import org.argouml.uml.ui.behavior.common_behavior.*;<br/>
+<br/>
+import javax.swing.event.*;<br/>
+import java.awt.*;<br/>
+<br/>
+import ru.novosoft.uml.*;<br/>
+<br/>
+/**<br/>
+ *  This class is used to dispatch a NSUML change event (which may occur on a non-UI)<br/>
+ *  thread) to user interface components.  The class is created in response to a <br/>
+ *  NSUML change event being captures by a UMLUserInterfaceContainer and then<br/>
+ *  is passed as an argument to InvokeLater to be run on the user interface thread.<br/>
+ */<br/>
+public class UMLChangeDispatch implements Runnable, UMLUserInterfaceComponent {<br/>
+    private MElementEvent _event;<br/>
+    private int _eventType;<br/>
+    private Container _container;<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a target changed event &lt;em&gt;and&lt;/em&gt; add a NSUML listener to<br/>
+     *   the target afterwards.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int TARGET_CHANGED_ADD = -1;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a target changed event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int TARGET_CHANGED = 0;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML property set event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int PROPERTY_SET = 1;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML list role item set event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int LIST_ROLE_ITEM_SET = 2;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML recovered event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int RECOVERED = 3;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML removed event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int REMOVED = 4;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML role added event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int ROLE_ADDED = 5;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a NSUML role removed event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int ROLE_REMOVED = 6;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a target reasserted event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int TARGET_REASSERTED = 7;<br/>
+<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Dispatch a default (target changed) event.&lt;/p&gt;<br/>
+     */<br/>
+<br/>
+    public static final int DEFAULT = TARGET_CHANGED;<br/>
+<br/>
+<br/>
+    /**<br/>
+     *  Creates a UMLChangeDispatch.  eventType is overriden if a call to <br/>
+     *  one of the event functions is called.<br/>
+     *  @param container user interface container to which changes are dispatched.<br/>
+     *  @param eventType -1 will add event listener to new target, 0 for default.<br/>
+     *      <br/>
+     */<br/>
+    public UMLChangeDispatch(Container container,int eventType) {<br/>
+        _container = container;<br/>
+        _eventType = eventType;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *   configures this instance to dispatch a targetChanged event.<br/>
+     */<br/>
+    public void targetChanged()<br/>
+    {<br/>
+        _eventType = 0;<br/>
+    }<br/>
+<br/>
+    public void targetReasserted() {<br/>
+        _eventType = 7;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *   configures this instance to dispatch a propertySet event.<br/>
+     *   @param mee NSUML event<br/>
+     */<br/>
+    public void propertySet(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 1;<br/>
+    }<br/>
+           <br/>
+    /**<br/>
+     *   configures this instance to dispatch a listRoleItemSet event.<br/>
+     *   @param mee NSUML event<br/>
+     */<br/>
+    public void listRoleItemSet(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 2;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *   configures this instance to dispatch a recovered event.<br/>
+     *   @param mee NSUML event.<br/>
+     */<br/>
+    public void recovered(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 3;<br/>
+    }<br/>
+    <br/>
+    /**  <br/>
+     *    configures this instance to dispatch a removed event.<br/>
+     *    @param mee NSUML event.<br/>
+     */<br/>
+    public void removed(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 4;<br/>
+    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    /**<br/>
+     *    configures this instance to dispatch a roleAdded event.<br/>
+     *    @param mee NSUML event.<br/>
+     */<br/>
+    public void roleAdded(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 5;<br/>
+    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    /**<br/>
+     *    configures this instance to dispatch a roleRemoved event.<br/>
+     *    @param mee NSUML event<br/>
+     */<br/>
+    public void roleRemoved(MElementEvent mee) {<br/>
+        _event = mee;<br/>
+        _eventType = 6;<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     *    Called by InvokeLater on user interface thread.  Dispatches<br/>
+     *    event to all contained objects implementing<br/>
+     *    UMLUserInterfaceComponent.  If event == -1, adds change listener to<br/>
+     *    new target on completion of dispatch.<br/>
+     */<br/>
+    public void run() {<br/>
+        dispatch(_container);<br/>
+        //<br/>
+        //   now that we have finished all the UI updating<br/>
+        //<br/>
+        //   if we were doing an object change then<br/>
+        //      add a listener to our new target<br/>
+        //<br/>
+        if(_eventType == -1 &amp;&amp; _container instanceof PropPanel &amp;&amp;<br/>
+           !((_container instanceof PropPanelObject) ||<br/>
+            (_container instanceof PropPanelNodeInstance) ||<br/>
+            (_container instanceof PropPanelComponentInstance))) {<br/>
+           PropPanel propPanel = (PropPanel) _container;<br/>
+            Object target = propPanel.getTarget();<br/>
+            if(target instanceof MBase) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">propPanel</span>.<span class="add">removeMElementListener</span>(<span class="add">(<span class="add"><span class="add">MBase</span></span>) <span class="add">target</span></span>)</span>;</span><br/>
+                propPanel.addMElementListener((MBase) target);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     *    Iterates through all children of this container.  If a child<br/>
+     *    is another container then calls dispatch iteratively, if<br/>
+     *    a child supports UMLUserInterfaceComponent then calls the<br/>
+     *    appropriate method.<br/>
+     *    @param container AWT container<br/>
+     */<br/>
+    private void dispatch(Container container) {<br/>
+        int count = container.getComponentCount();<br/>
+        Component component;<br/>
+        UMLUserInterfaceComponent uiComp;<br/>
+        for(int i = 0; i &lt; count; i++) {<br/>
+            component = container.getComponent(i);<br/>
+            if(component instanceof Container)<br/>
+                dispatch((Container) component);<br/>
+            if(component instanceof UMLUserInterfaceComponent) {<br/>
+                uiComp = (UMLUserInterfaceComponent) component;<br/>
+                switch(_eventType) {<br/>
+                    case -1:<br/>
+                    case 0:<br/>
+                        uiComp.targetChanged();<br/>
+                        break;<br/>
+                    <br/>
+                    case 1:<br/>
+                        uiComp.propertySet(_event);<br/>
+                        break;<br/>
+                    <br/>
+                    case 2:<br/>
+                        uiComp.listRoleItemSet(_event);<br/>
+                        break;<br/>
+                    <br/>
+                    case 3:<br/>
+                        uiComp.recovered(_event);<br/>
+                        break;<br/>
+                    <br/>
+                    case 4:<br/>
+                        uiComp.removed(_event);<br/>
+                        break;<br/>
+                        <br/>
+                    case 5:<br/>
+                        uiComp.roleAdded(_event);<br/>
+                        break;<br/>
+                        <br/>
+                    case 6:<br/>
+                        uiComp.roleRemoved(_event);<br/>
+                        break;<br/>
+<br/>
+                    case 7:<br/>
+                        uiComp.targetReasserted();<br/>
+                        break;<br/>
+                }<br/>
+            }       <br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

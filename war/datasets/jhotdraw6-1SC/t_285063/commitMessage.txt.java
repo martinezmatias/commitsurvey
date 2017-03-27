@@ -1,0 +1,1 @@
+bug fix for Sourceforge-bug-id 617389

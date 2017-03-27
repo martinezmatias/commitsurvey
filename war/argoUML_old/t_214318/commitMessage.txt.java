@@ -1,0 +1,1 @@
+Use PgmlUtility.getId(Fig) to generate a PGML id rather than use the GEF code.

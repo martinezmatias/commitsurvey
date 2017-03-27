@@ -1,0 +1,1 @@
+Bug 1180526: bot not clicking done when player unloads BA from omni

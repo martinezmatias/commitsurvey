@@ -1,0 +1,1340 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_TdbFile_1.7.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2000-2004 Ben Mazur (bmazur@sev.org)<br/>
+ *<br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+/*<br/>
+ * TdbFile.java<br/>
+ *  -based on MtfFile.java, modifications by Ryan McConnell<br/>
+ * Created on April 1, 2003, 2:48 PM<br/>
+ */<br/>
+<br/>
+package megamek.common.loaders;<br/>
+<br/>
+import java.io.*;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Vector;<br/>
+import java.util.Enumeration;<br/>
+<br/>
+import megamek.common.BipedMech;<br/>
+import megamek.common.CriticalSlot;<br/>
+import megamek.common.Entity;<br/>
+import megamek.common.EquipmentType;<br/>
+import megamek.common.LocationFullException;<br/>
+import megamek.common.Mech;<br/>
+import megamek.common.Mounted;<br/>
+import megamek.common.QuadMech;<br/>
+import megamek.common.TechConstants;<br/>
+<br/>
+import gd.xml.*;<br/>
+import gd.xml.tiny.*;<br/>
+<br/>
+public class TdbFile implements MechLoader {<br/>
+<br/>
+    private ParsedXML root = null;<br/>
+<br/>
+    /**<br/>
+     * The names of the various elements recognized by this parser.<br/>
+     */<br/>
+    private static final String  CREATOR_SECTION    = "creator";<br/>
+    private static final String  BASICS_SECTION    = "basics";<br/>
+    private static final String  ITEM_DEFS_SECTION    = "itemdefs";<br/>
+    private static final String  MOUNTED_ITEMS_SECTION    = "mounteditems";<br/>
+    private static final String  CRIT_DEFS_SECTION    = "critdefs";<br/>
+<br/>
+    private static final String  NAME    = "name";<br/>
+    private static final String  VERSION    = "version";<br/>
+    private static final String  MODEL    = "model";<br/>
+    private static final String  VARIANT    = "variant";<br/>
+    private static final String  TECHNOLOGY    = "technology";<br/>
+    private static final String  MOVEMECHMOD    = "movemechmod";<br/>
+    private static final String  TONNAGE    = "tonnage"; // also attribute<br/>
+    private static final String  TYPE    = "type";<br/>
+    private static final String  OMNI    = "isomni";<br/>
+    private static final String  WALK   = "walk";<br/>
+    private static final String  JUMP    = "jump";<br/>
+    private static final String  HEAT_SINKS    = "heatsinks";<br/>
+    private static final String  ARMOR    = "armor"; // also attribute<br/>
+    private static final String  MOUNTED_ITEM    = "mounteditem";<br/>
+    private static final String  LOCATION= "location";<br/>
+<br/>
+    /**<br/>
+     * The names of the attributes recognized by this parser.<br/>
+     */<br/>
+    private static final String  LEVEL    = "level";<br/>
+    private static final String  COUNT    = "count";<br/>
+    private static final String  POINTS    = "points";<br/>
+    private static final String  REAR_MOUNTED    = "rearmounted";<br/>
+    private static final String  IS_SPREAD    = "isspread";<br/>
+    private static final String  ITEM_INDEX    = "itemindex";<br/>
+    private static final String  REAR_ARMOR    = "reararmor";<br/>
+<br/>
+    /**<br/>
+     * Special values recognized by this parser.<br/>
+     */<br/>
+    private static final String  TRUE    = "True";<br/>
+    private static final String  FALSE   = "False";<br/>
+    private static final String  DOUBLE   = "Double";<br/>
+    private static final String  TRUE_LOWER    = "true";<br/>
+<br/>
+    private String creatorName = "Unknown";<br/>
+    private String creatorVersion = "Unknown";<br/>
+    private String name;<br/>
+    private boolean isOmni = false;<br/>
+    private String model;<br/>
+    private String variant;<br/>
+<br/>
+    private String chassisConfig;<br/>
+    private String techBase;<br/>
+    private static final String techYear = "3068"; // TDB doesn't have era<br/>
+    private String rulesLevel;<br/>
+    private String LAMTonnage;<br/>
+<br/>
+    private String tonnage;<br/>
+<br/>
+    private String heatSinks;<br/>
+    private boolean dblSinks;<br/>
+    private String walkMP;<br/>
+    private String jumpMP;<br/>
+<br/>
+    private int larmArmor;<br/>
+    private int rarmArmor;<br/>
+    private int ltArmor;<br/>
+    private int rtArmor;<br/>
+    private int ctArmor;<br/>
+    private int headArmor;<br/>
+    private int llegArmor;<br/>
+    private int rlegArmor;<br/>
+    private int ltrArmor;<br/>
+    private int rtrArmor;<br/>
+    private int ctrArmor;<br/>
+<br/>
+    private String[][][] critData;<br/>
+    private boolean isRearMounted[];<br/>
+    private boolean isSplit[];<br/>
+<br/>
+    private Hashtable hSharedEquip = new Hashtable();<br/>
+    private Vector vSplitWeapons = new Vector();<br/>
+<br/>
+    /** Creates new TdbFile */<br/>
+    public TdbFile(InputStream is) throws EntityLoadingException {<br/>
+        try {<br/>
+            root = TinyParser.parseXML(is);<br/>
+        }<br/>
+        catch (ParseException e) {<br/>
+            throw new EntityLoadingException("   Failure to parse XML (TinyParser exception)");<br/>
+        }<br/>
+        // Arbitrarily sized static arrays suck, or so a computer<br/>
+        //  science teacher once told me.<br/>
+        isRearMounted = new boolean[256];<br/>
+        isSplit = new boolean[256];<br/>
+<br/>
+        critData = new String[8][12][2];<br/>
+        parseNode((ParsedXML)root.elements().nextElement());<br/>
+    }<br/>
+<br/>
+    private void parseNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are implicitly parsed when needed.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(CREATOR_SECTION)) {<br/>
+            parseCreatorNode(node);<br/>
+        } else if (node.getName().equals(BASICS_SECTION)) {<br/>
+            parseBasicsNode(node);<br/>
+        } else if (node.getName().equals(ITEM_DEFS_SECTION)) {<br/>
+            return; // don't need item defs section of xml<br/>
+        } else if (node.getName().equals(MOUNTED_ITEMS_SECTION)) {<br/>
+            parseMountedNode(node);<br/>
+        } else if (node.getName().equals(CRIT_DEFS_SECTION)) {<br/>
+            parseCritNode(node);<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void parseCreatorNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(NAME)) {<br/>
+            creatorName = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(VERSION)) {<br/>
+            creatorVersion = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseCreatorNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    private void parseBasicsNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(NAME)) {<br/>
+            name = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(MODEL)) {<br/>
+            model = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(OMNI)) {<br/>
+            isOmni = ((ParsedXML)children.nextElement()).getContent().equals(TRUE_LOWER);<br/>
+        } else if (node.getName().equals(VARIANT)) {<br/>
+            variant = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(TECHNOLOGY)) {<br/>
+            techBase = ((ParsedXML)children.nextElement()).getContent();<br/>
+            rulesLevel = node.getAttribute(LEVEL);<br/>
+        } else if (node.getName().equals(TONNAGE)) {<br/>
+            tonnage = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(TYPE)) {<br/>
+            chassisConfig = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(MOVEMECHMOD)) {<br/>
+            // This tag seems to indicate the pod space on an omnimech<br/>
+            //  or the tonnage of the conversion equipment for<br/>
+            //  a LAM (Land Air Mech).<br/>
+            LAMTonnage = node.getAttribute(TONNAGE);<br/>
+        } else if (node.getName().equals(WALK)) {<br/>
+            walkMP = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(JUMP)) {<br/>
+            jumpMP = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(HEAT_SINKS)) {<br/>
+            if (<span class="mv">((ParsedXML)children.nextElement()).getContent().<span class="upd">equals</span>(DOUBLE)</span>) {<br/>
+                dblSinks = true;<br/>
+            } else {<br/>
+                dblSinks = false;<br/>
+            }<br/>
+            heatSinks = node.getAttribute(COUNT);<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseBasicsNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    private void parseMountedNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(MOUNTED_ITEM)) {<br/>
+            if (node.getAttribute(REAR_MOUNTED).equals(TRUE)) {<br/>
+                isRearMounted[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = true;<br/>
+            } else {<br/>
+                isRearMounted[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = false;<br/>
+            }<br/>
+            if (node.getAttribute(IS_SPREAD).equals(TRUE)) {<br/>
+                isSplit[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = true;<br/>
+            } else {<br/>
+                isSplit[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = false;<br/>
+            }<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseMountedNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    private void parseCritNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(LOCATION)) {<br/>
+            int loc = -1;<br/>
+            int i = 0;<br/>
+            int armor = -1;<br/>
+            int rearArmor = -1;<br/>
+            if (node.getAttribute(ARMOR) != null) {<br/>
+                armor = Integer.parseInt(node.getAttribute(ARMOR));<br/>
+            }<br/>
+            if (node.getAttribute(REAR_ARMOR) != null) {<br/>
+                rearArmor = Integer.parseInt(node.getAttribute(REAR_ARMOR));<br/>
+            }<br/>
+            if (node.getAttribute(NAME).equals("LA") || node.getAttribute(NAME).equals("FLL")) {<br/>
+                loc = Mech.LOC_LARM;<br/>
+                larmArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("RA") || node.getAttribute(NAME).equals("FRL")) {<br/>
+                loc = Mech.LOC_RARM;<br/>
+                rarmArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("LT")) {<br/>
+                loc = Mech.LOC_LT;<br/>
+                ltArmor = armor;<br/>
+                ltrArmor = rearArmor;<br/>
+            } else if (node.getAttribute(NAME).equals("RT")) {<br/>
+                loc = Mech.LOC_RT;<br/>
+                rtArmor = armor;<br/>
+                rtrArmor = rearArmor;<br/>
+            } else if (node.getAttribute(NAME).equals("CT")) {<br/>
+                loc = Mech.LOC_CT;<br/>
+                ctArmor = armor;<br/>
+                ctrArmor = rearArmor;<br/>
+            } else if (node.getAttribute(NAME).equals("H")) {<br/>
+                loc = Mech.LOC_HEAD;<br/>
+                headArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("LL") || node.getAttribute(NAME).equals("RLL")) {<br/>
+                loc = Mech.LOC_LLEG;<br/>
+                llegArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("RL") || node.getAttribute(NAME).equals("RRL")) {<br/>
+                loc = Mech.LOC_RLEG;<br/>
+                rlegArmor = armor;<br/>
+            }<br/>
+<br/>
+            if (loc == -1) {<br/>
+                throw new EntityLoadingException("   Bad Mech location: " + node.getAttribute(NAME));<br/>
+            }<br/>
+            while (children.hasMoreElements()) {<br/>
+                ParsedXML critSlotNode = (ParsedXML)children.nextElement();<br/>
+                critData[loc][i][0] = ((ParsedXML)critSlotNode.elements().nextElement()).getContent();<br/>
+                critData[loc][i++][1] = critSlotNode.getAttribute(ITEM_INDEX);<br/>
+            }<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseCritNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    public Entity getEntity() throws EntityLoadingException {<br/>
+        try {<br/>
+            Mech mech;<br/>
+<br/>
+            if (creatorName == "Unknown"<br/>
+                || !creatorName.equals("The Drawing Board")<br/>
+                || Integer.parseInt(creatorVersion) != 2) {<br/>
+                // MegaMek no longer supports older versions of The<br/>
+                //  Drawing Board (pre 2.0.23) due to incomplete xml<br/>
+                //  file information in those versions.<br/>
+                throw new EntityLoadingException("This xml file is not a valid Drawing Board mech.  Make sure you are using version 2.0.23 or later of The Drawing Board.");<br/>
+            }<br/>
+<br/>
+            if (chassisConfig.equals("Quad")) {<br/>
+                mech = new QuadMech();<br/>
+            } else {<br/>
+                mech = new BipedMech();<br/>
+            }<br/>
+<br/>
+            // aarg!  those stupid sub-names in parenthesis screw everything up<br/>
+            // we may do something different in the future, but for now, I'm<br/>
+            // going to strip them out<br/>
+            int pindex = name.indexOf("(");<br/>
+            if (pindex == -1) {<br/>
+                mech.setChassis(name);<br/>
+            } else {<br/>
+                mech.setChassis(name.substring(0, pindex - 1));<br/>
+            }<br/>
+<br/>
+            if (variant != null) {<br/>
+                mech.setModel(variant);<br/>
+            } else if (model != null) {<br/>
+                mech.setModel(model);<br/>
+            } else {<br/>
+                // Do mechs need a model?<br/>
+                mech.setModel("");<br/>
+            }<br/>
+            mech.setYear(Integer.parseInt(techYear));<br/>
+            mech.setOmni(isOmni);<br/>
+<br/>
+            if (LAMTonnage != null) {<br/>
+                throw new EntityLoadingException("Unsupported tech: LAM?");<br/>
+            }<br/>
+            if (techBase.equals("Inner Sphere")) {<br/>
+                switch (Integer.parseInt(rulesLevel)) {<br/>
+                case 1 :<br/>
+                    mech.setTechLevel(TechConstants.T_IS_LEVEL_1);<br/>
+                    break;<br/>
+                case 2 :<br/>
+                    mech.setTechLevel(TechConstants.T_IS_LEVEL_2);<br/>
+                    break;<br/>
+                default :<br/>
+                    throw new EntityLoadingException("Unsupported tech level: " + rulesLevel);<br/>
+                }<br/>
+            } else if (techBase.equals("Clan")) {<br/>
+                if (Integer.parseInt(rulesLevel) == 2)<br/>
+                    mech.setTechLevel(TechConstants.T_CLAN_LEVEL_2);<br/>
+                else<br/>
+                    throw new EntityLoadingException("Unsupported tech level: " + rulesLevel);<br/>
+            } else if (techBase.equals("Mixed (IS Chassis)") ||<br/>
+                       techBase.equals("Inner Sphere 'C'")) {<br/>
+                mech.setTechLevel(TechConstants.T_MIXED_BASE_IS_LEVEL_2);<br/>
+            } else if (techBase.equals("Mixed (Clan Chassis)")) {<br/>
+                mech.setTechLevel(TechConstants.T_MIXED_BASE_CLAN_LEVEL_2);<br/>
+            } else {<br/>
+                throw new EntityLoadingException("Unsupported tech base: " + techBase);<br/>
+            }<br/>
+            mech.setWeight((float)Integer.parseInt(tonnage));<br/>
+            mech.setOriginalWalkMP(Integer.parseInt(walkMP));<br/>
+            if (jumpMP != null)<br/>
+                mech.setOriginalJumpMP(Integer.parseInt(jumpMP));<br/>
+            int expectedSinks = Integer.parseInt(heatSinks);<br/>
+<br/>
+            mech.autoSetInternal();<br/>
+<br/>
+            mech.initializeArmor(larmArmor, Mech.LOC_LARM);<br/>
+            mech.initializeArmor(rarmArmor, Mech.LOC_RARM);<br/>
+            mech.initializeArmor(ltArmor, Mech.LOC_LT);<br/>
+            mech.initializeArmor(rtArmor, Mech.LOC_RT);<br/>
+            mech.initializeArmor(ctArmor, Mech.LOC_CT);<br/>
+            mech.initializeArmor(headArmor, Mech.LOC_HEAD);<br/>
+            mech.initializeArmor(llegArmor, Mech.LOC_LLEG);<br/>
+            mech.initializeArmor(rlegArmor, Mech.LOC_RLEG);<br/>
+            mech.initializeRearArmor(ltrArmor, Mech.LOC_LT);<br/>
+            mech.initializeRearArmor(rtrArmor, Mech.LOC_RT);<br/>
+            mech.initializeRearArmor(ctrArmor, Mech.LOC_CT);<br/>
+<br/>
+            // oog, crits.<br/>
+            compactCriticals(mech);<br/>
+            // we do these in reverse order to get the outermost<br/>
+            //  locations first, which is necessary for split crits to work<br/>
+            for (int i = mech.locations() - 1; i &gt;= 0; i--) {<br/>
+                parseCrits(mech, i);<br/>
+            }<br/>
+<br/>
+            if (mech.isClan()) {<br/>
+                mech.addClanCase();<br/>
+            }<br/>
+<br/>
+            // add any heat sinks not allocated<br/>
+            mech.addEngineSinks(expectedSinks - mech.heatSinks(), dblSinks);<br/>
+<br/>
+            return mech;<br/>
+        } catch (NumberFormatException ex) {<br/>
+            throw new EntityLoadingException("NumberFormatException parsing file");<br/>
+        } catch (NullPointerException ex) {<br/>
+            throw new EntityLoadingException("NullPointerException parsing file");<br/>
+        } catch (StringIndexOutOfBoundsException ex) {<br/>
+            throw new EntityLoadingException("StringIndexOutOfBoundsException parsing file");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void parseCrits(Mech mech, int loc) throws EntityLoadingException {<br/>
+        // check for removed arm actuators<br/>
+        if (!(mech instanceof QuadMech)) {<br/>
+            if (loc == Mech.LOC_LARM || loc == Mech.LOC_RARM) {<br/>
+                if (!critData[loc][3][0].equals("Hand Actuator")) {<br/>
+                    mech.setCritical(loc, 3, null);<br/>
+                }<br/>
+                if (!critData[loc][2][0].equals("Lower Arm Actuator")) {<br/>
+                    mech.setCritical(loc, 2, null);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // go thru file, add weapons<br/>
+        for (int i = 0; i &lt; mech.getNumberOfCriticals(loc); i++) {<br/>
+<br/>
+            // if the slot's full already, skip it.<br/>
+            if (mech.getCritical(loc, i) != null) {<br/>
+                continue;<br/>
+            }<br/>
+<br/>
+            // parse out and add the critical<br/>
+            String critName = critData[loc][i][0];<br/>
+            boolean rearMounted = true;<br/>
+            if (critData[loc][i][1] == null || !isRearMounted[Integer.parseInt(critData[loc][i][1])]) {<br/>
+                rearMounted = false;<br/>
+            }<br/>
+            boolean split = true;<br/>
+            if (critData[loc][i][1] == null || !isSplit[Integer.parseInt(critData[loc][i][1])]) {<br/>
+                split = false;<br/>
+            }<br/>
+<br/>
+            if (critName.indexOf("Engine") != -1) {<br/>
+                mech.setCritical(loc,i, new CriticalSlot(CriticalSlot.TYPE_SYSTEM, Mech.SYSTEM_ENGINE));<br/>
+                continue;<br/>
+            }<br/>
+            if (critName.endsWith("[LRM]") || critName.endsWith("[SRM]")) {<br/>
+                // This is a lame kludge for The Drawing Board, which<br/>
+                //  identifies which type of missle weapon an<br/>
+                //  Artemis IV system goes with.<br/>
+                critName = critName.substring(0,14);<br/>
+            }<br/>
+            if (critName.endsWith("- Artemis IV")) {<br/>
+                // Ugh, another lame kludge to allow for loading of<br/>
+                //  The Drawing Board's specially marked Artemis IV<br/>
+                //  missle ammo.  The only real game difference is<br/>
+                //  c-bill cost, which we don't care about anyway.<br/>
+                critName = critName.substring(0,critName.indexOf(" - Artemis IV"));<br/>
+            }<br/>
+            if (critName.endsWith("- Narc")) {<br/>
+                // Yet another lame kludge to allow for loading of<br/>
+                //  The Drawing Board's specially marked Narc<br/>
+                //  missle ammo.<br/>
+                critName = critName.substring(0,critName.indexOf(" - Narc"));<br/>
+            }<br/>
+            if (critName.equals("(C) Endosteel")) {<br/>
+                // MegaMek determines whether Endo Steel is IS or Clan<br/>
+                //  type by techbase of mech.<br/>
+                critName = critName.substring(4);<br/>
+            }<br/>
+            if (critName.equals("(C) Ferro-Fibrous Armor")) {<br/>
+                // MegaMek determines whether FF Armor is IS or Clan<br/>
+                //  type by techbase of mech.<br/>
+                critName = critName.substring(4);<br/>
+            }<br/>
+            try {<br/>
+                String hashPrefix;<br/>
+                if (critName.startsWith("(C)")) {<br/>
+                    //equipment specifically marked as clan<br/>
+                    hashPrefix = "Clan ";<br/>
+                    critName = critName.substring(4);<br/>
+                } else if (critName.startsWith("(IS)")) {<br/>
+                    //equipment specifically marked as inner sphere<br/>
+                    hashPrefix = "IS ";<br/>
+                    critName = critName.substring(5);<br/>
+                } else if (mech.isClan()) {<br/>
+                    //assume equipment is clan because mech is clan<br/>
+                    hashPrefix = "Clan ";<br/>
+                } else {<br/>
+                    //assume equipment is inner sphere<br/>
+                    hashPrefix = "IS ";<br/>
+                }<br/>
+                EquipmentType etype = EquipmentType.get(hashPrefix + critName);<br/>
+                if (etype == null) {<br/>
+                    //try without prefix<br/>
+                    etype = EquipmentType.get(critName);<br/>
+                }<br/>
+                if (etype != null) {<br/>
+                    if (etype.isSpreadable()) {<br/>
+                        // do we already have one of these?  Key on Type<br/>
+                        Mounted m = (Mounted)hSharedEquip.get(etype);<br/>
+                        if (m != null) {<br/>
+                            // use the existing one<br/>
+                            mech.addCritical(loc, new CriticalSlot(CriticalSlot.TYPE_EQUIPMENT,<br/>
+                                                                   mech.getEquipmentNum(m), etype.isHittable()));<br/>
+                            continue;<br/>
+                        }<br/>
+                        else {<br/>
+                            m = mech.addEquipment(etype, loc, rearMounted);<br/>
+                            hSharedEquip.put(etype, m);<br/>
+                        }<br/>
+                    }<br/>
+                    else if (split) {<br/>
+                        // do we already have this one in this or an outer location?<br/>
+                        Mounted m = null;<br/>
+                        boolean bFound = false;<br/>
+                        for (int x = 0, n = vSplitWeapons.size(); x &lt; n; x++) {<br/>
+                            m = (Mounted)vSplitWeapons.elementAt(x);<br/>
+                            int nLoc = m.getLocation();<br/>
+                            if ((nLoc == loc || loc == Mech.getInnerLocation(nLoc))<br/>
+                                &amp;&amp; m.getType() == etype) {<br/>
+                                bFound = true;<br/>
+                                break;<br/>
+                            }<br/>
+                        }<br/>
+                        if (bFound) {<br/>
+                            m.setFoundCrits(m.getFoundCrits() + 1);<br/>
+                            if (m.getFoundCrits() &gt;= etype.getCriticals(mech)) {<br/>
+                                vSplitWeapons.removeElement(m);<br/>
+                            }<br/>
+                            // give the most restrictive location for arcs<br/>
+                            m.setLocation(Mech.mostRestrictiveLoc(loc, m.getLocation()));<br/>
+                        }<br/>
+                        else {<br/>
+                            // make a new one<br/>
+                            m = new Mounted(mech, etype);<br/>
+                            m.setSplit(true);<br/>
+                            m.setFoundCrits(1);<br/>
+                            mech.addEquipment(m, loc, rearMounted);<br/>
+                            vSplitWeapons.addElement(m);<br/>
+                        }<br/>
+                        mech.addCritical(loc, new CriticalSlot(CriticalSlot.TYPE_EQUIPMENT,<br/>
+                                                               mech.getEquipmentNum(m), etype.isHittable()));<br/>
+                    }<br/>
+                    else {<br/>
+                        mech.addEquipment(etype, loc, rearMounted);<br/>
+                    }<br/>
+                } else {<br/>
+                    if (!critName.equals("Empty")) {<br/>
+                        //Can't load this piece of equipment!<br/>
+                        // Add it to the list so we can show the user.<br/>
+                        mech.addFailedEquipment(critName);<br/>
+                        // Make the failed equipment an empty slot<br/>
+                        critData[loc][i][0] = "Empty";<br/>
+                        critData[loc][i][1] = null;<br/>
+                        // Compact criticals again<br/>
+                        compactCriticals(mech, loc);<br/>
+                        // Re-parse the same slot, since the compacting<br/>
+                        //  could have moved new equipment to this slot<br/>
+                        i--;<br/>
+                    }<br/>
+                }<br/>
+            } catch (LocationFullException ex) {<br/>
+                throw new EntityLoadingException(ex.getMessage());<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This function moves all "empty" slots to the end of a location's<br/>
+     * critical list.<br/>
+     *<br/>
+     * MegaMek adds equipment to the first empty slot available in a<br/>
+     * location.  This means that any "holes" (empty slots not at the<br/>
+     * end of a location), will cause the file crits and MegaMek's crits<br/>
+     * to become out of sync.<br/>
+     */<br/>
+    private void compactCriticals(Mech mech) {<br/>
+        for (int loc = 0; loc &lt; mech.locations(); loc++) {<br/>
+            compactCriticals(mech, loc);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void compactCriticals(Mech mech, int loc) {<br/>
+        if (loc == Mech.LOC_HEAD) {<br/>
+            //This location has an empty slot inbetween systems crits<br/>
+            // which will mess up parsing if compacted.<br/>
+            return;<br/>
+        }<br/>
+        int firstEmpty = -1;<br/>
+        for (int slot = 0; slot &lt; mech.getNumberOfCriticals(loc); slot++) {<br/>
+            if (critData[loc][slot][0].equals("Empty")) {<br/>
+                firstEmpty = slot;<br/>
+            }<br/>
+            if (firstEmpty != -1 &amp;&amp; !critData[loc][slot][0].equals("Empty")) {<br/>
+                //move this to the first empty slot<br/>
+                critData[loc][firstEmpty][0] = critData[loc][slot][0];<br/>
+                critData[loc][firstEmpty][1] = critData[loc][slot][1];<br/>
+                //mark the old slot empty<br/>
+                critData[loc][slot][0] = "Empty";<br/>
+                critData[loc][slot][1] = null;<br/>
+                //restart just after the moved slot's new location<br/>
+                slot = firstEmpty;<br/>
+                firstEmpty = -1;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_TdbFile_1.8.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2000-2004 Ben Mazur (bmazur@sev.org)<br/>
+ *<br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+/*<br/>
+ * TdbFile.java<br/>
+ *  -based on MtfFile.java, modifications by Ryan McConnell<br/>
+ * Created on April 1, 2003, 2:48 PM<br/>
+ */<br/>
+<br/>
+package megamek.common.loaders;<br/>
+<br/>
+import java.io.*;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Vector;<br/>
+import java.util.Enumeration;<br/>
+<br/>
+import megamek.common.BipedMech;<br/>
+import megamek.common.CriticalSlot;<br/>
+import megamek.common.Entity;<br/>
+import megamek.common.EquipmentType;<br/>
+import megamek.common.LocationFullException;<br/>
+import megamek.common.Mech;<br/>
+import megamek.common.Mounted;<br/>
+import megamek.common.QuadMech;<br/>
+import megamek.common.TechConstants;<br/>
+<br/>
+import gd.xml.*;<br/>
+import gd.xml.tiny.*;<br/>
+<br/>
+public class TdbFile implements MechLoader {<br/>
+<br/>
+    private ParsedXML root = null;<br/>
+<br/>
+    /**<br/>
+     * The names of the various elements recognized by this parser.<br/>
+     */<br/>
+    private static final String  CREATOR_SECTION    = "creator";<br/>
+    private static final String  BASICS_SECTION    = "basics";<br/>
+    private static final String  ITEM_DEFS_SECTION    = "itemdefs";<br/>
+    private static final String  MOUNTED_ITEMS_SECTION    = "mounteditems";<br/>
+    private static final String  CRIT_DEFS_SECTION    = "critdefs";<br/>
+<br/>
+    private static final String  NAME    = "name";<br/>
+    private static final String  VERSION    = "version";<br/>
+    private static final String  MODEL    = "model";<br/>
+    private static final String  VARIANT    = "variant";<br/>
+    private static final String  TECHNOLOGY    = "technology";<br/>
+    private static final String  MOVEMECHMOD    = "movemechmod";<br/>
+    private static final String  TONNAGE    = "tonnage"; // also attribute<br/>
+    private static final String  TYPE    = "type";<br/>
+    private static final String  OMNI    = "isomni";<br/>
+    private static final String  WALK   = "walk";<br/>
+    private static final String  JUMP    = "jump";<br/>
+    private static final String  HEAT_SINKS    = "heatsinks";<br/>
+    private static final String  ARMOR    = "armor"; // also attribute<br/>
+    private static final String  MOUNTED_ITEM    = "mounteditem";<br/>
+    private static final String  LOCATION= "location";<br/>
+<br/>
+    /**<br/>
+     * The names of the attributes recognized by this parser.<br/>
+     */<br/>
+    private static final String  LEVEL    = "level";<br/>
+    private static final String  COUNT    = "count";<br/>
+    private static final String  POINTS    = "points";<br/>
+    private static final String  REAR_MOUNTED    = "rearmounted";<br/>
+    private static final String  IS_SPREAD    = "isspread";<br/>
+    private static final String  ITEM_INDEX    = "itemindex";<br/>
+    private static final String  REAR_ARMOR    = "reararmor";<br/>
+<br/>
+    /**<br/>
+     * Special values recognized by this parser.<br/>
+     */<br/>
+    private static final String  TRUE    = "True";<br/>
+    private static final String  FALSE   = "False";<br/>
+    private static final String  DOUBLE   = "Double";<br/>
+    private static final String  TRUE_LOWER    = "true";<br/>
+<br/>
+    private String creatorName = "Unknown";<br/>
+    private String creatorVersion = "Unknown";<br/>
+    private String name;<br/>
+    private boolean isOmni = false;<br/>
+    private String model;<br/>
+    private String variant;<br/>
+<br/>
+    private String chassisConfig;<br/>
+    private String techBase;<br/>
+    private static final String techYear = "3068"; // TDB doesn't have era<br/>
+    private String rulesLevel;<br/>
+    private String LAMTonnage;<br/>
+<br/>
+    private String tonnage;<br/>
+<br/>
+    private String heatSinks;<br/>
+    private boolean dblSinks;<br/>
+    private String walkMP;<br/>
+    private String jumpMP;<br/>
+<br/>
+    private int larmArmor;<br/>
+    private int rarmArmor;<br/>
+    private int ltArmor;<br/>
+    private int rtArmor;<br/>
+    private int ctArmor;<br/>
+    private int headArmor;<br/>
+    private int llegArmor;<br/>
+    private int rlegArmor;<br/>
+    private int ltrArmor;<br/>
+    private int rtrArmor;<br/>
+    private int ctrArmor;<br/>
+<br/>
+    private String[][][] critData;<br/>
+    private boolean isRearMounted[];<br/>
+    private boolean isSplit[];<br/>
+<br/>
+    private Hashtable hSharedEquip = new Hashtable();<br/>
+    private Vector vSplitWeapons = new Vector();<br/>
+<br/>
+    /** Creates new TdbFile */<br/>
+    public TdbFile(InputStream is) throws EntityLoadingException {<br/>
+        try {<br/>
+            root = TinyParser.parseXML(is);<br/>
+        }<br/>
+        catch (ParseException e) {<br/>
+            throw new EntityLoadingException("   Failure to parse XML (TinyParser exception)");<br/>
+        }<br/>
+        // Arbitrarily sized static arrays suck, or so a computer<br/>
+        //  science teacher once told me.<br/>
+        isRearMounted = new boolean[256];<br/>
+        isSplit = new boolean[256];<br/>
+<br/>
+        critData = new String[8][12][2];<br/>
+        parseNode((ParsedXML)root.elements().nextElement());<br/>
+    }<br/>
+<br/>
+    private void parseNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are implicitly parsed when needed.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(CREATOR_SECTION)) {<br/>
+            parseCreatorNode(node);<br/>
+        } else if (node.getName().equals(BASICS_SECTION)) {<br/>
+            parseBasicsNode(node);<br/>
+        } else if (node.getName().equals(ITEM_DEFS_SECTION)) {<br/>
+            return; // don't need item defs section of xml<br/>
+        } else if (node.getName().equals(MOUNTED_ITEMS_SECTION)) {<br/>
+            parseMountedNode(node);<br/>
+        } else if (node.getName().equals(CRIT_DEFS_SECTION)) {<br/>
+            parseCritNode(node);<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void parseCreatorNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(NAME)) {<br/>
+            creatorName = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(VERSION)) {<br/>
+            creatorVersion = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseCreatorNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    private void parseBasicsNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(NAME)) {<br/>
+            name = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(MODEL)) {<br/>
+            model = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(OMNI)) {<br/>
+            isOmni = ((ParsedXML)children.nextElement()).getContent().equals(TRUE_LOWER);<br/>
+        } else if (node.getName().equals(VARIANT)) {<br/>
+            variant = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(TECHNOLOGY)) {<br/>
+            techBase = ((ParsedXML)children.nextElement()).getContent();<br/>
+            rulesLevel = node.getAttribute(LEVEL);<br/>
+        } else if (node.getName().equals(TONNAGE)) {<br/>
+            tonnage = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(TYPE)) {<br/>
+            chassisConfig = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(MOVEMECHMOD)) {<br/>
+            // This tag seems to indicate the pod space on an omnimech<br/>
+            //  or the tonnage of the conversion equipment for<br/>
+            //  a LAM (Land Air Mech).<br/>
+            LAMTonnage = node.getAttribute(TONNAGE);<br/>
+        } else if (node.getName().equals(WALK)) {<br/>
+            walkMP = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(JUMP)) {<br/>
+            jumpMP = ((ParsedXML)children.nextElement()).getContent();<br/>
+        } else if (node.getName().equals(HEAT_SINKS)) {<br/>
+            if (<span class="add"><span class="mv">((ParsedXML)children.nextElement()).getContent().<span class="upd">indexOf</span>(DOUBLE)</span> != <span class="add">-<span class="add">1</span></span></span>) {<br/>
+                dblSinks = true;<br/>
+            } else {<br/>
+                dblSinks = false;<br/>
+            }<br/>
+            heatSinks = node.getAttribute(COUNT);<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseBasicsNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    private void parseMountedNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(MOUNTED_ITEM)) {<br/>
+            if (node.getAttribute(REAR_MOUNTED).equals(TRUE)) {<br/>
+                isRearMounted[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = true;<br/>
+            } else {<br/>
+                isRearMounted[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = false;<br/>
+            }<br/>
+            if (node.getAttribute(IS_SPREAD).equals(TRUE)) {<br/>
+                isSplit[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = true;<br/>
+            } else {<br/>
+                isSplit[Integer.parseInt(node.getAttribute(ITEM_INDEX))] = false;<br/>
+            }<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseMountedNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    private void parseCritNode(ParsedXML node) throws EntityLoadingException {<br/>
+        if (!node.getTypeName().equals("tag")) {<br/>
+            // We only want to parse element nodes, text nodes<br/>
+            //  are directly parsed below.<br/>
+            return;<br/>
+        }<br/>
+<br/>
+        Enumeration children = node.elements();<br/>
+<br/>
+        if (node.getName().equals(LOCATION)) {<br/>
+            int loc = -1;<br/>
+            int i = 0;<br/>
+            int armor = -1;<br/>
+            int rearArmor = -1;<br/>
+            if (node.getAttribute(ARMOR) != null) {<br/>
+                armor = Integer.parseInt(node.getAttribute(ARMOR));<br/>
+            }<br/>
+            if (node.getAttribute(REAR_ARMOR) != null) {<br/>
+                rearArmor = Integer.parseInt(node.getAttribute(REAR_ARMOR));<br/>
+            }<br/>
+            if (node.getAttribute(NAME).equals("LA") || node.getAttribute(NAME).equals("FLL")) {<br/>
+                loc = Mech.LOC_LARM;<br/>
+                larmArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("RA") || node.getAttribute(NAME).equals("FRL")) {<br/>
+                loc = Mech.LOC_RARM;<br/>
+                rarmArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("LT")) {<br/>
+                loc = Mech.LOC_LT;<br/>
+                ltArmor = armor;<br/>
+                ltrArmor = rearArmor;<br/>
+            } else if (node.getAttribute(NAME).equals("RT")) {<br/>
+                loc = Mech.LOC_RT;<br/>
+                rtArmor = armor;<br/>
+                rtrArmor = rearArmor;<br/>
+            } else if (node.getAttribute(NAME).equals("CT")) {<br/>
+                loc = Mech.LOC_CT;<br/>
+                ctArmor = armor;<br/>
+                ctrArmor = rearArmor;<br/>
+            } else if (node.getAttribute(NAME).equals("H")) {<br/>
+                loc = Mech.LOC_HEAD;<br/>
+                headArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("LL") || node.getAttribute(NAME).equals("RLL")) {<br/>
+                loc = Mech.LOC_LLEG;<br/>
+                llegArmor = armor;<br/>
+            } else if (node.getAttribute(NAME).equals("RL") || node.getAttribute(NAME).equals("RRL")) {<br/>
+                loc = Mech.LOC_RLEG;<br/>
+                rlegArmor = armor;<br/>
+            }<br/>
+<br/>
+            if (loc == -1) {<br/>
+                throw new EntityLoadingException("   Bad Mech location: " + node.getAttribute(NAME));<br/>
+            }<br/>
+            while (children.hasMoreElements()) {<br/>
+                ParsedXML critSlotNode = (ParsedXML)children.nextElement();<br/>
+                critData[loc][i][0] = ((ParsedXML)critSlotNode.elements().nextElement()).getContent();<br/>
+                critData[loc][i++][1] = critSlotNode.getAttribute(ITEM_INDEX);<br/>
+            }<br/>
+        } else if (children != null) {<br/>
+            // Use recursion to process all the children<br/>
+            while (children.hasMoreElements()) {<br/>
+                parseCritNode((ParsedXML)children.nextElement());<br/>
+            }<br/>
+        }<br/>
+        // Other tags (that don't match any if blocks above)<br/>
+        //  are simply ignored.<br/>
+    }<br/>
+<br/>
+    public Entity getEntity() throws EntityLoadingException {<br/>
+        try {<br/>
+            Mech mech;<br/>
+<br/>
+            if (creatorName == "Unknown"<br/>
+                || !creatorName.equals("The Drawing Board")<br/>
+                || Integer.parseInt(creatorVersion) != 2) {<br/>
+                // MegaMek no longer supports older versions of The<br/>
+                //  Drawing Board (pre 2.0.23) due to incomplete xml<br/>
+                //  file information in those versions.<br/>
+                throw new EntityLoadingException("This xml file is not a valid Drawing Board mech.  Make sure you are using version 2.0.23 or later of The Drawing Board.");<br/>
+            }<br/>
+<br/>
+            if (chassisConfig.equals("Quad")) {<br/>
+                mech = new QuadMech();<br/>
+            } else {<br/>
+                mech = new BipedMech();<br/>
+            }<br/>
+<br/>
+            // aarg!  those stupid sub-names in parenthesis screw everything up<br/>
+            // we may do something different in the future, but for now, I'm<br/>
+            // going to strip them out<br/>
+            int pindex = name.indexOf("(");<br/>
+            if (pindex == -1) {<br/>
+                mech.setChassis(name);<br/>
+            } else {<br/>
+                mech.setChassis(name.substring(0, pindex - 1));<br/>
+            }<br/>
+<br/>
+            if (variant != null) {<br/>
+                mech.setModel(variant);<br/>
+            } else if (model != null) {<br/>
+                mech.setModel(model);<br/>
+            } else {<br/>
+                // Do mechs need a model?<br/>
+                mech.setModel("");<br/>
+            }<br/>
+            mech.setYear(Integer.parseInt(techYear));<br/>
+            mech.setOmni(isOmni);<br/>
+<br/>
+            if (LAMTonnage != null) {<br/>
+                throw new EntityLoadingException("Unsupported tech: LAM?");<br/>
+            }<br/>
+            if (techBase.equals("Inner Sphere")) {<br/>
+                switch (Integer.parseInt(rulesLevel)) {<br/>
+                case 1 :<br/>
+                    mech.setTechLevel(TechConstants.T_IS_LEVEL_1);<br/>
+                    break;<br/>
+                case 2 :<br/>
+                    mech.setTechLevel(TechConstants.T_IS_LEVEL_2);<br/>
+                    break;<br/>
+                default :<br/>
+                    throw new EntityLoadingException("Unsupported tech level: " + rulesLevel);<br/>
+                }<br/>
+            } else if (techBase.equals("Clan")) {<br/>
+                if (Integer.parseInt(rulesLevel) == 2)<br/>
+                    mech.setTechLevel(TechConstants.T_CLAN_LEVEL_2);<br/>
+                else<br/>
+                    throw new EntityLoadingException("Unsupported tech level: " + rulesLevel);<br/>
+            } else if (techBase.equals("Mixed (IS Chassis)") ||<br/>
+                       techBase.equals("Inner Sphere 'C'")) {<br/>
+                mech.setTechLevel(TechConstants.T_MIXED_BASE_IS_LEVEL_2);<br/>
+            } else if (techBase.equals("Mixed (Clan Chassis)")) {<br/>
+                mech.setTechLevel(TechConstants.T_MIXED_BASE_CLAN_LEVEL_2);<br/>
+            } else {<br/>
+                throw new EntityLoadingException("Unsupported tech base: " + techBase);<br/>
+            }<br/>
+            mech.setWeight((float)Integer.parseInt(tonnage));<br/>
+            mech.setOriginalWalkMP(Integer.parseInt(walkMP));<br/>
+            if (jumpMP != null)<br/>
+                mech.setOriginalJumpMP(Integer.parseInt(jumpMP));<br/>
+            int expectedSinks = Integer.parseInt(heatSinks);<br/>
+<br/>
+            mech.autoSetInternal();<br/>
+<br/>
+            mech.initializeArmor(larmArmor, Mech.LOC_LARM);<br/>
+            mech.initializeArmor(rarmArmor, Mech.LOC_RARM);<br/>
+            mech.initializeArmor(ltArmor, Mech.LOC_LT);<br/>
+            mech.initializeArmor(rtArmor, Mech.LOC_RT);<br/>
+            mech.initializeArmor(ctArmor, Mech.LOC_CT);<br/>
+            mech.initializeArmor(headArmor, Mech.LOC_HEAD);<br/>
+            mech.initializeArmor(llegArmor, Mech.LOC_LLEG);<br/>
+            mech.initializeArmor(rlegArmor, Mech.LOC_RLEG);<br/>
+            mech.initializeRearArmor(ltrArmor, Mech.LOC_LT);<br/>
+            mech.initializeRearArmor(rtrArmor, Mech.LOC_RT);<br/>
+            mech.initializeRearArmor(ctrArmor, Mech.LOC_CT);<br/>
+<br/>
+            // oog, crits.<br/>
+            compactCriticals(mech);<br/>
+            // we do these in reverse order to get the outermost<br/>
+            //  locations first, which is necessary for split crits to work<br/>
+            for (int i = mech.locations() - 1; i &gt;= 0; i--) {<br/>
+                parseCrits(mech, i);<br/>
+            }<br/>
+<br/>
+            if (mech.isClan()) {<br/>
+                mech.addClanCase();<br/>
+            }<br/>
+<br/>
+            // add any heat sinks not allocated<br/>
+            mech.addEngineSinks(expectedSinks - mech.heatSinks(), dblSinks);<br/>
+<br/>
+            return mech;<br/>
+        } catch (NumberFormatException ex) {<br/>
+            throw new EntityLoadingException("NumberFormatException parsing file");<br/>
+        } catch (NullPointerException ex) {<br/>
+            throw new EntityLoadingException("NullPointerException parsing file");<br/>
+        } catch (StringIndexOutOfBoundsException ex) {<br/>
+            throw new EntityLoadingException("StringIndexOutOfBoundsException parsing file");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void parseCrits(Mech mech, int loc) throws EntityLoadingException {<br/>
+        // check for removed arm actuators<br/>
+        if (!(mech instanceof QuadMech)) {<br/>
+            if (loc == Mech.LOC_LARM || loc == Mech.LOC_RARM) {<br/>
+                if (!critData[loc][3][0].equals("Hand Actuator")) {<br/>
+                    mech.setCritical(loc, 3, null);<br/>
+                }<br/>
+                if (!critData[loc][2][0].equals("Lower Arm Actuator")) {<br/>
+                    mech.setCritical(loc, 2, null);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // go thru file, add weapons<br/>
+        for (int i = 0; i &lt; mech.getNumberOfCriticals(loc); i++) {<br/>
+<br/>
+            // if the slot's full already, skip it.<br/>
+            if (mech.getCritical(loc, i) != null) {<br/>
+                continue;<br/>
+            }<br/>
+<br/>
+            // parse out and add the critical<br/>
+            String critName = critData[loc][i][0];<br/>
+            boolean rearMounted = true;<br/>
+            if (critData[loc][i][1] == null || !isRearMounted[Integer.parseInt(critData[loc][i][1])]) {<br/>
+                rearMounted = false;<br/>
+            }<br/>
+            boolean split = true;<br/>
+            if (critData[loc][i][1] == null || !isSplit[Integer.parseInt(critData[loc][i][1])]) {<br/>
+                split = false;<br/>
+            }<br/>
+<br/>
+            if (critName.indexOf("Engine") != -1) {<br/>
+                mech.setCritical(loc,i, new CriticalSlot(CriticalSlot.TYPE_SYSTEM, Mech.SYSTEM_ENGINE));<br/>
+                continue;<br/>
+            }<br/>
+            if (critName.endsWith("[LRM]") || critName.endsWith("[SRM]")) {<br/>
+                // This is a lame kludge for The Drawing Board, which<br/>
+                //  identifies which type of missle weapon an<br/>
+                //  Artemis IV system goes with.<br/>
+                critName = critName.substring(0,14);<br/>
+            }<br/>
+            if (critName.endsWith("- Artemis IV")) {<br/>
+                // Ugh, another lame kludge to allow for loading of<br/>
+                //  The Drawing Board's specially marked Artemis IV<br/>
+                //  missle ammo.  The only real game difference is<br/>
+                //  c-bill cost, which we don't care about anyway.<br/>
+                critName = critName.substring(0,critName.indexOf(" - Artemis IV"));<br/>
+            }<br/>
+            if (critName.endsWith("- Narc")) {<br/>
+                // Yet another lame kludge to allow for loading of<br/>
+                //  The Drawing Board's specially marked Narc<br/>
+                //  missle ammo.<br/>
+                critName = critName.substring(0,critName.indexOf(" - Narc"));<br/>
+            }<br/>
+            if (critName.equals("(C) Endosteel")) {<br/>
+                // MegaMek determines whether Endo Steel is IS or Clan<br/>
+                //  type by techbase of mech.<br/>
+                critName = critName.substring(4);<br/>
+            }<br/>
+            if (critName.equals("(C) Ferro-Fibrous Armor")) {<br/>
+                // MegaMek determines whether FF Armor is IS or Clan<br/>
+                //  type by techbase of mech.<br/>
+                critName = critName.substring(4);<br/>
+            }<br/>
+            try {<br/>
+                String hashPrefix;<br/>
+                if (critName.startsWith("(C)")) {<br/>
+                    //equipment specifically marked as clan<br/>
+                    hashPrefix = "Clan ";<br/>
+                    critName = critName.substring(4);<br/>
+                } else if (critName.startsWith("(IS)")) {<br/>
+                    //equipment specifically marked as inner sphere<br/>
+                    hashPrefix = "IS ";<br/>
+                    critName = critName.substring(5);<br/>
+                } else if (mech.isClan()) {<br/>
+                    //assume equipment is clan because mech is clan<br/>
+                    hashPrefix = "Clan ";<br/>
+                } else {<br/>
+                    //assume equipment is inner sphere<br/>
+                    hashPrefix = "IS ";<br/>
+                }<br/>
+                EquipmentType etype = EquipmentType.get(hashPrefix + critName);<br/>
+                if (etype == null) {<br/>
+                    //try without prefix<br/>
+                    etype = EquipmentType.get(critName);<br/>
+                }<br/>
+                if (etype != null) {<br/>
+                    if (etype.isSpreadable()) {<br/>
+                        // do we already have one of these?  Key on Type<br/>
+                        Mounted m = (Mounted)hSharedEquip.get(etype);<br/>
+                        if (m != null) {<br/>
+                            // use the existing one<br/>
+                            mech.addCritical(loc, new CriticalSlot(CriticalSlot.TYPE_EQUIPMENT,<br/>
+                                                                   mech.getEquipmentNum(m), etype.isHittable()));<br/>
+                            continue;<br/>
+                        }<br/>
+                        else {<br/>
+                            m = mech.addEquipment(etype, loc, rearMounted);<br/>
+                            hSharedEquip.put(etype, m);<br/>
+                        }<br/>
+                    }<br/>
+                    else if (split) {<br/>
+                        // do we already have this one in this or an outer location?<br/>
+                        Mounted m = null;<br/>
+                        boolean bFound = false;<br/>
+                        for (int x = 0, n = vSplitWeapons.size(); x &lt; n; x++) {<br/>
+                            m = (Mounted)vSplitWeapons.elementAt(x);<br/>
+                            int nLoc = m.getLocation();<br/>
+                            if ((nLoc == loc || loc == Mech.getInnerLocation(nLoc))<br/>
+                                &amp;&amp; m.getType() == etype) {<br/>
+                                bFound = true;<br/>
+                                break;<br/>
+                            }<br/>
+                        }<br/>
+                        if (bFound) {<br/>
+                            m.setFoundCrits(m.getFoundCrits() + 1);<br/>
+                            if (m.getFoundCrits() &gt;= etype.getCriticals(mech)) {<br/>
+                                vSplitWeapons.removeElement(m);<br/>
+                            }<br/>
+                            // give the most restrictive location for arcs<br/>
+                            m.setLocation(Mech.mostRestrictiveLoc(loc, m.getLocation()));<br/>
+                        }<br/>
+                        else {<br/>
+                            // make a new one<br/>
+                            m = new Mounted(mech, etype);<br/>
+                            m.setSplit(true);<br/>
+                            m.setFoundCrits(1);<br/>
+                            mech.addEquipment(m, loc, rearMounted);<br/>
+                            vSplitWeapons.addElement(m);<br/>
+                        }<br/>
+                        mech.addCritical(loc, new CriticalSlot(CriticalSlot.TYPE_EQUIPMENT,<br/>
+                                                               mech.getEquipmentNum(m), etype.isHittable()));<br/>
+                    }<br/>
+                    else {<br/>
+                        mech.addEquipment(etype, loc, rearMounted);<br/>
+                    }<br/>
+                } else {<br/>
+                    if (!critName.equals("Empty")) {<br/>
+                        //Can't load this piece of equipment!<br/>
+                        // Add it to the list so we can show the user.<br/>
+                        mech.addFailedEquipment(critName);<br/>
+                        // Make the failed equipment an empty slot<br/>
+                        critData[loc][i][0] = "Empty";<br/>
+                        critData[loc][i][1] = null;<br/>
+                        // Compact criticals again<br/>
+                        compactCriticals(mech, loc);<br/>
+                        // Re-parse the same slot, since the compacting<br/>
+                        //  could have moved new equipment to this slot<br/>
+                        i--;<br/>
+                    }<br/>
+                }<br/>
+            } catch (LocationFullException ex) {<br/>
+                throw new EntityLoadingException(ex.getMessage());<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This function moves all "empty" slots to the end of a location's<br/>
+     * critical list.<br/>
+     *<br/>
+     * MegaMek adds equipment to the first empty slot available in a<br/>
+     * location.  This means that any "holes" (empty slots not at the<br/>
+     * end of a location), will cause the file crits and MegaMek's crits<br/>
+     * to become out of sync.<br/>
+     */<br/>
+    private void compactCriticals(Mech mech) {<br/>
+        for (int loc = 0; loc &lt; mech.locations(); loc++) {<br/>
+            compactCriticals(mech, loc);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void compactCriticals(Mech mech, int loc) {<br/>
+        if (loc == Mech.LOC_HEAD) {<br/>
+            //This location has an empty slot inbetween systems crits<br/>
+            // which will mess up parsing if compacted.<br/>
+            return;<br/>
+        }<br/>
+        int firstEmpty = -1;<br/>
+        for (int slot = 0; slot &lt; mech.getNumberOfCriticals(loc); slot++) {<br/>
+            if (critData[loc][slot][0].equals("Empty")) {<br/>
+                firstEmpty = slot;<br/>
+            }<br/>
+            if (firstEmpty != -1 &amp;&amp; !critData[loc][slot][0].equals("Empty")) {<br/>
+                //move this to the first empty slot<br/>
+                critData[loc][firstEmpty][0] = critData[loc][slot][0];<br/>
+                critData[loc][firstEmpty][1] = critData[loc][slot][1];<br/>
+                //mark the old slot empty<br/>
+                critData[loc][slot][0] = "Empty";<br/>
+                critData[loc][slot][1] = null;<br/>
+                //restart just after the moved slot's new location<br/>
+                slot = firstEmpty;<br/>
+                firstEmpty = -1;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

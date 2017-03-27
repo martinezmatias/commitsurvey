@@ -1,0 +1,623 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_FigState_1.41.java</h1>
+<div class="code">
+<div class="id">
+// $Id: FigState.java,v 1.41 2006-03-03 23:51:31 tfmorris Exp $<br/>
+// Copyright (c) 1996-2006 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies. This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason. IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.diagram.state.ui;<br/>
+<br/>
+import java.awt.Color;<br/>
+import java.beans.PropertyChangeEvent;<br/>
+import java.beans.PropertyVetoException;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+<br/>
+import org.argouml.model.AssociationChangeEvent;<br/>
+import org.argouml.model.AttributeChangeEvent;<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.notation.NotationProvider4;<br/>
+import org.argouml.notation.NotationProviderFactory2;<br/>
+import org.tigris.gef.graph.GraphModel;<br/>
+import org.tigris.gef.presentation.FigRRect;<br/>
+import org.tigris.gef.presentation.FigText;<br/>
+<br/>
+/**<br/>
+ * The fig hierarchy should comply as much as possible to the hierarchy of the<br/>
+ * UML metamodel. Reason for this is to make sure that events from the model are<br/>
+ * not missed by the figs. The hierarchy of the states was not compliant to<br/>
+ * this. This resulted in a number of issues (issue 1430 for example). Therefore<br/>
+ * introduced an abstract FigState and made FigCompositeState and FigSimpleState<br/>
+ * subclasses of this state.<br/>
+ *<br/>
+ * @author jaap.branderhorst@xs4all.nl<br/>
+ * @since Dec 30, 2002<br/>
+ */<br/>
+public abstract class FigState extends FigStateVertex {<br/>
+<br/>
+    protected static final int SPACE_TOP = 0;<br/>
+    protected static final int SPACE_MIDDLE = 0;<br/>
+    protected static final int DIVIDER_Y = 0;<br/>
+    protected static final int SPACE_BOTTOM = 6;<br/>
+<br/>
+    protected static final int MARGIN = 2;<br/>
+<br/>
+    protected NotationProvider4 notationProviderBody;<br/>
+<br/>
+    /**<br/>
+     * The text inside the state.<br/>
+     */<br/>
+    private FigText internal;<br/>
+<br/>
+    /**<br/>
+     * Constructor for FigState.<br/>
+     */<br/>
+    public FigState() {<br/>
+        super();<br/>
+        setBigPort(new FigRRect(getInitialX() + 1, getInitialY() + 1,<br/>
+                getInitialWidth() - 2, getInitialHeight() - 2,<br/>
+                Color.cyan, Color.cyan));<br/>
+        getNameFig().setLineWidth(0);<br/>
+        getNameFig().setBounds(getInitialX() + 2, getInitialY() + 2,<br/>
+                       getInitialWidth() - 4,<br/>
+                       getNameFig().getBounds().height);<br/>
+        getNameFig().setFilled(false);<br/>
+<br/>
+        internal =<br/>
+            new FigText(getInitialX() + 2,<br/>
+                    getInitialY() + 2 + 21 + 4,<br/>
+                    getInitialWidth() - 4,<br/>
+                    getInitialHeight() - (getInitialY() + 2 + 21 + 4));<br/>
+        internal.setFont(getLabelFont());<br/>
+        internal.setTextColor(Color.black);<br/>
+        internal.setLineWidth(0);<br/>
+        internal.setFilled(false);<br/>
+        internal.setExpandOnly(true);<br/>
+        internal.setReturnAction(FigText.INSERT);<br/>
+        internal.setJustification(FigText.JUSTIFY_LEFT);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor for FigState, used when an UML elm already exists.<br/>
+     *<br/>
+     * @param gm ignored<br/>
+     * @param node the UML element<br/>
+     */<br/>
+    public FigState(GraphModel gm, Object node) {<br/>
+        this();<br/>
+        setOwner(node);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.tigris.gef.presentation.Fig#setOwner(java.lang.Object)<br/>
+     */<br/>
+    public void setOwner(Object newOwner) {<br/>
+        super.setOwner(newOwner);<br/>
+        renderingChanged();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.state.ui.FigStateVertex#initNotationProviders(java.lang.Object)<br/>
+     */<br/>
+    protected void initNotationProviders(Object own) {<br/>
+        super.initNotationProviders(own);<br/>
+        if (Model.getFacade().isAState(own)) {<br/>
+            notationProviderBody =<br/>
+                NotationProviderFactory2.getInstance().getNotationProvider(<br/>
+                        NotationProviderFactory2.TYPE_STATEBODY, this, own);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#modelChanged(java.beans.PropertyChangeEvent)<br/>
+     */<br/>
+    protected void modelChanged(PropertyChangeEvent mee) {<br/>
+        super.modelChanged(mee);<br/>
+        if (mee instanceof AssociationChangeEvent <br/>
+                || mee instanceof AttributeChangeEvent) {<br/>
+            renderingChanged();<br/>
+            updateListeners(getOwner());<br/>
+            damage();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#updateListeners(java.lang.Object)<br/>
+     */<br/>
+    protected void updateListeners(Object newOwner) {<br/>
+        // this takes care of the listeners on the state itself:<br/>
+        super.updateListeners(newOwner);<br/>
+        Object oldOwner = getOwner();<br/>
+        if (newOwner == oldOwner) {<br/>
+            return;<br/>
+        }<br/>
+        if (oldOwner != null) {<br/>
+            removeAllElementListeners();<br/>
+        }<br/>
+        if (newOwner != null) {<br/>
+            // register for events from all modelelements<br/>
+            // that change the body text<br/>
+            Iterator it =<br/>
+                Model.getFacade().getInternalTransitions(newOwner).iterator();<br/>
+            while (it.hasNext()) {<br/>
+                addListenersForTransition(it.next());<br/>
+            }<br/>
+            // register for the doactivity etc.<br/>
+            Object doActivity = Model.getFacade().getDoActivity(newOwner);<br/>
+            addListenersForAction(doActivity);<br/>
+            Object entryAction = Model.getFacade().getEntry(newOwner);<br/>
+            addListenersForAction(entryAction);<br/>
+            Object exitAction = Model.getFacade().getExit(newOwner);<br/>
+            addListenersForAction(exitAction);<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    private void addListenersForAction(Object action) {<br/>
+        if (action != null) {<br/>
+            addElementListener(action,<br/>
+                    new String[] {<br/>
+                        "script", "actualArgument",<br/>
+                    });<br/>
+            Collection args = Model.getFacade().getActualArguments(action);<br/>
+            Iterator i = args.iterator();<br/>
+            while (i.hasNext()) {<br/>
+                Object argument = i.next();<br/>
+                addElementListener(argument, "value");<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void addListenersForEvent(Object event) {<br/>
+        if (event != null) {<br/>
+            addElementListener(event,<br/>
+                    new String[] {<br/>
+                        "parameter", "name",<br/>
+                    });<br/>
+            Collection prms = Model.getFacade().getParameters(event);<br/>
+            Iterator i = prms.iterator();<br/>
+            while (i.hasNext()) {<br/>
+                Object parameter = i.next();<br/>
+                addElementListener(parameter);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    private void addListenersForTransition(Object transition) {<br/>
+        addElementListener(transition, <br/>
+                new String[] {"guard", "trigger", "effect"});<br/>
+<br/>
+        Object guard = Model.getFacade().getGuard(transition);<br/>
+        if (guard != null) {<br/>
+            addElementListener(guard, "expression");<br/>
+        }<br/>
+<br/>
+        Object trigger = Model.getFacade().getTrigger(transition);<br/>
+        addListenersForEvent(trigger);<br/>
+<br/>
+        Object effect = Model.getFacade().getEffect(transition);<br/>
+        addListenersForAction(effect);<br/>
+    }    <br/>
+    <br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#renderingChanged()<br/>
+     */<br/>
+    public void renderingChanged() {<br/>
+        Object state = getOwner();<br/>
+        if (state == null) {<br/>
+            return;<br/>
+        }<br/>
+        if (notationProviderBody != null) {<br/>
+            internal.setText(notationProviderBody.toString());<br/>
+        }<br/>
+        calcBounds();<br/>
+        setBounds(getBounds());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return the initial X<br/>
+     */<br/>
+    protected abstract int getInitialX();<br/>
+<br/>
+    /**<br/>
+     * @return the initial Y<br/>
+     */<br/>
+    protected abstract int getInitialY();<br/>
+<br/>
+    /**<br/>
+     * @return the initial width<br/>
+     */<br/>
+    protected abstract int getInitialWidth();<br/>
+<br/>
+    /**<br/>
+     * @return the initial height<br/>
+     */<br/>
+    protected abstract int getInitialHeight();<br/>
+<br/>
+    /**<br/>
+     * @param theInternal The internal to set.<br/>
+     */<br/>
+    protected void setInternal(FigText theInternal) {<br/>
+        this.internal = theInternal;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Returns the internal.<br/>
+     */<br/>
+    protected FigText getInternal() {<br/>
+        return internal;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#textEditStarted(org.tigris.gef.presentation.FigText)<br/>
+     */<br/>
+    protected void textEditStarted(FigText ft) {<br/>
+        super.textEditStarted(ft);<br/>
+        if (ft == internal) {<br/>
+            showHelp(notationProviderBody.getParsingHelp());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#textEdited(org.tigris.gef.presentation.FigText)<br/>
+     */<br/>
+    public void textEdited(FigText ft) throws PropertyVetoException {<br/>
+        super.textEdited(ft);<br/>
+        if (ft == getInternal()) {<br/>
+            Object st = getOwner();<br/>
+            if (st == null) {<br/>
+                return;<br/>
+            }<br/>
+            ft.setText(notationProviderBody.parse(ft.getText()));<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_FigState_1.42.java</h1>
+<div class="code">
+<div class="id">
+// $Id: FigState.java,v 1.42 2006-03-07 22:01:59 mvw Exp $<br/>
+// Copyright (c) 1996-2006 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies. This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason. IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.diagram.state.ui;<br/>
+<br/>
+import java.awt.Color;<br/>
+import java.beans.PropertyChangeEvent;<br/>
+import java.beans.PropertyVetoException;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+<br/>
+import org.argouml.model.AssociationChangeEvent;<br/>
+import org.argouml.model.AttributeChangeEvent;<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.notation.NotationProvider4;<br/>
+import org.argouml.notation.NotationProviderFactory2;<br/>
+import org.tigris.gef.graph.GraphModel;<br/>
+import org.tigris.gef.presentation.FigRRect;<br/>
+import org.tigris.gef.presentation.FigText;<br/>
+<br/>
+/**<br/>
+ * The fig hierarchy should comply as much as possible to the hierarchy of the<br/>
+ * UML metamodel. Reason for this is to make sure that events from the model are<br/>
+ * not missed by the figs. The hierarchy of the states was not compliant to<br/>
+ * this. This resulted in a number of issues (issue 1430 for example). Therefore<br/>
+ * introduced an abstract FigState and made FigCompositeState and FigSimpleState<br/>
+ * subclasses of this state.<br/>
+ *<br/>
+ * @author jaap.branderhorst@xs4all.nl<br/>
+ * @since Dec 30, 2002<br/>
+ */<br/>
+public abstract class FigState extends FigStateVertex {<br/>
+<br/>
+    protected static final int SPACE_TOP = 0;<br/>
+    protected static final int SPACE_MIDDLE = 0;<br/>
+    protected static final int DIVIDER_Y = 0;<br/>
+    protected static final int SPACE_BOTTOM = 6;<br/>
+<br/>
+    protected static final int MARGIN = 2;<br/>
+<br/>
+    protected NotationProvider4 notationProviderBody;<br/>
+<br/>
+    /**<br/>
+     * The text inside the state.<br/>
+     */<br/>
+    private FigText internal;<br/>
+<br/>
+    /**<br/>
+     * Constructor for FigState.<br/>
+     */<br/>
+    public FigState() {<br/>
+        super();<br/>
+        setBigPort(new FigRRect(getInitialX() + 1, getInitialY() + 1,<br/>
+                getInitialWidth() - 2, getInitialHeight() - 2,<br/>
+                Color.cyan, Color.cyan));<br/>
+        getNameFig().setLineWidth(0);<br/>
+        getNameFig().setBounds(getInitialX() + 2, getInitialY() + 2,<br/>
+                       getInitialWidth() - 4,<br/>
+                       getNameFig().getBounds().height);<br/>
+        getNameFig().setFilled(false);<br/>
+<br/>
+        internal =<br/>
+            new FigText(getInitialX() + 2,<br/>
+                    getInitialY() + 2 + 21 + 4,<br/>
+                    getInitialWidth() - 4,<br/>
+                    getInitialHeight() - (getInitialY() + 2 + 21 + 4));<br/>
+        internal.setFont(getLabelFont());<br/>
+        internal.setTextColor(Color.black);<br/>
+        internal.setLineWidth(0);<br/>
+        internal.setFilled(false);<br/>
+        internal.setExpandOnly(true);<br/>
+        internal.setReturnAction(FigText.INSERT);<br/>
+        internal.setJustification(FigText.JUSTIFY_LEFT);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor for FigState, used when an UML elm already exists.<br/>
+     *<br/>
+     * @param gm ignored<br/>
+     * @param node the UML element<br/>
+     */<br/>
+    public FigState(GraphModel gm, Object node) {<br/>
+        this();<br/>
+        setOwner(node);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.tigris.gef.presentation.Fig#setOwner(java.lang.Object)<br/>
+     */<br/>
+    public void setOwner(Object newOwner) {<br/>
+        super.setOwner(newOwner);<br/>
+        renderingChanged();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.state.ui.FigStateVertex#initNotationProviders(java.lang.Object)<br/>
+     */<br/>
+    protected void initNotationProviders(Object own) {<br/>
+        super.initNotationProviders(own);<br/>
+        if (Model.getFacade().isAState(own)) {<br/>
+            notationProviderBody =<br/>
+                NotationProviderFactory2.getInstance().getNotationProvider(<br/>
+                        NotationProviderFactory2.TYPE_STATEBODY, this, own);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#modelChanged(java.beans.PropertyChangeEvent)<br/>
+     */<br/>
+    protected void modelChanged(PropertyChangeEvent mee) {<br/>
+        super.modelChanged(mee);<br/>
+        if (mee instanceof AssociationChangeEvent <br/>
+                || mee instanceof AttributeChangeEvent) {<br/>
+            renderingChanged();<br/>
+            updateListeners(getOwner());<br/>
+            damage();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#updateListeners(java.lang.Object)<br/>
+     */<br/>
+    protected void updateListeners(Object newOwner) {<br/>
+        // this takes care of the listeners on the state itself:<br/>
+        super.updateListeners(newOwner);<br/>
+        Object oldOwner = getOwner();<br/>
+        if (newOwner == oldOwner) {<br/>
+            return;<br/>
+        }<br/>
+        if (oldOwner != null) {<br/>
+            removeAllElementListeners();<br/>
+        }<br/>
+        if (newOwner != null) {<br/>
+            // register for events from all modelelements<br/>
+            // that change the body text<br/>
+            Iterator it =<br/>
+                Model.getFacade().getInternalTransitions(newOwner).iterator();<br/>
+            while (it.hasNext()) {<br/>
+                addListenersForTransition(it.next());<br/>
+            }<br/>
+            // register for the doactivity etc.<br/>
+            Object doActivity = Model.getFacade().getDoActivity(newOwner);<br/>
+            addListenersForAction(doActivity);<br/>
+            Object entryAction = Model.getFacade().getEntry(newOwner);<br/>
+            addListenersForAction(entryAction);<br/>
+            Object exitAction = Model.getFacade().getExit(newOwner);<br/>
+            addListenersForAction(exitAction);<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    private void addListenersForAction(Object action) {<br/>
+        if (action != null) {<br/>
+            addElementListener(action,<br/>
+                    new String[] {<br/>
+                        "script", "actualArgument",<br/>
+                    });<br/>
+            Collection args = Model.getFacade().getActualArguments(action);<br/>
+            Iterator i = args.iterator();<br/>
+            while (i.hasNext()) {<br/>
+                Object argument = i.next();<br/>
+                addElementListener(argument, "value");<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void addListenersForEvent(Object event) {<br/>
+        if (event != null) {<br/>
+            addElementListener(event,<br/>
+                    new String[] {<br/>
+                        "parameter", "name",<br/>
+                    });<br/>
+            Collection prms = Model.getFacade().getParameters(event);<br/>
+            Iterator i = prms.iterator();<br/>
+            while (i.hasNext()) {<br/>
+                Object parameter = i.next();<br/>
+                addElementListener(parameter);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    private void addListenersForTransition(Object transition) {<br/>
+        addElementListener(transition, <br/>
+                new String[] {"guard", "trigger", "effect"});<br/>
+<br/>
+        Object guard = Model.getFacade().getGuard(transition);<br/>
+        if (guard != null) {<br/>
+            addElementListener(guard, "expression");<br/>
+        }<br/>
+<br/>
+        Object trigger = Model.getFacade().getTrigger(transition);<br/>
+        addListenersForEvent(trigger);<br/>
+<br/>
+        Object effect = Model.getFacade().getEffect(transition);<br/>
+        addListenersForAction(effect);<br/>
+    }    <br/>
+    <br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#renderingChanged()<br/>
+     */<br/>
+    public void renderingChanged() {<br/>
+        Object state = getOwner();<br/>
+        if (state == null) {<br/>
+            return;<br/>
+        }<br/>
+        if (notationProviderBody != null) {<br/>
+            internal.setText(notationProviderBody.toString());<br/>
+        }<br/>
+        <span class="add"><span class="add">super.<span class="add">renderingChanged</span>()</span>;</span><br/>
+        calcBounds();<br/>
+        setBounds(getBounds());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return the initial X<br/>
+     */<br/>
+    protected abstract int getInitialX();<br/>
+<br/>
+    /**<br/>
+     * @return the initial Y<br/>
+     */<br/>
+    protected abstract int getInitialY();<br/>
+<br/>
+    /**<br/>
+     * @return the initial width<br/>
+     */<br/>
+    protected abstract int getInitialWidth();<br/>
+<br/>
+    /**<br/>
+     * @return the initial height<br/>
+     */<br/>
+    protected abstract int getInitialHeight();<br/>
+<br/>
+    /**<br/>
+     * @param theInternal The internal to set.<br/>
+     */<br/>
+    protected void setInternal(FigText theInternal) {<br/>
+        this.internal = theInternal;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Returns the internal.<br/>
+     */<br/>
+    protected FigText getInternal() {<br/>
+        return internal;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#textEditStarted(org.tigris.gef.presentation.FigText)<br/>
+     */<br/>
+    protected void textEditStarted(FigText ft) {<br/>
+        super.textEditStarted(ft);<br/>
+        if (ft == internal) {<br/>
+            showHelp(notationProviderBody.getParsingHelp());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.diagram.ui.FigNodeModelElement#textEdited(org.tigris.gef.presentation.FigText)<br/>
+     */<br/>
+    public void textEdited(FigText ft) throws PropertyVetoException {<br/>
+        super.textEdited(ft);<br/>
+        if (ft == getInternal()) {<br/>
+            Object st = getOwner();<br/>
+            if (st == null) {<br/>
+                return;<br/>
+            }<br/>
+            ft.setText(notationProviderBody.parse(ft.getText()));<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

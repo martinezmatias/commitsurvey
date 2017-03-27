@@ -1,0 +1,1 @@
+Use final keyword (for bug #301239)

@@ -1,0 +1,1 @@
+[intern] renamed i18n string

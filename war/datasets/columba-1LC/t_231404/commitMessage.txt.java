@@ -1,0 +1,1 @@
+[bug] removed debug message that caused NullPointerException

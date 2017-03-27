@@ -1,0 +1,1 @@
+added method to get an issue by its unique id

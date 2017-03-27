@@ -1,0 +1,1 @@
+Fixes JOnAS bug #304702

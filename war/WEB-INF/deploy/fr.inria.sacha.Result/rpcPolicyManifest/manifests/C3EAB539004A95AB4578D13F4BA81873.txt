@@ -1,0 +1,2 @@
+serviceClass: fr.inria.sacha.client.ResultService
+path: 0EF882A8FBE131B697F2E847B8FD7308.gwt.rpc

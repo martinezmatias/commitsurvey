@@ -1,0 +1,1 @@
+PropertyManager.getProperties() fix

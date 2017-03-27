@@ -1,0 +1,1 @@
+Enforce UTF-8

@@ -1,0 +1,1 @@
++ Bug 1448511: NoSuchMethodError with java 1.4

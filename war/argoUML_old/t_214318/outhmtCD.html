@@ -1,0 +1,335 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_PgmlUtility_1.6.java</h1>
+<div class="code">
+<div class="id">
+// $Id: PgmlUtility.java,v 1.6 2006-06-11 19:01:26 mvw Exp $<br/>
+// Copyright (c) 2005-2006 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.persistence;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+<br/>
+import org.argouml.uml.diagram.static_structure.ui.FigEdgeNote;<br/>
+import org.argouml.uml.diagram.ui.FigEdgeAssociationClass;<br/>
+import org.tigris.gef.base.Diagram;<br/>
+import org.tigris.gef.base.Layer;<br/>
+import org.tigris.gef.presentation.Fig;<br/>
+import org.tigris.gef.presentation.FigEdge;<br/>
+<br/>
+/**<br/>
+ * Utility class for use by pgml.tee.<br/>
+ *<br/>
+ * @author Bob Tarling<br/>
+ */<br/>
+public final class PgmlUtility {<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     */<br/>
+    private PgmlUtility() {<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Translate the visibility flag of a Fig to the PGML "visibility" attribute<br/>
+     * value.<br/>
+     * The PGML values are 0=hidden and 1=shown.<br/>
+     * If not specified then 1 is the default so we return null for this to<br/>
+     * prevent redundent data being written to PGML.<br/>
+     * TODO: Remove on GEF release after 0.11.9 as it will be provided there.<br/>
+     * <br/>
+     * @param f The Fig<br/>
+     * @return "0"=hidden, null=shown<br/>
+     */<br/>
+    public static String getVisibility(Fig f) {<br/>
+        if (f.isVisible()) return null;<br/>
+        return "0";<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Return just the comment edges for a specific layer.<br/>
+     * TODO: Document: Diagram / layer?<br/>
+     *<br/>
+     * @param lay The {@link Layer}.<br/>
+     * @return a {@link List} with the edges.<br/>
+     */<br/>
+    public static List getEdges(Diagram diagram) {<br/>
+        Layer lay = diagram.getLayer();<br/>
+        Collection edges = lay.getContentsEdgesOnly();<br/>
+        List returnEdges = new ArrayList(edges.size());<br/>
+        getEdges(diagram, edges, returnEdges);<br/>
+        return returnEdges;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the diagram contents in the order to save to PGML<br/>
+     * Nodes first, then edges connecting nodes and lastly<br/>
+     * edges that connect edges to other edges.<br/>
+     *<br/>
+     * @param diagram The {@link Diagram}.<br/>
+     * @return a {@link List} with the contents.<br/>
+     */<br/>
+    public static List getContents(Diagram diagram) {<br/>
+        Layer lay = diagram.getLayer();<br/>
+        List contents = lay.getContents();<br/>
+        int size = contents.size();<br/>
+        List list = new ArrayList(size);<br/>
+        for (int i = 0; i &lt; size; i++) {<br/>
+            Object o = contents.get(i);<br/>
+            if (!(o instanceof FigEdge)) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        getEdges(diagram, lay.getContentsEdgesOnly(), list);<br/>
+        return list;<br/>
+    }<br/>
+    <br/>
+    private static void getEdges(Diagram diagram, <br/>
+            Collection edges, List returnEdges) {<br/>
+        Iterator it = edges.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (!(o instanceof FigEdgeNote) <br/>
+                    &amp;&amp; !(o instanceof FigEdgeAssociationClass)) {<br/>
+                returnEdges.add(o);<br/>
+            }<br/>
+        }<br/>
+        it = edges.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof FigEdgeAssociationClass) {<br/>
+                returnEdges.add(o);<br/>
+            }<br/>
+        }<br/>
+        it = edges.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof FigEdgeNote) {<br/>
+                returnEdges.add(o);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_PgmlUtility_1.7.java</h1>
+<div class="code">
+<div class="id">
+// $Id: PgmlUtility.java,v 1.7 2006-06-27 23:34:36 bobtarling Exp $<br/>
+// Copyright (c) 2005-2006 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.persistence;<br/>
+<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+<br/>
+import org.argouml.uml.diagram.static_structure.ui.FigEdgeNote;<br/>
+import org.argouml.uml.diagram.ui.FigEdgeAssociationClass;<br/>
+import org.tigris.gef.base.Diagram;<br/>
+import org.tigris.gef.base.Layer;<br/>
+import org.tigris.gef.presentation.Fig;<br/>
+import org.tigris.gef.presentation.FigEdge;<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">tigris</span></span>.<span class="add">gef</span></span>.<span class="add">presentation</span></span>.<span class="add">FigGroup</span></span>;</span><br/>
+<br/>
+/**<br/>
+ * Utility class for use by pgml.tee.<br/>
+ *<br/>
+ * @author Bob Tarling<br/>
+ */<br/>
+public final class PgmlUtility {<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     */<br/>
+    private PgmlUtility() {<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Translate the visibility flag of a Fig to the PGML "visibility" attribute<br/>
+     * value.<br/>
+     * The PGML values are 0=hidden and 1=shown.<br/>
+     * If not specified then 1 is the default so we return null for this to<br/>
+     * prevent redundent data being written to PGML.<br/>
+     * TODO: Remove on GEF release after 0.11.9 as it will be provided there.<br/>
+     * <br/>
+     * @param f The Fig<br/>
+     * @return "0"=hidden, null=shown<br/>
+     */<br/>
+    public static String getVisibility(Fig f) {<br/>
+        if (f.isVisible()) return null;<br/>
+        return "0";<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Return just the comment edges for a specific layer.<br/>
+     * TODO: Document: Diagram / layer?<br/>
+     *<br/>
+     * @param lay The {@link Layer}.<br/>
+     * @return a {@link List} with the edges.<br/>
+     */<br/>
+    public static List getEdges(Diagram diagram) {<br/>
+        Layer lay = diagram.getLayer();<br/>
+        Collection edges = lay.getContentsEdgesOnly();<br/>
+        List returnEdges = new ArrayList(edges.size());<br/>
+        getEdges(diagram, edges, returnEdges);<br/>
+        return returnEdges;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the diagram contents in the order to save to PGML<br/>
+     * Nodes first, then edges connecting nodes and lastly<br/>
+     * edges that connect edges to other edges.<br/>
+     *<br/>
+     * @param diagram The {@link Diagram}.<br/>
+     * @return a {@link List} with the contents.<br/>
+     */<br/>
+    public static List getContents(Diagram diagram) {<br/>
+        Layer lay = diagram.getLayer();<br/>
+        List contents = lay.getContents();<br/>
+        int size = contents.size();<br/>
+        List list = new ArrayList(size);<br/>
+        for (int i = 0; i &lt; size; i++) {<br/>
+            Object o = contents.get(i);<br/>
+            if (!(o instanceof FigEdge)) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        getEdges(diagram, lay.getContentsEdgesOnly(), list);<br/>
+        return list;<br/>
+    }<br/>
+    <br/>
+    private static void getEdges(Diagram diagram, <br/>
+            Collection edges, List returnEdges) {<br/>
+        Iterator it = edges.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (!(o instanceof FigEdgeNote) <br/>
+                    &amp;&amp; !(o instanceof FigEdgeAssociationClass)) {<br/>
+                returnEdges.add(o);<br/>
+            }<br/>
+        }<br/>
+        it = edges.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof FigEdgeAssociationClass) {<br/>
+                returnEdges.add(o);<br/>
+            }<br/>
+        }<br/>
+        it = edges.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof FigEdgeNote) {<br/>
+                returnEdges.add(o);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    <span class="add"><span class="add">/**<br/>
+     * Generate an identifier for this Fig which is unique within the <br/>
+     * diagram.<br/>
+     * @param f the Fig to generate the id for<br/>
+     * @return a unique string<br/>
+     */</span><br/>
+    <span class="add">public</span> <span class="add">static</span> <span class="add"><span class="add">String</span></span> <span class="add">getId</span>(<span class="add"><span class="add"><span class="add">Fig</span></span> <span class="add">f</span></span>) <span class="add">{<br/>
+        <span class="add">if (<span class="add"><span class="add">f</span> == <span class="add">null</span></span>) <span class="add">{<br/>
+            <span class="add">throw <span class="add">new <span class="add"><span class="add">IllegalArgumentException</span></span>(<span class="add">"A fig must be supplied"</span>)</span>;</span><br/>
+        }</span></span><br/>
+        <span class="add">if(<span class="add"><span class="add"><span class="add">f</span>.<span class="add">getGroup</span>()</span> != <span class="add">null</span></span>) <span class="add">{<br/>
+            <span class="add"><span class="add"><span class="add">String</span></span> <span class="add"><span class="add">groupId</span> = <span class="add"><span class="add"><span class="add">f</span>.<span class="add">getGroup</span>()</span>.<span class="add">getId</span>()</span></span>;</span><br/>
+            <span class="add">if(<span class="add"><span class="add"><span class="add">f</span>.<span class="add">getGroup</span>()</span> instanceof <span class="add"><span class="add">FigGroup</span></span></span>) <span class="add">{<br/>
+                <span class="add"><span class="add"><span class="add">FigGroup</span></span> <span class="add"><span class="add">group</span> = <span class="add">(<span class="add"><span class="add">FigGroup</span></span>) <span class="add"><span class="add">f</span>.<span class="add">getGroup</span>()</span></span></span>;</span><br/>
+                <span class="add">return <span class="add"><span class="add">groupId</span> + <span class="add">"."</span> + <span class="add"><span class="add">(<span class="add">(<span class="add"><span class="add">List</span></span>) <span class="add"><span class="add">group</span>.<span class="add">getFigs</span>()</span></span>)</span>.<span class="add">indexOf</span>(<span class="add">f</span>)</span></span>;</span><br/>
+            }</span> else <span class="add">if (<span class="add"><span class="add"><span class="add">f</span>.<span class="add">getGroup</span>()</span> instanceof <span class="add"><span class="add">FigEdge</span></span></span>) <span class="add">{<br/>
+                <span class="add"><span class="add"><span class="add">FigEdge</span></span> <span class="add"><span class="add">edge</span> = <span class="add">(<span class="add"><span class="add">FigEdge</span></span>) <span class="add"><span class="add">f</span>.<span class="add">getGroup</span>()</span></span></span>;</span><br/>
+                <span class="add">return <span class="add"><span class="add">groupId</span> + <span class="add">"."</span> +<br/>
+                    <span class="add">(<span class="add"><span class="add"><span class="add">(<span class="add">(<span class="add"><span class="add">List</span></span>) <span class="add"><span class="add">edge</span>.<span class="add">getPathItemFigs</span>()</span></span>)</span>.<span class="add">indexOf</span>(<span class="add">f</span>)</span> + <span class="add">1</span></span>)</span></span>;</span><br/>
+            }</span> else <span class="add">{<br/>
+                <span class="add">return <span class="add"><span class="add">groupId</span> + <span class="add">".0"</span></span>;</span><br/>
+            }</span></span></span><br/>
+        }</span></span><br/>
+<br/>
+        <span class="add"><span class="add"><span class="add">Layer</span></span> <span class="add"><span class="add">layer</span> = <span class="add"><span class="add">f</span>.<span class="add">getLayer</span>()</span></span>;</span><br/>
+        <span class="add">if(<span class="add"><span class="add">layer</span> == <span class="add">null</span></span>) <span class="add">{<br/>
+            <span class="add">return <span class="add">"LAYER_NULL"</span>;</span><br/>
+        }</span></span><br/>
+<br/>
+        <span class="add"><span class="add"><span class="add">List</span></span> <span class="add"><span class="add">c</span> = <span class="add">(<span class="add"><span class="add">List</span></span>) <span class="add"><span class="add">layer</span>.<span class="add">getContents</span>()</span></span></span>;</span><br/>
+        <span class="add"><span class="add">int</span> <span class="add"><span class="add">index</span> = <span class="add"><span class="add">c</span>.<span class="add">indexOf</span>(<span class="add">f</span>)</span></span>;</span><br/>
+        <span class="add">return <span class="add"><span class="add">"Fig"</span> + <span class="add">index</span></span>;</span><br/>
+    }</span></span><br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,610 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_GeneratorDummy_1.17.java</h1>
+<div class="code">
+<div class="id">
+// $Id: GeneratorDummy.java,v 1.17 2005-11-02 13:28:16 mvw Exp $<br/>
+// Copyright (c) 2001-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.language.dummylanguage.generator;<br/>
+<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.notation.Notation;<br/>
+import org.argouml.uml.generator.Generator2;<br/>
+<br/>
+/**<br/>
+ * Generator2 subclass to generate text for display in diagrams in in<br/>
+ * text fields in the ArgoUML user interface.<br/>
+ * The generated code is a dummy language. The purpose is to provide<br/>
+ * an illustration of how the Generator and Notation mechanisms are<br/>
+ * supposed to work.<br/>
+ *<br/>
+ * @author Linus Tolke<br/>
+ * @stereotype singleton<br/>
+ */<br/>
+public final class GeneratorDummy<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;extends Generator2 {<br/>
+    /**<br/>
+     * The singleton.<br/>
+     */<br/>
+    private static final GeneratorDummy SINGLETON = new GeneratorDummy();<br/>
+<br/>
+    /**<br/>
+     * Get the one and only instance of this generator.<br/>
+     *<br/>
+     * @return The singleton.<br/>
+     */<br/>
+    public static GeneratorDummy getInstance() { return SINGLETON; }<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     */<br/>
+    private GeneratorDummy() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(Notation.makeNotation("Dummy", "1.0", null));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate code for an extension point.&lt;p&gt;<br/>
+     *<br/>
+     * Provided to comply with the interface, but returns null<br/>
+     * since no code will be generated. This should prevent a source tab<br/>
+     * being shown.&lt;p&gt;<br/>
+     *<br/>
+     * @param handle The extension point to generate for<br/>
+     *<br/>
+     * @return    The generated code string. Always null in this<br/>
+     *            implementation.<br/>
+     */<br/>
+    public String generateExtensionPoint(Object handle) {<br/>
+        return "ExtensionPoint(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateOperation(<br/>
+     *          java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateOperation(Object handle, boolean documented) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Operation(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAttribute(<br/>
+     *          java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateAttribute(Object handle, boolean documented) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Attribute(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateParameter(java.lang.Object)<br/>
+     */<br/>
+    public String generateParameter(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Parameter(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generatePackage(java.lang.Object)<br/>
+     */<br/>
+    public String generatePackage(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Package(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateClassifier(java.lang.Object)<br/>
+     */<br/>
+    public String generateClassifier(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Classifier(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateTaggedValue(java.lang.Object)<br/>
+     */<br/>
+    public String generateTaggedValue(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "TaggedValue(" + Model.getFacade().getTag(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAssociation(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociation(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Association(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAssociationEnd(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationEnd(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "AssociationEnd(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAssociationRole(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationRole(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "AssociationRole(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateMultiplicity(java.lang.Object)<br/>
+     */<br/>
+    public String generateMultiplicity(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Multiplicity(" + <span class="mv">handle</span>.toString() + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateVisibility(java.lang.Object)<br/>
+     */<br/>
+    public String generateVisibility(Object handle) {<br/>
+        if (Model.getFacade().isAVisibilityKind(handle)) {<br/>
+            return "Visibility(" + Model.getFacade().getValue(handle) + ")";<br/>
+        }<br/>
+        return "Visibility(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateState(java.lang.Object)<br/>
+     */<br/>
+    public String generateState(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "State(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateStateBody(java.lang.Object)<br/>
+     */<br/>
+    public String generateStateBody(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "StateBody(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateTransition(java.lang.Object)<br/>
+     */<br/>
+    public String generateTransition(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Transition(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAction(java.lang.Object)<br/>
+     */<br/>
+    public String generateAction(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (Model.getFacade().isAAction(handle)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return "Action(" + Model.getFacade().getName(handle) + ")";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Action(" + handle.toString() + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateGuard(java.lang.Object)<br/>
+     */<br/>
+    public String generateGuard(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Guard(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateMessage(java.lang.Object)<br/>
+     */<br/>
+    public String generateMessage(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Message(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateSubmachine(java.lang.Object)<br/>
+     */<br/>
+    public String generateSubmachine(Object m) {<br/>
+        Object c = Model.getFacade().getSubmachine(m);<br/>
+        if (c == null) {<br/>
+            return "include / ";<br/>
+        }<br/>
+        if (Model.getFacade().getName(c) == null) {<br/>
+            return "include / ";<br/>
+        }<br/>
+        if (Model.getFacade().getName(c).length() == 0) {<br/>
+            return "include / ";<br/>
+        }<br/>
+        return ("include / " + generateName(Model.getFacade().getName(c)));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateObjectFlowState(java.lang.Object)<br/>
+     */<br/>
+    public String generateObjectFlowState(Object m) {<br/>
+        Object c = Model.getFacade().getType(m);<br/>
+        if (c == null) {<br/>
+            return "";<br/>
+        }<br/>
+        return Model.getFacade().getName(c);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.generator.Generator2#generateEvent(java.lang.Object)<br/>
+     */<br/>
+    public String generateEvent(Object m) {<br/>
+        return "Event(" + Model.getFacade().getName(m) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateActionState(java.lang.Object)<br/>
+     */<br/>
+    public String generateActionState(Object actionState) {<br/>
+        String ret = "";<br/>
+        Object action = Model.getFacade().getEntry(actionState);<br/>
+        if (action != null) {<br/>
+            Object expression = Model.getFacade().getScript(action);<br/>
+            if (expression != null) {<br/>
+                ret = generateExpression(expression);<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleName()<br/>
+     */<br/>
+    public String getModuleName() { return "GeneratorDummy"; }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleDescription()<br/>
+     */<br/>
+    public String getModuleDescription() {<br/>
+        return "Dummy language";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleAuthor()<br/>
+     */<br/>
+    public String getModuleAuthor() {<br/>
+        return "ArgoUML Dummy Language addition";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleVersion()<br/>
+     */<br/>
+    public String getModuleVersion() { return "0.9.9"; }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleKey()<br/>
+     */<br/>
+    public String getModuleKey() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "module.language.generator.dummylanguage";<br/>
+    }<br/>
+} /* end class GeneratorDummy */<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_GeneratorDummy_1.18.java</h1>
+<div class="code">
+<div class="id">
+// $Id: GeneratorDummy.java,v 1.18 2005-11-11 03:50:44 tfmorris Exp $<br/>
+// Copyright (c) 2001-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.language.dummylanguage.generator;<br/>
+<br/>
+import org.argouml.model.Model;<br/>
+import org.argouml.notation.Notation;<br/>
+import org.argouml.uml.generator.Generator2;<br/>
+<br/>
+/**<br/>
+ * Generator2 subclass to generate text for display in diagrams in in<br/>
+ * text fields in the ArgoUML user interface.<br/>
+ * The generated code is a dummy language. The purpose is to provide<br/>
+ * an illustration of how the Generator and Notation mechanisms are<br/>
+ * supposed to work.<br/>
+ *<br/>
+ * @author Linus Tolke<br/>
+ * @stereotype singleton<br/>
+ */<br/>
+public final class GeneratorDummy<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;extends Generator2 {<br/>
+    /**<br/>
+     * The singleton.<br/>
+     */<br/>
+    private static final GeneratorDummy SINGLETON = new GeneratorDummy();<br/>
+<br/>
+    /**<br/>
+     * Get the one and only instance of this generator.<br/>
+     *<br/>
+     * @return The singleton.<br/>
+     */<br/>
+    public static GeneratorDummy getInstance() { return SINGLETON; }<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     */<br/>
+    private GeneratorDummy() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(Notation.makeNotation("Dummy", "1.0", null));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate code for an extension point.&lt;p&gt;<br/>
+     *<br/>
+     * Provided to comply with the interface, but returns null<br/>
+     * since no code will be generated. This should prevent a source tab<br/>
+     * being shown.&lt;p&gt;<br/>
+     *<br/>
+     * @param handle The extension point to generate for<br/>
+     *<br/>
+     * @return    The generated code string. Always null in this<br/>
+     *            implementation.<br/>
+     */<br/>
+    public String generateExtensionPoint(Object handle) {<br/>
+        return "ExtensionPoint(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateOperation(<br/>
+     *          java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateOperation(Object handle, boolean documented) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Operation(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAttribute(<br/>
+     *          java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateAttribute(Object handle, boolean documented) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Attribute(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateParameter(java.lang.Object)<br/>
+     */<br/>
+    public String generateParameter(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Parameter(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generatePackage(java.lang.Object)<br/>
+     */<br/>
+    public String generatePackage(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Package(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateClassifier(java.lang.Object)<br/>
+     */<br/>
+    public String generateClassifier(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Classifier(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateTaggedValue(java.lang.Object)<br/>
+     */<br/>
+    public String generateTaggedValue(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "TaggedValue(" + Model.getFacade().getTag(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAssociation(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociation(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Association(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAssociationEnd(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationEnd(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "AssociationEnd(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAssociationRole(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationRole(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "AssociationRole(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateMultiplicity(java.lang.Object)<br/>
+     */<br/>
+    public String generateMultiplicity(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Multiplicity(" + <span class="add"><span class="add">Model</span>.<span class="add">getFacade</span>()</span>.toString(<span class="mv">handle</span>) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateVisibility(java.lang.Object)<br/>
+     */<br/>
+    public String generateVisibility(Object handle) {<br/>
+        if (Model.getFacade().isAVisibilityKind(handle)) {<br/>
+            return "Visibility(" + Model.getFacade().getValue(handle) + ")";<br/>
+        }<br/>
+        return "Visibility(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateState(java.lang.Object)<br/>
+     */<br/>
+    public String generateState(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "State(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateStateBody(java.lang.Object)<br/>
+     */<br/>
+    public String generateStateBody(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "StateBody(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateTransition(java.lang.Object)<br/>
+     */<br/>
+    public String generateTransition(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Transition(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateAction(java.lang.Object)<br/>
+     */<br/>
+    public String generateAction(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (Model.getFacade().isAAction(handle)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return "Action(" + Model.getFacade().getName(handle) + ")";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Action(" + handle.toString() + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateGuard(java.lang.Object)<br/>
+     */<br/>
+    public String generateGuard(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Guard(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateMessage(java.lang.Object)<br/>
+     */<br/>
+    public String generateMessage(Object handle) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "Message(" + Model.getFacade().getName(handle) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateSubmachine(java.lang.Object)<br/>
+     */<br/>
+    public String generateSubmachine(Object m) {<br/>
+        Object c = Model.getFacade().getSubmachine(m);<br/>
+        if (c == null) {<br/>
+            return "include / ";<br/>
+        }<br/>
+        if (Model.getFacade().getName(c) == null) {<br/>
+            return "include / ";<br/>
+        }<br/>
+        if (Model.getFacade().getName(c).length() == 0) {<br/>
+            return "include / ";<br/>
+        }<br/>
+        return ("include / " + generateName(Model.getFacade().getName(c)));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateObjectFlowState(java.lang.Object)<br/>
+     */<br/>
+    public String generateObjectFlowState(Object m) {<br/>
+        Object c = Model.getFacade().getType(m);<br/>
+        if (c == null) {<br/>
+            return "";<br/>
+        }<br/>
+        return Model.getFacade().getName(c);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.uml.generator.Generator2#generateEvent(java.lang.Object)<br/>
+     */<br/>
+    public String generateEvent(Object m) {<br/>
+        return "Event(" + Model.getFacade().getName(m) + ")";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.notation.NotationProvider2#generateActionState(java.lang.Object)<br/>
+     */<br/>
+    public String generateActionState(Object actionState) {<br/>
+        String ret = "";<br/>
+        Object action = Model.getFacade().getEntry(actionState);<br/>
+        if (action != null) {<br/>
+            Object expression = Model.getFacade().getScript(action);<br/>
+            if (expression != null) {<br/>
+                ret = generateExpression(expression);<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleName()<br/>
+     */<br/>
+    public String getModuleName() { return "GeneratorDummy"; }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleDescription()<br/>
+     */<br/>
+    public String getModuleDescription() {<br/>
+        return "Dummy language";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleAuthor()<br/>
+     */<br/>
+    public String getModuleAuthor() {<br/>
+        return "ArgoUML Dummy Language addition";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleVersion()<br/>
+     */<br/>
+    public String getModuleVersion() { return "0.9.9"; }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleKey()<br/>
+     */<br/>
+    public String getModuleKey() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "module.language.generator.dummylanguage";<br/>
+    }<br/>
+} /* end class GeneratorDummy */<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1 @@
+Issue 3755: The save action should be disabled on startup.

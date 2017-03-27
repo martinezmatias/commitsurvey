@@ -1,0 +1,464 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_BorderSplitPane_1.7.java</h1>
+<div class="code">
+<div class="id">
+// $Id: BorderSplitPane.java,v 1.7 2003-06-30 18:00:23 linus Exp $<br/>
+// Copyright (c) 2003 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+/*<br/>
+ * BorderSplitPane.java<br/>
+ */<br/>
+package org.argouml.swingext;<br/>
+<br/>
+import javax.swing.JComponent;<br/>
+import java.awt.*;<br/>
+<br/>
+/**<br/>
+ * A component designed to display its child components in a similar<br/>
+ * fashion to a component implementing the standard java class<br/>
+ * &lt;code&gt;BorderLayout&lt;/code&gt; but with each child component seperated<br/>
+ * by a positional splitterbar.&lt;p&gt;<br/>
+ *<br/>
+ * The compass points have been expanded from those available in<br/>
+ * &lt;code&gt;BorderLayout&lt;/code&gt; to the diaganal compass points,<br/>
+ * NORTHWEST, NORTHEAST, SOUTHEAST, SOUTHWEST.<br/>
+ *<br/>
+ * @author Bob Tarling<br/>
+ */<br/>
+public class BorderSplitPane extends JComponent {<br/>
+    /**<br/>
+     * The north layout constraint (top of container).<br/>
+     */<br/>
+    public static final String NORTH = "North";<br/>
+    /**<br/>
+     * The south layout constraint (bottom of container).<br/>
+     */<br/>
+    public static final String SOUTH = "South";<br/>
+    /**<br/>
+     * The east layout constraint (right of container).<br/>
+     */<br/>
+    public static final String EAST = "East";<br/>
+    /**<br/>
+     * The west layout constraint (left of container).<br/>
+     */<br/>
+    public static final String WEST = "West";<br/>
+    /**<br/>
+     * The center layout constraint (middle of container).<br/>
+     */<br/>
+    public static final String CENTER = "Center";<br/>
+    /**<br/>
+     * The southwest layout constraint (bottom left of container).<br/>
+     */<br/>
+    public static final String SOUTHWEST = "SouthWest";<br/>
+    /**<br/>
+     * The southeast layout constraint (bottom right of container).<br/>
+     */<br/>
+    public static final String SOUTHEAST = "SouthEast";<br/>
+    /**<br/>
+     * The northwest layout constraint (top left of container).<br/>
+     */<br/>
+    public static final String NORTHWEST = "NorthWest";<br/>
+    /**<br/>
+     * The northeast layout constraint (top right of container).<br/>
+     */<br/>
+    public static final String NORTHEAST = "NorthEast";<br/>
+<br/>
+    private MultipleSplitPane outerSplitPane;<br/>
+    private MultipleSplitPane topSplitPane;<br/>
+    private MultipleSplitPane middleSplitPane;<br/>
+    private MultipleSplitPane bottomSplitPane;<br/>
+<br/>
+    /** Construct a new BorderSplitPane<br/>
+     */    <br/>
+    public BorderSplitPane() {<br/>
+        outerSplitPane =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    new MultipleSplitPane(3, MultipleSplitPane.VERTICAL_SPLIT);<br/>
+        setLayout(new BorderLayout());<br/>
+        super.add(outerSplitPane, BorderLayout.CENTER);<br/>
+<br/>
+        topSplitPane = new MultipleSplitPane(3);<br/>
+        middleSplitPane = new MultipleSplitPane(3);<br/>
+        bottomSplitPane = new MultipleSplitPane(3);<br/>
+<br/>
+        outerSplitPane.add(middleSplitPane, "100", 1);<br/>
+    }<br/>
+<br/>
+    /** Add a new component to the center of the<br/>
+     * BorderSplitPane<br/>
+     *<br/>
+     * @param comp The component to be added<br/>
+     * @return the component argument<br/>
+     */    <br/>
+    public Component add(Component comp) {<br/>
+        middleSplitPane.add(comp, "100", 1);<br/>
+        return comp;<br/>
+    }<br/>
+<br/>
+     /** <br/>
+      * Add a component at the specified compass point or center.<br/>
+      * The constraint can be one of the constants defined in BorderSPlitPane<br/>
+      * being, NORTH, SOUTH, NORTHWEST, NORTHEAST, SOUTHWEST, SOTHEAST or<br/>
+      * CENTER<br/>
+      * @param comp The component to be added<br/>
+      * @param constraints The position to place the component<br/>
+      */    <br/>
+    public void add(Component comp, Object constraints) {<br/>
+        if (constraints == null || constraints.toString().equals(CENTER)) {<br/>
+            add(comp);<br/>
+        }<br/>
+        else if (constraints.toString().equals(NORTH)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            topSplitPane.add(comp, "100", 1);<br/>
+            if (topSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(topSplitPane, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(NORTHWEST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            topSplitPane.add(comp, 0);<br/>
+            if (topSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(topSplitPane, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(NORTHEAST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            topSplitPane.add(comp, 2);<br/>
+            if (topSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(topSplitPane, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(SOUTH)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            bottomSplitPane.add(comp, "100", 1);<br/>
+            if (bottomSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(bottomSplitPane, 2);<br/>
+        }<br/>
+        else if (constraints.toString().equals(SOUTHWEST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            bottomSplitPane.add(comp, 0);<br/>
+            if (bottomSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(bottomSplitPane, 2);<br/>
+        }<br/>
+        else if (constraints.toString().equals(SOUTHEAST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            bottomSplitPane.add(comp, 2);<br/>
+            if (bottomSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(bottomSplitPane, 2);<br/>
+        }<br/>
+        else if (constraints.toString().equals(WEST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Vertical.getInstance());<br/>
+            }<br/>
+            middleSplitPane.add(comp, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(EAST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Vertical.getInstance());<br/>
+            }<br/>
+            middleSplitPane.add(comp, 2);<br/>
+        }<br/>
+        else {<br/>
+            add(comp);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /** <br/>
+     * This method is only implemented to satisfy the superclass declaration.<br/>
+     * add(Component comp) should be used in preference<br/>
+     * <br/>
+     * @param comp The component to be added<br/>
+     * @param index The index value is ignored<br/>
+     * @return the component argument<br/>
+     */    <br/>
+    public Component add(Component comp, int index) {<br/>
+        return add(comp);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This method is only implemented to satisfy the superclass declaration.<br/>
+     * add(Component comp, Object constraints) should be used in preference<br/>
+     * <br/>
+     * @param comp The component to be added<br/>
+     * @param constraints The position to place the component<br/>
+     * @param index The index value is ignored<br/>
+     */    <br/>
+    public void add(Component comp, Object constraints, int index) {<br/>
+        add(comp, constraints);<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_BorderSplitPane_1.8.java</h1>
+<div class="code">
+<div class="id">
+// $Id: BorderSplitPane.java,v 1.8 2004-10-30 09:03:25 mvw Exp $<br/>
+// Copyright (c) 2003 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+/*<br/>
+ * BorderSplitPane.java<br/>
+ */<br/>
+package org.argouml.swingext;<br/>
+<br/>
+import javax.swing.JComponent;<br/>
+import java.awt.*;<br/>
+<br/>
+/**<br/>
+ * A component designed to display its child components in a similar<br/>
+ * fashion to a component implementing the standard java class<br/>
+ * &lt;code&gt;BorderLayout&lt;/code&gt; but with each child component seperated<br/>
+ * by a positional splitterbar.&lt;p&gt;<br/>
+ *<br/>
+ * The compass points have been expanded from those available in<br/>
+ * &lt;code&gt;BorderLayout&lt;/code&gt; to the diagonal compass points,<br/>
+ * NORTHWEST, NORTHEAST, SOUTHEAST, SOUTHWEST.<br/>
+ *<br/>
+ * @author Bob Tarling<br/>
+ */<br/>
+public class BorderSplitPane extends JComponent {<br/>
+    /**<br/>
+     * The north layout constraint (top of container).<br/>
+     */<br/>
+    public static final String NORTH = "North";<br/>
+    /**<br/>
+     * The south layout constraint (bottom of container).<br/>
+     */<br/>
+    public static final String SOUTH = "South";<br/>
+    /**<br/>
+     * The east layout constraint (right of container).<br/>
+     */<br/>
+    public static final String EAST = "East";<br/>
+    /**<br/>
+     * The west layout constraint (left of container).<br/>
+     */<br/>
+    public static final String WEST = "West";<br/>
+    /**<br/>
+     * The center layout constraint (middle of container).<br/>
+     */<br/>
+    public static final String CENTER = "Center";<br/>
+    /**<br/>
+     * The southwest layout constraint (bottom left of container).<br/>
+     */<br/>
+    public static final String SOUTHWEST = "SouthWest";<br/>
+    /**<br/>
+     * The southeast layout constraint (bottom right of container).<br/>
+     */<br/>
+    public static final String SOUTHEAST = "SouthEast";<br/>
+    /**<br/>
+     * The northwest layout constraint (top left of container).<br/>
+     */<br/>
+    public static final String NORTHWEST = "NorthWest";<br/>
+    /**<br/>
+     * The northeast layout constraint (top right of container).<br/>
+     */<br/>
+    public static final String NORTHEAST = "NorthEast";<br/>
+<br/>
+    private MultipleSplitPane outerSplitPane;<br/>
+    private MultipleSplitPane topSplitPane;<br/>
+    private MultipleSplitPane middleSplitPane;<br/>
+    private MultipleSplitPane bottomSplitPane;<br/>
+<br/>
+    /** Construct a new BorderSplitPane<br/>
+     */    <br/>
+    public BorderSplitPane() {<br/>
+        outerSplitPane =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    new MultipleSplitPane(3, MultipleSplitPane.VERTICAL_SPLIT);<br/>
+        setLayout(new BorderLayout());<br/>
+        super.add(outerSplitPane, BorderLayout.CENTER);<br/>
+<br/>
+        topSplitPane = new MultipleSplitPane(3);<br/>
+        middleSplitPane = new MultipleSplitPane(3);<br/>
+        bottomSplitPane = new MultipleSplitPane(3);<br/>
+<br/>
+        outerSplitPane.add(middleSplitPane, "100", 1);<br/>
+    }<br/>
+<br/>
+    /** Add a new component to the center of the<br/>
+     * BorderSplitPane<br/>
+     *<br/>
+     * @param comp The component to be added<br/>
+     * @return the component argument<br/>
+     */    <br/>
+    public Component add(Component comp) {<br/>
+        middleSplitPane.add(comp, "100", 1);<br/>
+        return comp;<br/>
+    }<br/>
+<br/>
+     /** <br/>
+      * Add a component at the specified compass point or center.<br/>
+      * The constraint can be one of the constants defined in BorderSPlitPane<br/>
+      * being, NORTH, SOUTH, NORTHWEST, NORTHEAST, SOUTHWEST, SOTHEAST or<br/>
+      * CENTER<br/>
+      * @param comp The component to be added<br/>
+      * @param constraints The position to place the component<br/>
+      */    <br/>
+    public void add(Component comp, Object constraints) {<br/>
+        if (constraints == null || constraints.toString().equals(CENTER)) {<br/>
+            add(comp);<br/>
+        }<br/>
+        else if (constraints.toString().equals(NORTH)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            topSplitPane.add(comp, "100", 1);<br/>
+            if (topSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(topSplitPane, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(NORTHWEST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            topSplitPane.add(comp, 0);<br/>
+            if (topSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(topSplitPane, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(NORTHEAST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            topSplitPane.add(comp, 2);<br/>
+            if (topSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(topSplitPane, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(SOUTH)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            bottomSplitPane.add(comp, "100", 1);<br/>
+            if (bottomSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(bottomSplitPane, 2);<br/>
+        }<br/>
+        else if (constraints.toString().equals(SOUTHWEST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            bottomSplitPane.add(comp, 0);<br/>
+            if (bottomSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(bottomSplitPane, 2);<br/>
+        }<br/>
+        else if (constraints.toString().equals(SOUTHEAST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Horizontal.getInstance());<br/>
+            }<br/>
+            bottomSplitPane.add(comp, 2);<br/>
+            if (bottomSplitPane.getParent() != outerSplitPane)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;outerSplitPane.add(bottomSplitPane, 2);<br/>
+        }<br/>
+        else if (constraints.toString().equals(WEST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Vertical.getInstance());<br/>
+            }<br/>
+            middleSplitPane.add(comp, 0);<br/>
+        }<br/>
+        else if (constraints.toString().equals(EAST)) {<br/>
+            if (comp instanceof Orientable) {<br/>
+                ((Orientable) comp).setOrientation(Vertical.getInstance());<br/>
+            }<br/>
+            middleSplitPane.add(comp, 2);<br/>
+        }<br/>
+        else {<br/>
+            add(comp);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /** <br/>
+     * This method is only implemented to satisfy the superclass declaration.<br/>
+     * add(Component comp) should be used in preference<br/>
+     * <br/>
+     * @param comp The component to be added<br/>
+     * @param index The index value is ignored<br/>
+     * @return the component argument<br/>
+     */    <br/>
+    public Component add(Component comp, int index) {<br/>
+        return add(comp);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This method is only implemented to satisfy the superclass declaration.<br/>
+     * add(Component comp, Object constraints) should be used in preference<br/>
+     * <br/>
+     * @param comp The component to be added<br/>
+     * @param constraints The position to place the component<br/>
+     * @param index The index value is ignored<br/>
+     */    <br/>
+    public void add(Component comp, Object constraints, int index) {<br/>
+        add(comp, constraints);<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

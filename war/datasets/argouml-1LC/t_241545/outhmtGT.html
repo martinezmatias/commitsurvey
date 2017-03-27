@@ -1,0 +1,3798 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_GeneratorJava_1.102.java</h1>
+<div class="code">
+<div class="id">
+// $Id: GeneratorJava.java,v 1.102 2004-10-03 17:59:19 mvw Exp $<br/>
+// Copyright (c) 1996-2004 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.language.java.generator;<br/>
+<br/>
+import java.io.BufferedReader;<br/>
+import java.io.BufferedWriter;<br/>
+import java.io.File;<br/>
+import java.io.FileOutputStream;<br/>
+import java.io.OutputStreamWriter;<br/>
+import java.io.FileInputStream;<br/>
+import java.io.InputStreamReader;<br/>
+import java.io.IOException;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.LinkedList;<br/>
+import java.util.StringTokenizer;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+import org.argouml.application.ArgoVersion;<br/>
+import org.argouml.application.api.Argo;<br/>
+import org.argouml.application.api.Notation;<br/>
+import org.argouml.model.ModelFacade;<br/>
+import org.argouml.model.uml.UmlHelper;<br/>
+import org.argouml.ocl.ArgoFacade;<br/>
+import org.argouml.uml.DocumentationManager;<br/>
+import org.argouml.uml.generator.FileGenerator;<br/>
+import org.argouml.uml.generator.Generator2;<br/>
+<br/>
+import tudresden.ocl.OclTree;<br/>
+import tudresden.ocl.parser.analysis.DepthFirstAdapter;<br/>
+import tudresden.ocl.parser.node.AConstraintBody;<br/>
+<br/>
+import org.argouml.application.api.Configuration;<br/>
+<br/>
+import antlr.ANTLRException;<br/>
+<br/>
+/**<br/>
+ * Generator2 subclass to generate text for display in diagrams and in<br/>
+ * text fields in the Argo/UML user interface.  The generated code<br/>
+ * looks a lot like (invalid) Java.  The idea is that other generators<br/>
+ * could be written for other languages.  This code is just a<br/>
+ * placeholder for future development, I expect it to be totally<br/>
+ * replaced.<br/>
+ *<br/>
+ * @stereotype singleton <br/>
+ */<br/>
+public class GeneratorJava<br/>
+    extends Generator2 implements FileGenerator {<br/>
+<br/>
+    /** Logger */<br/>
+    private static final Logger LOG = Logger.getLogger(GeneratorJava.class);<br/>
+<br/>
+    private static final String ANY_RANGE = "0..*";<br/>
+    //public static final String ANY_RANGE = "*";<br/>
+    // TODO: user preference between "*" and "0..*"<br/>
+<br/>
+    private boolean verboseDocs = false;<br/>
+    private boolean lfBeforeCurly = false;<br/>
+    private static final boolean VERBOSE_DOCS = false;<br/>
+    private static final String LINE_SEPARATOR =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.getProperty("line.separator");<br/>
+    // TODO: make it configurable<br/>
+    // next two flags shows in what mode we are working<br/>
+    /** true when GenerateFile<br/>
+     */<br/>
+    private static boolean isFileGeneration = false;<br/>
+<br/>
+    /**<br/>
+     * true if GenerateFile in Update Mode<br/>
+     */<br/>
+    private static boolean isInUpdateMode = false;<br/>
+<br/>
+    private static final GeneratorJava SINGLETON = new GeneratorJava();<br/>
+<br/>
+    /**<br/>
+     * Get the generator.<br/>
+     *<br/>
+     * @return The singleton.<br/>
+     */<br/>
+    public static GeneratorJava getInstance() {<br/>
+        return SINGLETON;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     */<br/>
+    protected GeneratorJava() {<br/>
+        super(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      Notation.makeNotation(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    "Java",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    null,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Argo.lookupIconResource("JavaNotation")));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @deprecated by Linus Tolke for 0.17.1. <br/>
+     *             Replace by call to {@link #generate(Object)}.<br/>
+     *<br/>
+     * @param o the object to generate<br/>
+     * @return the generated string<br/>
+     */<br/>
+    public static String Generate(Object o) {<br/>
+        return SINGLETON.generate(o);<br/>
+    }<br/>
+<br/>
+    /** <br/>
+     * Generates a file for the classifier.<br/>
+     * This method could have been static if it where not for the need to<br/>
+     * call it through the Generatorinterface.<br/>
+     * Returns the full path name of the the generated file or<br/>
+     * null if no file can be generated.<br/>
+     *<br/>
+     * @see org.argouml.uml.generator.FileGenerator#generateFile2(<br/>
+     * java.lang.Object, java.lang.String)<br/>
+     */<br/>
+    public String generateFile2(Object modelElement, String path) {<br/>
+        String name = ModelFacade.getName(modelElement);<br/>
+        if (name == null || name.length() == 0)<br/>
+            return null;<br/>
+        Object classifier = /*(MClassifier)*/ modelElement;<br/>
+        String filename = name + ".java";<br/>
+        if (!path.endsWith(FILE_SEPARATOR))<br/>
+            path += FILE_SEPARATOR;<br/>
+<br/>
+        String packagePath =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    getPackageName(ModelFacade.getNamespace(classifier));<br/>
+<br/>
+        int lastIndex = -1;<br/>
+        do {<br/>
+            File f = new File(path);<br/>
+            if (!f.isDirectory()) {<br/>
+                if (!f.mkdir()) {<br/>
+                    LOG.error(" could not make directory " + path);<br/>
+                    return null;<br/>
+                }<br/>
+            }<br/>
+<br/>
+            if (lastIndex == packagePath.length())<br/>
+                break;<br/>
+<br/>
+            int index = packagePath.indexOf(".", lastIndex + 1);<br/>
+            if (index == -1)<br/>
+                index = packagePath.length();<br/>
+<br/>
+            path += packagePath.substring(lastIndex + 1, index)<br/>
+                + FILE_SEPARATOR;<br/>
+            lastIndex = index;<br/>
+        } while (true);<br/>
+<br/>
+        String pathname = path + filename;<br/>
+        //cat.info("-----" + pathname + "-----");<br/>
+<br/>
+        //now decide wether file exist and need an update or is to be<br/>
+        //newly generated<br/>
+        File f = new File(pathname);<br/>
+        isFileGeneration = true; // used to produce method javadoc<br/>
+        if (f.exists()) {<br/>
+            try {<br/>
+                update(classifier, f);<br/>
+            } catch (Exception exp) {<br/>
+                isInUpdateMode = false;<br/>
+                isFileGeneration = false;<br/>
+                LOG.error("FAILED: " + f.getPath(), exp);<br/>
+            }<br/>
+<br/>
+            //cat.info("----- end generating -----");<br/>
+            isFileGeneration = false;<br/>
+            return pathname;<br/>
+        }<br/>
+<br/>
+        //String pathname = path + filename;<br/>
+        // TODO: package, project basepath, tagged values to configure<br/>
+        LOG.info("Generating (new) " + f.getPath());<br/>
+        isFileGeneration = true;<br/>
+        String header =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    SINGLETON.generateHeader(classifier, pathname, packagePath);<br/>
+        String src = SINGLETON.generate(classifier);<br/>
+        BufferedWriter fos = null;<br/>
+        try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING) == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .trim().equals("")) {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;fos =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new BufferedWriter(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            new OutputStreamWriter(new FileOutputStream(f),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    System.getProperty("file.encoding")));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;fos =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new BufferedWriter(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            new OutputStreamWriter(new FileOutputStream(f),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    Configuration.getString(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            Argo.KEY_INPUT_SOURCE_ENCODING)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+            fos.write(header);<br/>
+            fos.write(src);<br/>
+        } catch (IOException exp) {<br/>
+            LOG.error("IO Exception: " + exp + ", for file: " + f.getPath());<br/>
+        } finally {<br/>
+            isFileGeneration = false;<br/>
+            try {<br/>
+                if (fos != null)<br/>
+                    fos.close();<br/>
+            } catch (IOException exp) {<br/>
+                LOG.error("FAILED: " + f.getPath());<br/>
+            }<br/>
+        }<br/>
+<br/>
+        //cat.info("----- end updating -----");<br/>
+        return pathname;<br/>
+    }<br/>
+<br/>
+    private String generateHeader(Object cls,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String pathname,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String packagePath) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        //TODO: add user-defined copyright<br/>
+        if (VERBOSE_DOCS) {<br/>
+            sb.append("// FILE: ").append(pathname.replace('\\', '/'));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR).append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        if (packagePath.length() &gt; 0) {<br/>
+            sb.append("package ").append(packagePath).append(";");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR).append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        sb.append(generateImports(cls, packagePath));<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateImports(Object cls, String packagePath) {<br/>
+        // TODO: check also generalizations<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        java.util.HashSet importSet = new java.util.HashSet();<br/>
+        String ftype;<br/>
+        Iterator j;<br/>
+        Collection c = ModelFacade.getFeatures(cls);<br/>
+        if (c != null) {<br/>
+            // now check packages of all feature types<br/>
+            for (j = c.iterator(); j.hasNext();) {<br/>
+                Object mFeature = /*(MFeature)*/ j.next();<br/>
+                if (ModelFacade.isAAttribute(mFeature)) {<br/>
+                    if ((ftype =<br/>
+                            generateImportType(ModelFacade.getType(mFeature),<br/>
+                                               packagePath))<br/>
+                            != null) {<br/>
+                        importSet.add(ftype);<br/>
+                    }<br/>
+                } else if (ModelFacade.isAOperation(mFeature)) {<br/>
+                    // check the parameter types<br/>
+                    Iterator it =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ModelFacade.getParameters(mFeature).iterator();<br/>
+                    while (it.hasNext()) {<br/>
+                        Object parameter = it.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    generateImportType(ModelFacade.getType(parameter),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+                            importSet.add(ftype);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+                    // check the return parameter types<br/>
+                    it =<br/>
+                        UmlHelper.getHelper()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getCore()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .getReturnParameters(/*(MOperation)*/mFeature)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .iterator();<br/>
+                    while (it.hasNext()) {<br/>
+                        Object parameter = it.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    generateImportType(ModelFacade.getType(parameter),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       packagePath);<br/>
+                        if (ftype != null) {<br/>
+                            importSet.add(ftype);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // check raised signals<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    it = ModelFacade.getRaisedSignals(mFeature).iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    while (it.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object signal = it.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!ModelFacade.isAException(signal)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    generateImportType(ModelFacade.getType(signal),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;c = ModelFacade.getGeneralizations(cls);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (c != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // now check packages of all generalized types<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for (j = c.iterator(); j.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object gen = /*(MGeneralization)*/ j.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object parent = ModelFacade.getParent(gen);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parent == cls) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype = generateImportType(parent,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;c = ModelFacade.getSpecifications(cls);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (c != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // now check packages of the interfaces<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for (j = c.iterator(); j.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object iface = /*(MInterface)*/ j.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype = generateImportType(iface,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        c = ModelFacade.getAssociationEnds(cls);<br/>
+        if (!c.isEmpty()) {<br/>
+            // check association end types<br/>
+            for (j = c.iterator(); j.hasNext();) {<br/>
+                Object associationEnd = /*(MAssociationEnd)*/ j.next();<br/>
+                Object association = ModelFacade.getAssociation(associationEnd);<br/>
+                Iterator connEnum =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ModelFacade.getConnections(association).iterator();<br/>
+                while (connEnum.hasNext()) {<br/>
+                    Object associationEnd2 =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MAssociationEnd)*/ connEnum.next();<br/>
+                    if (associationEnd2 != associationEnd<br/>
+                            &amp;&amp; ModelFacade.isNavigable(associationEnd2)<br/>
+                            &amp;&amp; !ModelFacade.isAbstract(<br/>
+                                    ModelFacade.getAssociation(<br/>
+                                            associationEnd2))) {<br/>
+                        // association end found<br/>
+                        Object multiplicity =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ModelFacade.getMultiplicity(associationEnd2);<br/>
+                        if (!ModelFacade.M1_1_MULTIPLICITY.equals(multiplicity)<br/>
+                                &amp;&amp; !ModelFacade.M0_1_MULTIPLICITY.equals(<br/>
+                                        multiplicity)) {<br/>
+                            importSet.add("java.util.Vector");<br/>
+                        } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;generateImportType(ModelFacade.getType(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        associationEnd2),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        // finally generate the import statements<br/>
+        for (j = importSet.iterator(); j.hasNext();) {<br/>
+            ftype = (String) j.next();<br/>
+            sb.append("import ").append(ftype).append(";");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+        }<br/>
+        if (!importSet.isEmpty()) {<br/>
+            sb.append(LINE_SEPARATOR);<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateImportType(Object type, String exclude) {<br/>
+        String ret = null;<br/>
+        if (type != null &amp;&amp; ModelFacade.getNamespace(type) != null) {<br/>
+            String p = getPackageName(ModelFacade.getNamespace(type));<br/>
+            if (!p.equals(exclude)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (p.length() &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ret = p + '.' + ModelFacade.getName(type);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ret = ModelFacade.getName(type);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Generate code for an extension point.&lt;/p&gt;<br/>
+     *<br/>
+     * &lt;p&gt;Provided to comply with the interface, but returns null<br/>
+     *   since no code will be generated. This should prevent a source tab<br/>
+     *   being shown.&lt;/p&gt;<br/>
+     *<br/>
+     * @param ep  The extension point to generate for<br/>
+     *<br/>
+     * @return    The generated code string. Always empty in this<br/>
+     *            implementation.<br/>
+     */<br/>
+    public String generateExtensionPoint(Object ep) {<br/>
+        return null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAssociationRole(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationRole(Object m) {<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateOperation(<br/>
+     *         java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateOperation(Object op, boolean documented) {<br/>
+        if (isFileGeneration)<br/>
+            documented = true; // fix Issue 1506<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        String nameStr = null;<br/>
+        boolean constructor = false;<br/>
+        Object/*MStereotype*/ stereo = null;<br/>
+        if (ModelFacade.getStereotypes(op).size() &gt; 0) {<br/>
+            stereo = ModelFacade.getStereotypes(op).iterator().next();<br/>
+        }<br/>
+        if (stereo != null<br/>
+                &amp;&amp; ModelFacade.getName(stereo).equals("create")) {<br/>
+            // constructor<br/>
+            nameStr =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;generateName(ModelFacade.getName(ModelFacade.getOwner(op)));<br/>
+            constructor = true;<br/>
+        } else {<br/>
+            nameStr = generateName(ModelFacade.getName(op));<br/>
+        }<br/>
+        // Each pattern here must be similar to corresponding code piece<br/>
+        // Operation code piece doesn't start with '\n'<br/>
+        // so the next line is commented. See Issue 1505<br/>
+        //sb.append(LINE_SEPARATOR); // begin with a blank line<br/>
+        if (documented) {<br/>
+            String s =<br/>
+                generateConstraintEnrichedDocComment(op, documented, INDENT);<br/>
+            if (s != null &amp;&amp; s.trim().length() &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// should starts as the code piece<br/>
+                sb.append(s).append(INDENT);<br/>
+        }<br/>
+<br/>
+        // 2002-07-14<br/>
+        // Jaap Branderhorst<br/>
+        // missing concurrency generation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//sb.append(INDENT); fixed issue 1505<br/>
+        sb.append(generateConcurrency(op));<br/>
+        sb.append(generateAbstractness(op));<br/>
+        sb.append(generateChangeability(op));<br/>
+        sb.append(generateScope(op));<br/>
+        sb.append(generateVisibility(op));<br/>
+<br/>
+        // pick out return type<br/>
+        Object/*MParameter*/ rp =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    UmlHelper.getHelper().getCore().getReturnParameter(op);<br/>
+        if (rp != null &amp;&amp; !constructor) {<br/>
+            Object/*MClassifier*/ returnType = ModelFacade.getType(rp);<br/>
+            if (returnType == null) {<br/>
+                sb.append("void ");<br/>
+            } else {<br/>
+                sb.append(generateClassifierRef(returnType)).append(' ');<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // name and params<br/>
+        Vector params = new Vector(ModelFacade.getParameters(op));<br/>
+        params.remove(rp);<br/>
+<br/>
+        sb.append(nameStr).append('(');<br/>
+<br/>
+        if (params != null) {<br/>
+            for (int i = 0; i &lt; params.size(); i++) {<br/>
+                if (i &gt; 0) {<br/>
+                    sb.append(", ");<br/>
+                }<br/>
+                sb.append(generateParameter(params.elementAt(i)));<br/>
+            }<br/>
+        }<br/>
+<br/>
+        sb.append(')');<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Collection c = ModelFacade.getRaisedSignals(op);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!c.isEmpty()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Iterator it = c.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean first = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (it.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object signal = it.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!ModelFacade.isAException(signal)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (first) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(" throws ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(", ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(ModelFacade.getName(it.next()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;first = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAttribute(<br/>
+     *         java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateAttribute(Object attr, boolean documented) {<br/>
+        if (isFileGeneration)<br/>
+            documented = true; // always "documented" if we generate file.<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        if (documented) {<br/>
+            String s =<br/>
+                generateConstraintEnrichedDocComment(attr, documented, INDENT);<br/>
+            if (s != null &amp;&amp; s.trim().length() &gt; 0)<br/>
+                sb.append(s).append(INDENT);<br/>
+        }<br/>
+        //sb.append(INDENT); fixed issue 1505<br/>
+        sb.append(generateCoreAttribute(attr));<br/>
+        sb.append(";").append(LINE_SEPARATOR);<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    String generateCoreAttribute(Object attr) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        sb.append(generateVisibility(attr));<br/>
+        sb.append(generateScope(attr));<br/>
+        sb.append(generateChangability(attr));<br/>
+        Object/*MClassifier*/ type = ModelFacade.getType(attr);<br/>
+        Object/*MMultiplicity*/ multi = ModelFacade.getMultiplicity(attr);<br/>
+        // handle multiplicity here since we need the type<br/>
+        // actually the API of generator is buggy since to generate<br/>
+        // multiplicity correctly we need the attribute too<br/>
+        if (type != null &amp;&amp; multi != null) {<br/>
+            if (multi.equals(ModelFacade.M1_1_MULTIPLICITY)) {<br/>
+                sb.append(generateClassifierRef(type)).append(' ');<br/>
+            } else if (ModelFacade.isADataType(type)) {<br/>
+                sb.append(generateClassifierRef(type)).append("[] ");<br/>
+            } else<br/>
+                sb.append("java.util.Vector ");<br/>
+        }<br/>
+<br/>
+        sb.append(generateName(ModelFacade.getName(attr)));<br/>
+        Object/*MExpression*/ init = ModelFacade.getInitialValue(attr);<br/>
+        if (init != null) {<br/>
+            String initStr = generateExpression(init).trim();<br/>
+            if (initStr.length() &gt; 0)<br/>
+                sb.append(" = ").append(initStr);<br/>
+        }<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateParameter(java.lang.Object)<br/>
+     */<br/>
+    public String generateParameter(Object parameter) {<br/>
+        StringBuffer sb = new StringBuffer(20);<br/>
+        //TODO: qualifiers (e.g., const)<br/>
+        //TODO: stereotypes...<br/>
+        sb.append(generateClassifierRef(ModelFacade.getType(parameter)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(' ');<br/>
+        sb.append(generateName(ModelFacade.getName(parameter)));<br/>
+        //TODO: initial value<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generatePackage(java.lang.Object)<br/>
+     */<br/>
+    public String generatePackage(Object p) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        String packName = generateName(ModelFacade.getName(p));<br/>
+        sb.append("package ").append(packName).append(" {");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+        Collection ownedElements = ModelFacade.getOwnedElements(p);<br/>
+        if (ownedElements != null) {<br/>
+            Iterator ownedEnum = ownedElements.iterator();<br/>
+            while (ownedEnum.hasNext()) {<br/>
+                Object modelElement = /*(MModelElement)*/ ownedEnum.next();<br/>
+                sb.append(generate(modelElement));<br/>
+                sb.append(LINE_SEPARATOR).append(LINE_SEPARATOR);<br/>
+            }<br/>
+        } else {<br/>
+            sb.append("(no elements)");<br/>
+        }<br/>
+        sb.append(LINE_SEPARATOR).append("})").append(LINE_SEPARATOR);<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate the start sequence for a classifier. The start sequence is<br/>
+     * everything from the preceding javadoc comment to the opening curly brace.<br/>
+     * Start sequences are non-empty for classes and interfaces only.<br/>
+     *<br/>
+     * This method is intented for package internal usage only.<br/>
+     *<br/>
+     * @param cls the classifier for which to generate the start sequence<br/>
+     *<br/>
+     * @return the generated start sequence<br/>
+     */<br/>
+    StringBuffer generateClassifierStart(Object cls) {<br/>
+        String sClassifierKeyword;<br/>
+        if (ModelFacade.isAClass(cls))<br/>
+            sClassifierKeyword = "class";<br/>
+        else if (ModelFacade.isAInterface(cls))<br/>
+            sClassifierKeyword = "interface";<br/>
+        else<br/>
+            return null; // actors, use cases etc.<br/>
+<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+<br/>
+        // Add the comments for this classifier first.<br/>
+        // Each pattern here must be similar to corresponding code piece<br/>
+        // Classfier code piece doesn't start with LINE_SEPARATOR<br/>
+        // so the next line is commented. See Issue 1505<br/>
+        //sb.append (LINE_SEPARATOR);<br/>
+        sb.append(DocumentationManager.getComments(cls));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(generateConstraintEnrichedDocComment(cls, true, ""));<br/>
+<br/>
+        // Now add visibility<br/>
+        sb.append(generateVisibility(ModelFacade.getVisibility(cls)));<br/>
+<br/>
+        // Add other modifiers<br/>
+        if (ModelFacade.isAbstract(cls) &amp;&amp; !(ModelFacade.isAInterface(cls))) {<br/>
+            sb.append("abstract ");<br/>
+        }<br/>
+<br/>
+        if (ModelFacade.isLeaf(cls)) {<br/>
+            sb.append("final ");<br/>
+        }<br/>
+<br/>
+        // add additional modifiers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object smod = ModelFacade.getTaggedValue(cls, "src_modifiers");<br/>
+        if (smod != null &amp;&amp; ModelFacade.getValue(smod) != null) {<br/>
+            sb.append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(ModelFacade.getValue(smod));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        // add classifier keyword and classifier name<br/>
+        sb.append(sClassifierKeyword).append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(generateName(ModelFacade.getName(cls)));<br/>
+<br/>
+        // add base class/interface<br/>
+        String baseClass =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    generateGeneralization(ModelFacade.getGeneralizations(cls));<br/>
+        if (!baseClass.equals("")) {<br/>
+            sb.append(" ").append("extends ").append(baseClass);<br/>
+        }<br/>
+<br/>
+        // add implemented interfaces, if needed<br/>
+        // nsuml: realizations!<br/>
+        if (ModelFacade.isAClass(cls)) {<br/>
+            String interfaces = generateSpecification(cls);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    LOG.debug("Specification: " + interfaces);<br/>
+            if (!interfaces.equals("")) {<br/>
+                sb.append(" ").append("implements ").append(interfaces);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // add opening brace<br/>
+        sb.append(lfBeforeCurly ? (LINE_SEPARATOR + "{") : " {");<br/>
+<br/>
+        // list tagged values for documentation<br/>
+        String tv = generateTaggedValues(cls);<br/>
+        if (tv != null &amp;&amp; tv.length() &gt; 0) {<br/>
+            sb.append(LINE_SEPARATOR).append(INDENT).append(tv);<br/>
+        }<br/>
+<br/>
+        return sb;<br/>
+    }<br/>
+<br/>
+    private StringBuffer generateClassifierEnd(Object cls) {<br/>
+        StringBuffer sb = new StringBuffer();<br/>
+        if (ModelFacade.isAClass(cls) || ModelFacade.isAInterface(cls)) {<br/>
+            if (verboseDocs) {<br/>
+                String classifierkeyword = null;<br/>
+                if (ModelFacade.isAClass(cls)) {<br/>
+                    classifierkeyword = "class";<br/>
+                } else {<br/>
+                    classifierkeyword = "interface";<br/>
+                }<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append("//end of ").append(classifierkeyword);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(" ").append(ModelFacade.getName(cls));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+            }<br/>
+            sb.append("}");<br/>
+        }<br/>
+        return sb;<br/>
+    }<br/>
+    /**<br/>
+     * Append the classifier end sequence to the prefix text specified. The<br/>
+     * classifier end sequence is the closing curly brace together with any<br/>
+     * comments marking the end of the classifier.<br/>
+     *<br/>
+     * This method is intented for package internal usage.<br/>
+     *<br/>
+     * @param sbPrefix the prefix text to be amended. It is OK to call append on<br/>
+     *                 this parameter.<br/>
+     * @param cls      the classifier for which to generate the classifier end<br/>
+     *                 sequence. Only classes and interfaces have a classifier<br/>
+     *                 end sequence.<br/>
+     * @return the complete classifier code, i.e., sbPrefix plus the classifier<br/>
+     *         end sequence<br/>
+     */<br/>
+    StringBuffer appendClassifierEnd(StringBuffer sbPrefix,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     Object/*MClassifier*/ cls) {<br/>
+        sbPrefix.append(generateClassifierEnd(cls));<br/>
+<br/>
+        return sbPrefix;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates code for a classifier. In case of Java code is<br/>
+     * generated for classes and interfaces only at the moment.<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateClassifier(<br/>
+     *         Object)<br/>
+     */<br/>
+    public String generateClassifier(Object cls) {<br/>
+        StringBuffer returnValue = new StringBuffer();<br/>
+        StringBuffer start = generateClassifierStart(cls);<br/>
+        if ((start != null) &amp;&amp; (start.length() &gt; 0)) {<br/>
+            StringBuffer body = generateClassifierBody(cls);<br/>
+            StringBuffer end = generateClassifierEnd(cls);<br/>
+            returnValue.append(start.toString());<br/>
+            if ((body != null) &amp;&amp; (body.length() &gt; 0)) {<br/>
+                returnValue.append(LINE_SEPARATOR);<br/>
+                returnValue.append(body);<br/>
+                if (lfBeforeCurly) {<br/>
+                    returnValue.append(LINE_SEPARATOR);<br/>
+                }<br/>
+            }<br/>
+            returnValue.append((end != null) ? end.toString() : "");<br/>
+        }<br/>
+        return returnValue.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates the body of a class or interface.<br/>
+     * @param cls<br/>
+     * @return StringBuffer<br/>
+     */<br/>
+    private StringBuffer generateClassifierBody(Object cls) {<br/>
+        StringBuffer sb = new StringBuffer();<br/>
+        if (ModelFacade.isAClass(cls) || ModelFacade.isAInterface(cls)) {<br/>
+            String tv = null; // helper for tagged values<br/>
+<br/>
+            // add attributes<br/>
+            Collection strs = ModelFacade.getStructuralFeatures(cls);<br/>
+<br/>
+            if (!strs.isEmpty()) {<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+                if (verboseDocs &amp;&amp; ModelFacade.isAClass(cls)) {<br/>
+                    sb.append(INDENT).append("// Attributes");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+                }<br/>
+<br/>
+                Iterator strEnum = strs.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean first = true;<br/>
+                while (strEnum.hasNext()) {<br/>
+                    Object structuralFeature =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MStructuralFeature)*/ strEnum.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!first)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(INDENT);<br/>
+                    sb.append(generate(structuralFeature));<br/>
+<br/>
+                    tv = generateTaggedValues(structuralFeature);<br/>
+                    if (tv != null &amp;&amp; tv.length() &gt; 0) {<br/>
+                        sb.append(INDENT).append(tv);<br/>
+                    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    first = false;<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // add attributes implementing associations<br/>
+            Collection ends = ModelFacade.getAssociationEnds(cls);<br/>
+            // 2002-06-08<br/>
+            // Jaap Branderhorst<br/>
+            // Bugfix: ends is never null. Should check for isEmpty instead<br/>
+            // old code:<br/>
+            // if (ends != null)<br/>
+            // new code:<br/>
+            if (!ends.isEmpty()) {<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+                if (verboseDocs &amp;&amp; ModelFacade.isAClass(cls)) {<br/>
+                    sb.append(INDENT).append("// Associations");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+                }<br/>
+<br/>
+                Iterator endEnum = ends.iterator();<br/>
+                while (endEnum.hasNext()) {<br/>
+                    Object associationEnd =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MAssociationEnd)*/ endEnum.next();<br/>
+                    Object association =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ModelFacade.getAssociation(associationEnd);<br/>
+<br/>
+                    sb.append(generateAssociationFrom(association,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      associationEnd));<br/>
+<br/>
+                    tv = generateTaggedValues(association);<br/>
+                    if (tv != null &amp;&amp; tv.length() &gt; 0) {<br/>
+                        sb.append(INDENT).append(tv);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // Inner classes<br/>
+            Collection elements = ModelFacade.getOwnedElements(cls);<br/>
+            for (Iterator i = elements.iterator(); i.hasNext(); ) {<br/>
+                Object element = /*(MModelElement)*/ i.next();<br/>
+                if (ModelFacade.isAClass(element)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    || ModelFacade.isAInterface(element)) {<br/>
+<br/>
+                    sb.append(generateClassifier(element));<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // add operations<br/>
+            // TODO: constructors<br/>
+            Collection behs = ModelFacade.getOperations(cls);<br/>
+<br/>
+            //<br/>
+            // 2002-06-08<br/>
+            // Jaap Branderhorst<br/>
+            // Bugfix: behs is never null. Should check for isEmpty instead<br/>
+            // old code:<br/>
+            // if (behs != null)<br/>
+            // new code:<br/>
+            //<br/>
+            if (!behs.isEmpty()) {<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+                if (verboseDocs) {<br/>
+                    sb.append(INDENT).append("// Operations");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+                }<br/>
+<br/>
+                Iterator behEnum = behs.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean first = true;<br/>
+                while (behEnum.hasNext()) {<br/>
+                    Object behavioralFeature =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MBehavioralFeature)*/ behEnum.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!first)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(INDENT);<br/>
+                    sb.append(generate(behavioralFeature));<br/>
+<br/>
+                    tv = generateTaggedValues(behavioralFeature);<br/>
+<br/>
+                    if ((ModelFacade.isAClass(cls))<br/>
+                            &amp;&amp; (ModelFacade.isAOperation(behavioralFeature))<br/>
+                            &amp;&amp; (!ModelFacade.isAbstract(behavioralFeature))) {<br/>
+                        if (lfBeforeCurly)<br/>
+                            sb.append(LINE_SEPARATOR).append(INDENT);<br/>
+                        else<br/>
+                            sb.append(' ');<br/>
+                        sb.append('{');<br/>
+<br/>
+                        if (tv.length() &gt; 0) {<br/>
+                            sb.append(LINE_SEPARATOR).append(INDENT).append(tv);<br/>
+                        }<br/>
+<br/>
+                        // there is no ReturnType in behavioral feature (nsuml)<br/>
+                        sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(generateMethodBody(behavioralFeature));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(INDENT);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append("}").append(LINE_SEPARATOR);<br/>
+                    } else {<br/>
+                        sb.append(";").append(LINE_SEPARATOR);<br/>
+                        if (tv.length() &gt; 0) {<br/>
+                            sb.append(INDENT).append(tv).append(LINE_SEPARATOR);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    first = false;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return sb;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate the body of a method associated with the given<br/>
+     * operation. This assumes there's at most one method<br/>
+     * associated!<br/>
+     *<br/>
+     * If no method is associated with the operation, a default<br/>
+     * method body will be generated.<br/>
+     */<br/>
+    private String generateMethodBody(Object op) {<br/>
+        //cat.info("generateMethodBody");<br/>
+        if (op != null) {<br/>
+            Collection methods = ModelFacade.getMethods(op);<br/>
+            Iterator i = methods.iterator();<br/>
+            Object m = null;<br/>
+<br/>
+            while (i != null &amp;&amp; i.hasNext()) {<br/>
+                m = i.next();<br/>
+<br/>
+                if (m != null) {<br/>
+                    if (ModelFacade.getBody(m) != null) {<br/>
+                        String body =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (String) ModelFacade.getBody(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ModelFacade.getBody(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Note that this will not preserve empty lines<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// in the body<br/>
+                        StringTokenizer tokenizer =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new StringTokenizer(body, "\r\n");<br/>
+                        StringBuffer bsb = new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (tokenizer.hasMoreTokens()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String token = tokenizer.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (token.length() &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bsb.append(token);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bsb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+                        }<br/>
+                        if (bsb.length() &lt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // generateClassifierBody relies on the string<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ending with a new-line<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    bsb.append(LINE_SEPARATOR);<br/>
+                        }<br/>
+                        return bsb.toString();<br/>
+                    } else<br/>
+                        return "";<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // pick out return type<br/>
+            Object/*MParameter*/ rp =<br/>
+                UmlHelper.getHelper().getCore().getReturnParameter(op);<br/>
+            if (rp != null) {<br/>
+                Object/*MClassifier*/ returnType = ModelFacade.getType(rp);<br/>
+                return generateDefaultReturnStatement(returnType);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return generateDefaultReturnStatement(null);<br/>
+    }<br/>
+<br/>
+    private String generateDefaultReturnStatement(Object cls) {<br/>
+        if (cls == null)<br/>
+            return "";<br/>
+<br/>
+        String clsName = ModelFacade.getName(cls);<br/>
+        if (clsName.equals("void"))<br/>
+            return "";<br/>
+        if (clsName.equals("char"))<br/>
+            return INDENT + "return 'x';" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("int"))<br/>
+            return INDENT + "return 0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("boolean"))<br/>
+            return INDENT + "return false;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("byte"))<br/>
+            return INDENT + "return 0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("long"))<br/>
+            return INDENT + "return 0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("float"))<br/>
+            return INDENT + "return 0.0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("double"))<br/>
+            return INDENT + "return 0.0;" + LINE_SEPARATOR;<br/>
+        return INDENT + "return null;" + LINE_SEPARATOR;<br/>
+    }<br/>
+<br/>
+    private String generateTaggedValues(Object e) {<br/>
+        if (isInUpdateMode)<br/>
+            return ""; // no tagged values are generated in update mode.<br/>
+        Iterator iter = ModelFacade.getTaggedValues(e);<br/>
+        if (iter == null)<br/>
+            return "";<br/>
+        boolean first = true;<br/>
+        StringBuffer buf = new StringBuffer();<br/>
+        String s = null;<br/>
+        while (iter.hasNext()) {<br/>
+            /*<br/>
+             * 2002-11-07 Jaap Branderhorst Was<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * s = generateTaggedValue((MTaggedValue) iter.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * which caused problems because the test tags (i.e. tags with<br/>
+             * name &lt;NotationName.getName()&gt;+TEST_SUFFIX) were still<br/>
+             * generated.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *<br/>
+             * New code:<br/>
+             */<br/>
+            s = generate(/*(MTaggedValue)*/ iter.next());<br/>
+            // end new code<br/>
+            if (s != null &amp;&amp; s.length() &gt; 0) {<br/>
+                if (first) {<br/>
+                    /*<br/>
+                     * Corrected 2001-09-26 STEFFEN ZSCHALER<br/>
+                     *<br/>
+                     * Was:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     buf.append("// {");<br/>
+                     *<br/>
+                     * which caused problems with new lines characters<br/>
+                     * in tagged values (e.g. comments...). The new<br/>
+                     * version still has some problems with tagged<br/>
+                     * values containing "*"+"/" as this closes the<br/>
+                     * comment prematurely, but comments should be<br/>
+                     * taken out of the tagged values list anyway...<br/>
+                     */<br/>
+                    buf.append("/* {");<br/>
+<br/>
+                    first = false;<br/>
+                } else {<br/>
+                    buf.append(", ");<br/>
+                }<br/>
+                buf.append(s);<br/>
+            }<br/>
+        }<br/>
+        /*<br/>
+         * Corrected 2001-09-26 STEFFEN ZSCHALER<br/>
+         *<br/>
+         * Was:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; if (!first) buf.append("}\n");<br/>
+         *<br/>
+         * which caused problems with new-lines in tagged values.<br/>
+         */<br/>
+        if (!first)<br/>
+            buf.append("}*/").append(LINE_SEPARATOR);<br/>
+<br/>
+        return buf.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateTaggedValue(java.lang.Object)<br/>
+     */<br/>
+    public String generateTaggedValue(Object tv) {<br/>
+        if (tv == null)<br/>
+            return "";<br/>
+        String s = generateUninterpreted(ModelFacade.getValueOfTag(tv));<br/>
+        if (s == null || s.length() == 0 || s.equals("/** */"))<br/>
+            return "";<br/>
+        String t = ModelFacade.getTagOfTag(tv);<br/>
+        if (t.equals("documentation"))<br/>
+            return "";<br/>
+        return generateName(t) + "=" + s;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enhance/Create the doccomment for the given model element,<br/>
+     * including tags for any OCL constraints connected to the model<br/>
+     * element. The tags generated are suitable for use with the ocl<br/>
+     * injector which is part of the Dresden OCL Toolkit and are in<br/>
+     * detail:<br/>
+     *<br/>
+     * &amp;nbsp;@invariant for each invariant specified<br/>
+     * &amp;nbsp;@precondition for each precondition specified<br/>
+     * &amp;nbsp;@postcondition for each postcondition specified<br/>
+     * &amp;nbsp;@key-type specifying the class of the keys of a mapped association<br/>
+     * &amp;nbsp; Currently mapped associations are not supported yet...<br/>
+     * &amp;nbsp;@element-type specifying the class referenced in an association<br/>
+     *<br/>
+     * @since 2001-09-26 ArgoUML 0.9.3<br/>
+     * @author Steffen Zschaler<br/>
+     *<br/>
+     * @param me the model element for which the documentation comment is needed<br/>
+     * @param ae the association end which is represented by the model element<br/>
+     * @return the documentation comment for the specified model element, either<br/>
+     * enhanced or completely generated<br/>
+     */<br/>
+    public String generateConstraintEnrichedDocComment(Object me, Object ae) {<br/>
+        String s = generateConstraintEnrichedDocComment(me, true, INDENT);<br/>
+<br/>
+        Object/*MMultiplicity*/ m = ModelFacade.getMultiplicity(ae);<br/>
+        if (!(ModelFacade.M1_1_MULTIPLICITY.equals(m)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      || ModelFacade.M0_1_MULTIPLICITY.equals(m))) {<br/>
+            // Multiplicity greater 1, that means we will generate some sort of<br/>
+            // collection, so we need to specify the element type tag<br/>
+            StringBuffer sDocComment = new StringBuffer(80);<br/>
+<br/>
+            // Prepare doccomment<br/>
+            if (!(s == null || "".equals(s))) {<br/>
+                // Just remove closing "*/"<br/>
+                sDocComment.append(s.substring(0, s.indexOf("*/") + 1));<br/>
+            } else {<br/>
+                sDocComment.append(INDENT).append("/**").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sDocComment.append(INDENT).append(" * ").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sDocComment.append(INDENT).append(" *");<br/>
+            }<br/>
+<br/>
+            // Build doccomment<br/>
+            Object/*MClassifier*/ type = ModelFacade.getType(ae);<br/>
+            if (type != null) {<br/>
+                sDocComment.append(" @element-type ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sDocComment.append(ModelFacade.getName(type));<br/>
+            }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // REMOVED: 2002-03-11 STEFFEN ZSCHALER: element type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // unknown is not recognized by the OCL injector...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //     sDocComment += " @element-type unknown";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // }<br/>
+            sDocComment.append(LINE_SEPARATOR).append(INDENT).append(" */");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(LINE_SEPARATOR);<br/>
+            return sDocComment.toString();<br/>
+        } else {<br/>
+            return (s != null) ? s : "";<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enhance/Create the doccomment for the given model element,<br/>
+     * including tags for any OCL constraints connected to the model<br/>
+     * element. The tags generated are suitable for use with the ocl<br/>
+     * injector which is part of the Dresden OCL Toolkit and are in<br/>
+     * detail:<br/>
+     *<br/>
+     * &amp;nbsp;@invariant for each invariant specified<br/>
+     * &amp;nbsp;@precondition for each precondition specified<br/>
+     * &amp;nbsp;@postcondition for each postcondition specified<br/>
+     *<br/>
+     * @since 2001-09-26 ArgoUML 0.9.3<br/>
+     * @author Steffen Zschaler<br/>
+     *<br/>
+     * @param me the model element for which the documentation comment is needed<br/>
+     * @param documented if existing tagged values should be generated<br/>
+     *                   in addition to javadoc<br/>
+     * @param indent indent String (usually blanks) for indentation of<br/>
+     *               generated comments<br/>
+     * @return the documentation comment for the specified model<br/>
+     * element, either enhanced or completely generated<br/>
+     */<br/>
+    public static String generateConstraintEnrichedDocComment(<br/>
+            Object/*MModelElement*/ me,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean documented,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String indent)<br/>
+    {<br/>
+        if (isFileGeneration)<br/>
+            documented = true; // always "documented" if we generate file<br/>
+        // Retrieve any existing doccomment<br/>
+        String s =<br/>
+            (VERBOSE_DOCS || DocumentationManager.hasDocs(me))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ? DocumentationManager.getDocs(me, indent)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    : null;<br/>
+        StringBuffer sDocComment = new StringBuffer(80);<br/>
+<br/>
+        if (s != null &amp;&amp; s.trim().length() &gt; 0) {<br/>
+            sDocComment.append(s).append(LINE_SEPARATOR);<br/>
+        }<br/>
+        LOG.debug("documented=" + documented);<br/>
+        if (!documented)<br/>
+            return sDocComment.toString();<br/>
+<br/>
+        // Extract constraints<br/>
+        Collection cConstraints = ModelFacade.getConstraints(me);<br/>
+<br/>
+        if (cConstraints.size() == 0) {<br/>
+            return sDocComment.toString();<br/>
+        }<br/>
+<br/>
+        // Prepare doccomment<br/>
+        if (s != null) {<br/>
+            // Just remove closing */<br/>
+            s = sDocComment.toString();<br/>
+            sDocComment = new StringBuffer(s.substring(0, s.indexOf("*/") + 1));<br/>
+        } else {<br/>
+            sDocComment.append(INDENT).append("/**").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(INDENT).append(" * ").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(INDENT).append(" *");<br/>
+        }<br/>
+<br/>
+        // Add each constraint<br/>
+<br/>
+        class TagExtractor extends DepthFirstAdapter {<br/>
+            private LinkedList llsTags = new LinkedList();<br/>
+            private String constraintName;<br/>
+            private int constraintID = 0;<br/>
+<br/>
+            /**<br/>
+             * Constructor.<br/>
+             * <br/>
+             * @param sConstraintName The constraint name.<br/>
+             */<br/>
+            public TagExtractor(String sConstraintName) {<br/>
+                super();<br/>
+<br/>
+                constraintName = sConstraintName;<br/>
+            }<br/>
+<br/>
+            public Iterator getTags() {<br/>
+                return llsTags.iterator();<br/>
+            }<br/>
+<br/>
+            /**<br/>
+             * @see tudresden.ocl.parser.analysis.Analysis#caseAConstraintBody(tudresden.ocl.parser.node.AConstraintBody)<br/>
+             */<br/>
+            public void caseAConstraintBody(AConstraintBody node) {<br/>
+                // We don't care for anything below this node, so we<br/>
+                // do not use apply anymore.<br/>
+                String sKind =<br/>
+                    (node.getStereotype() != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ? (node.getStereotype().toString())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    : (null);<br/>
+                String sExpression =<br/>
+                    (node.getExpression() != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ? (node.getExpression().toString())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    : (null);<br/>
+                String sName =<br/>
+                    (node.getName() != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ? (<span class="del"><span class="mv">node.getName().getText()</span>.<span class="del">toString</span>()</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    : (constraintName + "_" + (constraintID++));<br/>
+<br/>
+                if ((sKind == null) || (sExpression == null)) {<br/>
+                    return;<br/>
+                }<br/>
+<br/>
+                String sTag;<br/>
+                if (sKind.equals("inv ")) {<br/>
+                    sTag = "@invariant ";<br/>
+                } else if (sKind.equals("post ")) {<br/>
+                    sTag = "@postcondition ";<br/>
+                } else if (sKind.equals("pre ")) {<br/>
+                    sTag = "@precondition ";<br/>
+                } else {<br/>
+                    return;<br/>
+                }<br/>
+<br/>
+                sTag += sName + ": " + sExpression;<br/>
+                llsTags.addLast(sTag);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        tudresden.ocl.check.types.ModelFacade mf = new ArgoFacade(me);<br/>
+        for (Iterator i = cConstraints.iterator(); i.hasNext();) {<br/>
+            Object constraint = /*(MConstraint)*/ i.next();<br/>
+<br/>
+            try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String body =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (String) ModelFacade.getBody(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ModelFacade.getBody(constraint));<br/>
+                OclTree otParsed = OclTree.createTree(body, mf);<br/>
+<br/>
+                TagExtractor te =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new TagExtractor(ModelFacade.getName(constraint));<br/>
+                otParsed.apply(te);<br/>
+<br/>
+                for (Iterator j = te.getTags(); j.hasNext();) {<br/>
+                    sDocComment.append(' ').append(j.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(INDENT).append(" *");<br/>
+                }<br/>
+            } catch (IOException ioe) {<br/>
+                // Nothing to be done, should not happen anyway ;-)<br/>
+            }<br/>
+        }<br/>
+<br/>
+        sDocComment.append("/").append(LINE_SEPARATOR);<br/>
+<br/>
+        return sDocComment.toString();<br/>
+    }<br/>
+<br/>
+    private String generateAssociationFrom(Object a, Object associationEnd) {<br/>
+        // TODO: does not handle n-ary associations<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+<br/>
+        Collection connections = ModelFacade.getConnections(a);<br/>
+        Iterator connEnum = connections.iterator();<br/>
+        while (connEnum.hasNext()) {<br/>
+            Object associationEnd2 = /*(MAssociationEnd)*/ connEnum.next();<br/>
+            if (associationEnd2 != associationEnd) {<br/>
+                sb.append(INDENT);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        generateConstraintEnrichedDocComment(a,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     associationEnd2));<br/>
+                sb.append(generateAssociationEnd(associationEnd2));<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAssociation(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociation(Object a) {<br/>
+        //    String s = "";<br/>
+        //     String generatedName = generateName(a.getName());<br/>
+        //     s += "MAssociation " + generatedName + " {\n";<br/>
+<br/>
+        //     Iterator endEnum = a.getConnection().iterator();<br/>
+        //     while (endEnum.hasNext()) {<br/>
+        //       MAssociationEnd ae = (MAssociationEnd)endEnum.next();<br/>
+        //       s += generateAssociationEnd(ae);<br/>
+        //       s += ";\n";<br/>
+        //     }<br/>
+        //     s += "}\n";<br/>
+        //    return s;<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAssociationEnd(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationEnd(Object ae) {<br/>
+        if (!ModelFacade.isNavigable(ae))<br/>
+            return "";<br/>
+        if (ModelFacade.isAbstract(ModelFacade.getAssociation(ae)))<br/>
+            return "";<br/>
+        //String s = INDENT + "protected ";<br/>
+        // must be public or generate public navigation method!<br/>
+        //String s = INDENT + "public ";<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        sb.append(INDENT).append(generateCoreAssociationEnd(ae));<br/>
+<br/>
+        return (sb.append(";").append(LINE_SEPARATOR)).toString();<br/>
+    }<br/>
+<br/>
+    String generateCoreAssociationEnd(Object ae) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        sb.append(generateVisibility(ModelFacade.getVisibility(ae)));<br/>
+<br/>
+        if (ModelFacade.CLASSIFIER_SCOPEKIND.equals(<br/>
+                ModelFacade.getTargetScope(ae)))<br/>
+            sb.append("static ");<br/>
+        //     String n = ae.getName();<br/>
+        //     if (n != null &amp;&amp; !String.UNSPEC.equals(n))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//         s += generateName(n) + " ";<br/>
+        //     if (ae.isNavigable()) s += "navigable ";<br/>
+        //     if (ae.getIsOrdered()) s += "ordered ";<br/>
+        Object/*MMultiplicity*/ m = ModelFacade.getMultiplicity(ae);<br/>
+        if (ModelFacade.M1_1_MULTIPLICITY.equals(m) <br/>
+                || ModelFacade.M0_1_MULTIPLICITY.equals(m)) {<br/>
+            sb.append(generateClassifierRef(ModelFacade.getType(ae)));<br/>
+        } else {<br/>
+            sb.append("Vector "); //generateMultiplicity(m) + " ";<br/>
+        }<br/>
+<br/>
+        sb.append(' ').append(generateAscEndName(ae));<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // internal methods?<br/>
+<br/>
+    private String generateGeneralization(Collection generalizations) {<br/>
+        if (generalizations == null)<br/>
+            return "";<br/>
+        Collection classes = new ArrayList();<br/>
+        Iterator it = generalizations.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object generalization = /*(MGeneralization)*/ it.next();<br/>
+            Object generalizableElement = ModelFacade.getParent(generalization);<br/>
+            // assert ge != null<br/>
+            if (generalizableElement != null)<br/>
+                classes.add(generalizableElement);<br/>
+        }<br/>
+        return generateClassList(classes);<br/>
+    }<br/>
+<br/>
+    //  public String generateSpecification(Collection realizations) {<br/>
+    private String generateSpecification(Object cls) {<br/>
+        Collection realizations =<br/>
+            ModelFacade.getSpecifications(cls);<br/>
+        if (realizations == null)<br/>
+            return "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;LOG.debug("realizations: " + realizations.size());<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        Iterator clsEnum = realizations.iterator();<br/>
+        while (clsEnum.hasNext()) {<br/>
+            Object inter = /*(MInterface)*/ clsEnum.next();<br/>
+            sb.append(generateClassifierRef(inter));<br/>
+            if (clsEnum.hasNext())<br/>
+                sb.append(", ");<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateClassList(Collection classifiers) {<br/>
+        if (classifiers == null)<br/>
+            return "";<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        Iterator clsEnum = classifiers.iterator();<br/>
+        while (clsEnum.hasNext()) {<br/>
+            sb.append(generateClassifierRef(/*(MClassifier)*/ clsEnum.next()));<br/>
+            if (clsEnum.hasNext())<br/>
+                sb.append(", ");<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns a visibility String eihter for a MVisibilityKind (according to<br/>
+     * the definition in NotationProvider2), but also for a model element,<br/>
+     * because if it is a MFeature, then the tag 'src_visibility' is to be<br/>
+     * taken into account for generating language dependent visibilities.<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateVisibility(java.lang.Object)<br/>
+     */<br/>
+    public String generateVisibility(Object o) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (ModelFacade.isAFeature(o)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object tv = ModelFacade.getTaggedValue(o, "src_visibility");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (tv != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String tagged = (String) ModelFacade.getValue(tv);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tagged != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (tagged.trim().equals("")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| tagged.trim().toLowerCase().equals("package")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| tagged.trim().toLowerCase().equals("default")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return tagged + " ";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+        }<br/>
+        if (ModelFacade.isAModelElement(o)) {<br/>
+            if (ModelFacade.isPublic(o))<br/>
+                return "public ";<br/>
+            if (ModelFacade.isPrivate(o))<br/>
+                return "private ";<br/>
+            if (ModelFacade.isProtected(o))<br/>
+                return "protected ";<br/>
+        }<br/>
+        if (ModelFacade.isAVisibilityKind(o)) {<br/>
+            if (ModelFacade.PUBLIC_VISIBILITYKIND.equals(o))<br/>
+                return "public ";<br/>
+            if (ModelFacade.PRIVATE_VISIBILITYKIND.equals(o))<br/>
+                return "private ";<br/>
+            if (ModelFacade.PROTECTED_VISIBILITYKIND.equals(o))<br/>
+                return "protected ";<br/>
+        }<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    private String generateScope(Object f) {<br/>
+        if (ModelFacade.isClassifierScope(f))<br/>
+            return "static ";<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate "abstract" keyword for an abstract operation.<br/>
+     */<br/>
+    private String generateAbstractness(Object op) {<br/>
+        if (ModelFacade.isAbstract(op)) {<br/>
+            return "abstract ";<br/>
+        } else {<br/>
+            return "";<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate "final" keyword for final operations.<br/>
+     */<br/>
+    private String generateChangeability(Object op) {<br/>
+        if (ModelFacade.isLeaf(op)) {<br/>
+            return "final ";<br/>
+        } else {<br/>
+            return "";<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private String generateChangability(Object sf) {<br/>
+        if (!ModelFacade.isChangeable(sf))<br/>
+            return "final ";<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates "synchronized" keyword for guarded operations.<br/>
+     * @param op The operation<br/>
+     * @return String The synchronized keyword if the operation is guarded,<br/>
+     *                else "".<br/>
+     */<br/>
+    private String generateConcurrency(Object op) {<br/>
+        if (ModelFacade.getConcurrency(op) != null<br/>
+            &amp;&amp; ModelFacade.GUARDED_CONCURRENCYKIND.equals(<br/>
+                    ModelFacade.getConcurrency(op))) {<br/>
+            return "synchronized ";<br/>
+        }<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates a String representation of a Multiplicity.<br/>
+     *<br/>
+     * @param m the Multiplicity.<br/>
+     * @return a human readable String.<br/>
+     * @see #ANY_RANGE<br/>
+     * @see #generateMultiplicityRange(Object)<br/>
+     */<br/>
+    public String generateMultiplicity(Object m) {<br/>
+        if (m == null) {<br/>
+            return "";<br/>
+        }<br/>
+        if (ModelFacade.M0_N_MULTIPLICITY.equals(m)) {<br/>
+            return ANY_RANGE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        Iterator rangeEnum = ModelFacade.getRanges(m);<br/>
+        if (rangeEnum == null)<br/>
+            return "";<br/>
+        StringBuffer sb = new StringBuffer(20);<br/>
+        while (rangeEnum.hasNext()) {<br/>
+            Object mr = rangeEnum.next();<br/>
+            sb.append(generateMultiplicityRange(mr));<br/>
+            if (rangeEnum.hasNext())<br/>
+                sb.append(',');<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateMultiplicityRange(Object mr) {<br/>
+        Integer lower = new Integer(ModelFacade.getLower(mr));<br/>
+        Integer upper = new Integer(ModelFacade.getUpper(mr));<br/>
+        if (lower.intValue() == -1 &amp;&amp; upper.intValue() == -1)<br/>
+            return ANY_RANGE;<br/>
+        if (lower.intValue() == -1)<br/>
+            return "*.." + upper.toString();<br/>
+        if (upper.intValue() == -1)<br/>
+            return lower.toString() + "..*";<br/>
+        if (lower.intValue() == upper.intValue())<br/>
+            return lower.toString();<br/>
+        return lower.toString() + ".." + upper.toString();<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateState(java.lang.Object)<br/>
+     */<br/>
+    public String generateState(Object m) {<br/>
+        return ModelFacade.getName(m);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateObjectFlowState(java.lang.Object)<br/>
+     */<br/>
+    public String generateObjectFlowState(Object m) {<br/>
+        Object c = ModelFacade.getType(m);<br/>
+        if (c == null) return "";<br/>
+        return ModelFacade.getName(c);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateStateBody(java.lang.Object)<br/>
+     */<br/>
+    public String generateStateBody(Object m) {<br/>
+        LOG.info("GeneratorJava: generating state body");<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        Object entryAction = ModelFacade.getEntry(m);<br/>
+        Object exitAction = ModelFacade.getExit(m);<br/>
+        Object doAction = ModelFacade.getDoActivity(m);<br/>
+<br/>
+        if (entryAction != null) {<br/>
+            String entryStr = Generate(entryAction);<br/>
+            if (entryStr.length() &gt; 0)<br/>
+                sb.append("entry / ").append(entryStr);<br/>
+        }<br/>
+        if (doAction != null) {<br/>
+            String doStr = Generate(doAction);<br/>
+            if (doStr.length() &gt; 0) {<br/>
+                if (sb.length() &gt; 0)<br/>
+                    sb.append(LINE_SEPARATOR);<br/>
+                sb.append("do / ").append(doStr);<br/>
+            }<br/>
+        }<br/>
+        if (exitAction != null) {<br/>
+            String exitStr = Generate(exitAction);<br/>
+            if (sb.length() &gt; 0)<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+            if (exitStr.length() &gt; 0)<br/>
+                sb.append("exit / ").append(exitStr);<br/>
+        }<br/>
+        Collection trans = ModelFacade.getInternalTransitions(m);<br/>
+        if (trans != null) {<br/>
+            Iterator iter = trans.iterator();<br/>
+            while (iter.hasNext()) {<br/>
+                if (sb.length() &gt; 0)<br/>
+                    sb.append(LINE_SEPARATOR);<br/>
+                sb.append(generateTransition(iter.next()));<br/>
+            }<br/>
+        }<br/>
+<br/>
+        /*   if (trans != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     int size = trans.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     MTransition[] transarray = (MTransition[])trans.toArray();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     if (s.length() &gt; 0) s += "\n";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     s += Generate(transarray[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     }*/<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateTransition(java.lang.Object)<br/>
+     */<br/>
+    public String generateTransition(Object m) {<br/>
+        StringBuffer sb = new StringBuffer(generate(ModelFacade.getName(m)));<br/>
+        String t = generate(ModelFacade.getTrigger(m));<br/>
+        String g = generate(ModelFacade.getGuard(m));<br/>
+        String e = generate(ModelFacade.getEffect(m));<br/>
+        if (sb.length() &gt; 0)<br/>
+            sb.append(": ");<br/>
+        sb.append(t);<br/>
+        if (g.length() &gt; 0)<br/>
+            sb.append(" [").append(g).append(']');<br/>
+        if (e.length() &gt; 0)<br/>
+            sb.append(" / ").append(e);<br/>
+        return sb.toString();<br/>
+<br/>
+        /*  String s = m.getName();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String t = generate(ModelFacade.getTrigger(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String g = generate(ModelFacade.getGuard(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String e = generate(ModelFacade.getEffect(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(s == null) s = "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(t == null) t = "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (s.length() &gt; 0 &amp;&amp;<br/>
+            (t.length() &gt; 0 ||<br/>
+            (g != null &amp;&amp; g.length() &gt; 0) ||<br/>
+            (e != null &amp;&amp; e.length() &gt; 0)))<br/>
+            s += ": ";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    s += t;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (g != null &amp;&amp; g.length() &gt; 0) s += " [" + g + "]";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (e != null &amp;&amp; e.length() &gt; 0) s += " / " + e;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return s;*/<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAction(java.lang.Object)<br/>
+     */<br/>
+    public String generateAction(Object m) {<br/>
+        // return m.getName();<br/>
+<br/>
+        if (m != null) {<br/>
+            Object script = ModelFacade.getScript(m);<br/>
+            if ((script != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; (ModelFacade.getBody(script) != null)) {<br/>
+                return ModelFacade.getBody(script).toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+        }<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateGuard(java.lang.Object)<br/>
+     */<br/>
+    public String generateGuard(Object m) {<br/>
+        //return generateExpression(ModelFacade.getExpression(m));<br/>
+        if (m != null &amp;&amp; ModelFacade.getExpression(m) != null)<br/>
+            return generateExpression(ModelFacade.getExpression(m));<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateMessage(java.lang.Object)<br/>
+     */<br/>
+    public String generateMessage(Object m) {<br/>
+        if (m == null)<br/>
+            return "";<br/>
+        return generateName(ModelFacade.getName(m)) + "::"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    + generateAction(ModelFacade.getAction(m));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates the text for a (trigger) event. <br/>
+     * <br/>
+     * @author MVW<br/>
+     * @param m Object of any MEvent kind<br/>
+     * @return The generated event (as a String).<br/>
+     */<br/>
+    public String generateEvent(Object m) {<br/>
+        if (ModelFacade.isAChangeEvent(m))<br/>
+            return "when(" <br/>
+                + generateExpression(ModelFacade.getExpression(m)) <br/>
+                + ")";<br/>
+        if (ModelFacade.isATimeEvent(m))<br/>
+            return "after(" <br/>
+                + generateExpression(ModelFacade.getExpression(m)) <br/>
+                + ")";<br/>
+        if (ModelFacade.isASignalEvent(m))<br/>
+            return generateName(ModelFacade.getName(m));<br/>
+        if (ModelFacade.isACallEvent(m))<br/>
+            return generateName(ModelFacade.getName(m));<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    String generateAscEndName(Object ae) {<br/>
+        String n = ModelFacade.getName(ae);<br/>
+        Object/*MAssociation*/ asc = ModelFacade.getAssociation(ae);<br/>
+        String ascName = ModelFacade.getName(asc);<br/>
+        if (n != null &amp;&amp; n != null &amp;&amp; n.length() &gt; 0) {<br/>
+            n = generateName(n);<br/>
+        } else if (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   ascName != null &amp;&amp; ascName != null &amp;&amp; ascName.length() &gt; 0) {<br/>
+            n = generateName(ascName);<br/>
+        } else {<br/>
+            n = "my" + generateClassifierRef(ModelFacade.getType(ae));<br/>
+        }<br/>
+        return n;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Gets the Java package name for a given namespace,<br/>
+       ignoring the root namespace (which is the model).<br/>
+<br/>
+       @param namespace the namespace<br/>
+       @return the Java package name<br/>
+    */<br/>
+    public String getPackageName(Object namespace) {<br/>
+        if (namespace == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || !ModelFacade.isANamespace(namespace)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || ModelFacade.getNamespace(namespace) == null)<br/>
+            return "";<br/>
+        String packagePath = ModelFacade.getName(namespace);<br/>
+        while ((namespace = ModelFacade.getNamespace(namespace)) != null) {<br/>
+            // ommit root package name; it's the model's root<br/>
+            if (ModelFacade.getNamespace(namespace) != null)<br/>
+                packagePath =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ModelFacade.getName(namespace) + '.' + packagePath;<br/>
+        }<br/>
+        return packagePath;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Update a source code file.<br/>
+     *<br/>
+     * @param mClassifier The classifier to update from.<br/>
+     * @param file The file to update.<br/>
+     */<br/>
+    private static void update(Object mClassifier, File file) <br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;throws IOException, ANTLRException {<br/>
+<br/>
+        LOG.info("Parsing " + file.getPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String encoding = null;<br/>
+        if (Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING) == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        .trim().equals("")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    encoding = System.getProperty("file.encoding");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    encoding = Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        FileInputStream in = new FileInputStream(file);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JavaLexer lexer =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    new JavaLexer(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            new BufferedReader(new InputStreamReader(in, encoding)));<br/>
+        JavaRecognizer parser = new JavaRecognizer(lexer);<br/>
+        CodePieceCollector cpc = new CodePieceCollector();<br/>
+        parser.compilationUnit(cpc);<br/>
+        in.close();<br/>
+<br/>
+        File origFile = new File(file.getAbsolutePath());<br/>
+        File newFile = new File(file.getAbsolutePath() + ".updated");<br/>
+        File backupFile = new File(file.getAbsolutePath() + ".backup");<br/>
+        if (backupFile.exists())<br/>
+            backupFile.delete();<br/>
+        //cat.info("Generating " + newFile.getPath());<br/>
+        isInUpdateMode = true;<br/>
+        cpc.filter(file, newFile, ModelFacade.getNamespace(mClassifier));<br/>
+        isInUpdateMode = false;<br/>
+        //cat.info("Backing up " + file.getPath());<br/>
+        file.renameTo(backupFile);<br/>
+        LOG.info("Updating " + file.getPath());<br/>
+        newFile.renameTo(origFile);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleName()<br/>
+     */<br/>
+    public String getModuleName() {<br/>
+        return "GeneratorJava";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleDescription()<br/>
+     */<br/>
+    public String getModuleDescription() {<br/>
+        return "Java Notation and Code Generator";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleAuthor()<br/>
+     */<br/>
+    public String getModuleAuthor() {<br/>
+        return "ArgoUML Core";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleVersion()<br/>
+     */<br/>
+    public String getModuleVersion() {<br/>
+        return ArgoVersion.getVersion();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleKey()<br/>
+     */<br/>
+    public String getModuleKey() {<br/>
+        return "module.language.java.generator";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the _lfBeforeCurly.<br/>
+     * @return boolean<br/>
+     */<br/>
+    public boolean isLfBeforeCurly() {<br/>
+        return lfBeforeCurly;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the _verboseDocs.<br/>
+     * @return boolean<br/>
+     */<br/>
+    public boolean isVerboseDocs() {<br/>
+        return verboseDocs;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the lfBeforeCurly.<br/>
+     * @param beforeCurl The new value.<br/>
+     */<br/>
+    public void setLfBeforeCurly(boolean beforeCurl) {<br/>
+        lfBeforeCurly = beforeCurl;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the verboseDocs.<br/>
+     * @param verbose The new value.<br/>
+     */<br/>
+    public void setVerboseDocs(boolean verbose) {<br/>
+        verboseDocs = verbose;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.Pluggable#inContext(java.lang.Object[])<br/>
+     */<br/>
+    public boolean inContext(Object[] o) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#isModuleEnabled()<br/>
+     */<br/>
+    public boolean isModuleEnabled() { return true; }<br/>
+    <br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateActionState(java.lang.Object)<br/>
+     */<br/>
+    public String generateActionState(Object actionState) {       <br/>
+        return generateState(actionState);<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_GeneratorJava_1.103.java</h1>
+<div class="code">
+<div class="id">
+// $Id: GeneratorJava.java,v 1.103 2004-10-12 06:57:06 mkl Exp $<br/>
+// Copyright (c) 1996-2004 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.language.java.generator;<br/>
+<br/>
+import java.io.BufferedReader;<br/>
+import java.io.BufferedWriter;<br/>
+import java.io.File;<br/>
+import java.io.FileOutputStream;<br/>
+import java.io.OutputStreamWriter;<br/>
+import java.io.FileInputStream;<br/>
+import java.io.InputStreamReader;<br/>
+import java.io.IOException;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.Iterator;<br/>
+import java.util.LinkedList;<br/>
+import java.util.StringTokenizer;<br/>
+import java.util.Vector;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+import org.argouml.application.ArgoVersion;<br/>
+import org.argouml.application.api.Argo;<br/>
+import org.argouml.application.api.Notation;<br/>
+import org.argouml.model.ModelFacade;<br/>
+import org.argouml.model.uml.UmlHelper;<br/>
+import org.argouml.ocl.ArgoFacade;<br/>
+import org.argouml.uml.DocumentationManager;<br/>
+import org.argouml.uml.generator.FileGenerator;<br/>
+import org.argouml.uml.generator.Generator2;<br/>
+<br/>
+import tudresden.ocl.OclTree;<br/>
+import tudresden.ocl.parser.analysis.DepthFirstAdapter;<br/>
+import tudresden.ocl.parser.node.AConstraintBody;<br/>
+<br/>
+import org.argouml.application.api.Configuration;<br/>
+<br/>
+import antlr.ANTLRException;<br/>
+<br/>
+/**<br/>
+ * Generator2 subclass to generate text for display in diagrams and in<br/>
+ * text fields in the Argo/UML user interface.  The generated code<br/>
+ * looks a lot like (invalid) Java.  The idea is that other generators<br/>
+ * could be written for other languages.  This code is just a<br/>
+ * placeholder for future development, I expect it to be totally<br/>
+ * replaced.<br/>
+ *<br/>
+ * @stereotype singleton <br/>
+ */<br/>
+public class GeneratorJava<br/>
+    extends Generator2 implements FileGenerator {<br/>
+<br/>
+    /** Logger */<br/>
+    private static final Logger LOG = Logger.getLogger(GeneratorJava.class);<br/>
+<br/>
+    private static final String ANY_RANGE = "0..*";<br/>
+    //public static final String ANY_RANGE = "*";<br/>
+    // TODO: user preference between "*" and "0..*"<br/>
+<br/>
+    private boolean verboseDocs = false;<br/>
+    private boolean lfBeforeCurly = false;<br/>
+    private static final boolean VERBOSE_DOCS = false;<br/>
+    private static final String LINE_SEPARATOR =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.getProperty("line.separator");<br/>
+    // TODO: make it configurable<br/>
+    // next two flags shows in what mode we are working<br/>
+    /** true when GenerateFile<br/>
+     */<br/>
+    private static boolean isFileGeneration = false;<br/>
+<br/>
+    /**<br/>
+     * true if GenerateFile in Update Mode<br/>
+     */<br/>
+    private static boolean isInUpdateMode = false;<br/>
+<br/>
+    private static final GeneratorJava SINGLETON = new GeneratorJava();<br/>
+<br/>
+    /**<br/>
+     * Get the generator.<br/>
+     *<br/>
+     * @return The singleton.<br/>
+     */<br/>
+    public static GeneratorJava getInstance() {<br/>
+        return SINGLETON;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor.<br/>
+     */<br/>
+    protected GeneratorJava() {<br/>
+        super(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      Notation.makeNotation(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    "Java",<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    null,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    Argo.lookupIconResource("JavaNotation")));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @deprecated by Linus Tolke for 0.17.1. <br/>
+     *             Replace by call to {@link #generate(Object)}.<br/>
+     *<br/>
+     * @param o the object to generate<br/>
+     * @return the generated string<br/>
+     */<br/>
+    public static String Generate(Object o) {<br/>
+        return SINGLETON.generate(o);<br/>
+    }<br/>
+<br/>
+    /** <br/>
+     * Generates a file for the classifier.<br/>
+     * This method could have been static if it where not for the need to<br/>
+     * call it through the Generatorinterface.<br/>
+     * Returns the full path name of the the generated file or<br/>
+     * null if no file can be generated.<br/>
+     *<br/>
+     * @see org.argouml.uml.generator.FileGenerator#generateFile2(<br/>
+     * java.lang.Object, java.lang.String)<br/>
+     */<br/>
+    public String generateFile2(Object modelElement, String path) {<br/>
+        String name = ModelFacade.getName(modelElement);<br/>
+        if (name == null || name.length() == 0)<br/>
+            return null;<br/>
+        Object classifier = /*(MClassifier)*/ modelElement;<br/>
+        String filename = name + ".java";<br/>
+        if (!path.endsWith(FILE_SEPARATOR))<br/>
+            path += FILE_SEPARATOR;<br/>
+<br/>
+        String packagePath =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    getPackageName(ModelFacade.getNamespace(classifier));<br/>
+<br/>
+        int lastIndex = -1;<br/>
+        do {<br/>
+            File f = new File(path);<br/>
+            if (!f.isDirectory()) {<br/>
+                if (!f.mkdir()) {<br/>
+                    LOG.error(" could not make directory " + path);<br/>
+                    return null;<br/>
+                }<br/>
+            }<br/>
+<br/>
+            if (lastIndex == packagePath.length())<br/>
+                break;<br/>
+<br/>
+            int index = packagePath.indexOf(".", lastIndex + 1);<br/>
+            if (index == -1)<br/>
+                index = packagePath.length();<br/>
+<br/>
+            path += packagePath.substring(lastIndex + 1, index)<br/>
+                + FILE_SEPARATOR;<br/>
+            lastIndex = index;<br/>
+        } while (true);<br/>
+<br/>
+        String pathname = path + filename;<br/>
+        //cat.info("-----" + pathname + "-----");<br/>
+<br/>
+        //now decide wether file exist and need an update or is to be<br/>
+        //newly generated<br/>
+        File f = new File(pathname);<br/>
+        isFileGeneration = true; // used to produce method javadoc<br/>
+        if (f.exists()) {<br/>
+            try {<br/>
+                update(classifier, f);<br/>
+            } catch (Exception exp) {<br/>
+                isInUpdateMode = false;<br/>
+                isFileGeneration = false;<br/>
+                LOG.error("FAILED: " + f.getPath(), exp);<br/>
+            }<br/>
+<br/>
+            //cat.info("----- end generating -----");<br/>
+            isFileGeneration = false;<br/>
+            return pathname;<br/>
+        }<br/>
+<br/>
+        //String pathname = path + filename;<br/>
+        // TODO: package, project basepath, tagged values to configure<br/>
+        LOG.info("Generating (new) " + f.getPath());<br/>
+        isFileGeneration = true;<br/>
+        String header =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    SINGLETON.generateHeader(classifier, pathname, packagePath);<br/>
+        String src = SINGLETON.generate(classifier);<br/>
+        BufferedWriter fos = null;<br/>
+        try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING) == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .trim().equals("")) {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;fos =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new BufferedWriter(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            new OutputStreamWriter(new FileOutputStream(f),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    System.getProperty("file.encoding")));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;fos =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new BufferedWriter(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            new OutputStreamWriter(new FileOutputStream(f),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    Configuration.getString(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            Argo.KEY_INPUT_SOURCE_ENCODING)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+            fos.write(header);<br/>
+            fos.write(src);<br/>
+        } catch (IOException exp) {<br/>
+            LOG.error("IO Exception: " + exp + ", for file: " + f.getPath());<br/>
+        } finally {<br/>
+            isFileGeneration = false;<br/>
+            try {<br/>
+                if (fos != null)<br/>
+                    fos.close();<br/>
+            } catch (IOException exp) {<br/>
+                LOG.error("FAILED: " + f.getPath());<br/>
+            }<br/>
+        }<br/>
+<br/>
+        //cat.info("----- end updating -----");<br/>
+        return pathname;<br/>
+    }<br/>
+<br/>
+    private String generateHeader(Object cls,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String pathname,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  String packagePath) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        //TODO: add user-defined copyright<br/>
+        if (VERBOSE_DOCS) {<br/>
+            sb.append("// FILE: ").append(pathname.replace('\\', '/'));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR).append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        if (packagePath.length() &gt; 0) {<br/>
+            sb.append("package ").append(packagePath).append(";");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR).append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        sb.append(generateImports(cls, packagePath));<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateImports(Object cls, String packagePath) {<br/>
+        // TODO: check also generalizations<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        java.util.HashSet importSet = new java.util.HashSet();<br/>
+        String ftype;<br/>
+        Iterator j;<br/>
+        Collection c = ModelFacade.getFeatures(cls);<br/>
+        if (c != null) {<br/>
+            // now check packages of all feature types<br/>
+            for (j = c.iterator(); j.hasNext();) {<br/>
+                Object mFeature = /*(MFeature)*/ j.next();<br/>
+                if (ModelFacade.isAAttribute(mFeature)) {<br/>
+                    if ((ftype =<br/>
+                            generateImportType(ModelFacade.getType(mFeature),<br/>
+                                               packagePath))<br/>
+                            != null) {<br/>
+                        importSet.add(ftype);<br/>
+                    }<br/>
+                } else if (ModelFacade.isAOperation(mFeature)) {<br/>
+                    // check the parameter types<br/>
+                    Iterator it =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ModelFacade.getParameters(mFeature).iterator();<br/>
+                    while (it.hasNext()) {<br/>
+                        Object parameter = it.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    generateImportType(ModelFacade.getType(parameter),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+                            importSet.add(ftype);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+                    // check the return parameter types<br/>
+                    it =<br/>
+                        UmlHelper.getHelper()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    .getCore()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        .getReturnParameters(/*(MOperation)*/mFeature)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .iterator();<br/>
+                    while (it.hasNext()) {<br/>
+                        Object parameter = it.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    generateImportType(ModelFacade.getType(parameter),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       packagePath);<br/>
+                        if (ftype != null) {<br/>
+                            importSet.add(ftype);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // check raised signals<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    it = ModelFacade.getRaisedSignals(mFeature).iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    while (it.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object signal = it.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!ModelFacade.isAException(signal)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    generateImportType(ModelFacade.getType(signal),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;c = ModelFacade.getGeneralizations(cls);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (c != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // now check packages of all generalized types<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for (j = c.iterator(); j.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object gen = /*(MGeneralization)*/ j.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object parent = ModelFacade.getParent(gen);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parent == cls) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype = generateImportType(parent,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;c = ModelFacade.getSpecifications(cls);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (c != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // now check packages of the interfaces<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    for (j = c.iterator(); j.hasNext();) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object iface = /*(MInterface)*/ j.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ftype = generateImportType(iface,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        c = ModelFacade.getAssociationEnds(cls);<br/>
+        if (!c.isEmpty()) {<br/>
+            // check association end types<br/>
+            for (j = c.iterator(); j.hasNext();) {<br/>
+                Object associationEnd = /*(MAssociationEnd)*/ j.next();<br/>
+                Object association = ModelFacade.getAssociation(associationEnd);<br/>
+                Iterator connEnum =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ModelFacade.getConnections(association).iterator();<br/>
+                while (connEnum.hasNext()) {<br/>
+                    Object associationEnd2 =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MAssociationEnd)*/ connEnum.next();<br/>
+                    if (associationEnd2 != associationEnd<br/>
+                            &amp;&amp; ModelFacade.isNavigable(associationEnd2)<br/>
+                            &amp;&amp; !ModelFacade.isAbstract(<br/>
+                                    ModelFacade.getAssociation(<br/>
+                                            associationEnd2))) {<br/>
+                        // association end found<br/>
+                        Object multiplicity =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ModelFacade.getMultiplicity(associationEnd2);<br/>
+                        if (!ModelFacade.M1_1_MULTIPLICITY.equals(multiplicity)<br/>
+                                &amp;&amp; !ModelFacade.M0_1_MULTIPLICITY.equals(<br/>
+                                        multiplicity)) {<br/>
+                            importSet.add("java.util.Vector");<br/>
+                        } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ftype =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;generateImportType(ModelFacade.getType(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        associationEnd2),<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   packagePath);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (ftype != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;importSet.add(ftype);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        // finally generate the import statements<br/>
+        for (j = importSet.iterator(); j.hasNext();) {<br/>
+            ftype = (String) j.next();<br/>
+            sb.append("import ").append(ftype).append(";");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+        }<br/>
+        if (!importSet.isEmpty()) {<br/>
+            sb.append(LINE_SEPARATOR);<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateImportType(Object type, String exclude) {<br/>
+        String ret = null;<br/>
+        if (type != null &amp;&amp; ModelFacade.getNamespace(type) != null) {<br/>
+            String p = getPackageName(ModelFacade.getNamespace(type));<br/>
+            if (!p.equals(exclude)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (p.length() &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ret = p + '.' + ModelFacade.getName(type);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ret = ModelFacade.getName(type);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * &lt;p&gt;Generate code for an extension point.&lt;/p&gt;<br/>
+     *<br/>
+     * &lt;p&gt;Provided to comply with the interface, but returns null<br/>
+     *   since no code will be generated. This should prevent a source tab<br/>
+     *   being shown.&lt;/p&gt;<br/>
+     *<br/>
+     * @param ep  The extension point to generate for<br/>
+     *<br/>
+     * @return    The generated code string. Always empty in this<br/>
+     *            implementation.<br/>
+     */<br/>
+    public String generateExtensionPoint(Object ep) {<br/>
+        return null;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAssociationRole(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationRole(Object m) {<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateOperation(<br/>
+     *         java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateOperation(Object op, boolean documented) {<br/>
+        if (isFileGeneration)<br/>
+            documented = true; // fix Issue 1506<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        String nameStr = null;<br/>
+        boolean constructor = false;<br/>
+        Object/*MStereotype*/ stereo = null;<br/>
+        if (ModelFacade.getStereotypes(op).size() &gt; 0) {<br/>
+            stereo = ModelFacade.getStereotypes(op).iterator().next();<br/>
+        }<br/>
+        if (stereo != null<br/>
+                &amp;&amp; ModelFacade.getName(stereo).equals("create")) {<br/>
+            // constructor<br/>
+            nameStr =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;generateName(ModelFacade.getName(ModelFacade.getOwner(op)));<br/>
+            constructor = true;<br/>
+        } else {<br/>
+            nameStr = generateName(ModelFacade.getName(op));<br/>
+        }<br/>
+        // Each pattern here must be similar to corresponding code piece<br/>
+        // Operation code piece doesn't start with '\n'<br/>
+        // so the next line is commented. See Issue 1505<br/>
+        //sb.append(LINE_SEPARATOR); // begin with a blank line<br/>
+        if (documented) {<br/>
+            String s =<br/>
+                generateConstraintEnrichedDocComment(op, documented, INDENT);<br/>
+            if (s != null &amp;&amp; s.trim().length() &gt; 0)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// should starts as the code piece<br/>
+                sb.append(s).append(INDENT);<br/>
+        }<br/>
+<br/>
+        // 2002-07-14<br/>
+        // Jaap Branderhorst<br/>
+        // missing concurrency generation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//sb.append(INDENT); fixed issue 1505<br/>
+        sb.append(generateConcurrency(op));<br/>
+        sb.append(generateAbstractness(op));<br/>
+        sb.append(generateChangeability(op));<br/>
+        sb.append(generateScope(op));<br/>
+        sb.append(generateVisibility(op));<br/>
+<br/>
+        // pick out return type<br/>
+        Object/*MParameter*/ rp =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    UmlHelper.getHelper().getCore().getReturnParameter(op);<br/>
+        if (rp != null &amp;&amp; !constructor) {<br/>
+            Object/*MClassifier*/ returnType = ModelFacade.getType(rp);<br/>
+            if (returnType == null) {<br/>
+                sb.append("void ");<br/>
+            } else {<br/>
+                sb.append(generateClassifierRef(returnType)).append(' ');<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // name and params<br/>
+        Vector params = new Vector(ModelFacade.getParameters(op));<br/>
+        params.remove(rp);<br/>
+<br/>
+        sb.append(nameStr).append('(');<br/>
+<br/>
+        if (params != null) {<br/>
+            for (int i = 0; i &lt; params.size(); i++) {<br/>
+                if (i &gt; 0) {<br/>
+                    sb.append(", ");<br/>
+                }<br/>
+                sb.append(generateParameter(params.elementAt(i)));<br/>
+            }<br/>
+        }<br/>
+<br/>
+        sb.append(')');<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Collection c = ModelFacade.getRaisedSignals(op);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!c.isEmpty()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Iterator it = c.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean first = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    while (it.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object signal = it.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!ModelFacade.isAException(signal)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    continue;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (first) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(" throws ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(", ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(ModelFacade.getName(it.next()));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;first = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAttribute(<br/>
+     *         java.lang.Object, boolean)<br/>
+     */<br/>
+    public String generateAttribute(Object attr, boolean documented) {<br/>
+        if (isFileGeneration)<br/>
+            documented = true; // always "documented" if we generate file.<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        if (documented) {<br/>
+            String s =<br/>
+                generateConstraintEnrichedDocComment(attr, documented, INDENT);<br/>
+            if (s != null &amp;&amp; s.trim().length() &gt; 0)<br/>
+                sb.append(s).append(INDENT);<br/>
+        }<br/>
+        //sb.append(INDENT); fixed issue 1505<br/>
+        sb.append(generateCoreAttribute(attr));<br/>
+        sb.append(";").append(LINE_SEPARATOR);<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    String generateCoreAttribute(Object attr) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        sb.append(generateVisibility(attr));<br/>
+        sb.append(generateScope(attr));<br/>
+        sb.append(generateChangability(attr));<br/>
+        Object/*MClassifier*/ type = ModelFacade.getType(attr);<br/>
+        Object/*MMultiplicity*/ multi = ModelFacade.getMultiplicity(attr);<br/>
+        // handle multiplicity here since we need the type<br/>
+        // actually the API of generator is buggy since to generate<br/>
+        // multiplicity correctly we need the attribute too<br/>
+        if (type != null &amp;&amp; multi != null) {<br/>
+            if (multi.equals(ModelFacade.M1_1_MULTIPLICITY)) {<br/>
+                sb.append(generateClassifierRef(type)).append(' ');<br/>
+            } else if (ModelFacade.isADataType(type)) {<br/>
+                sb.append(generateClassifierRef(type)).append("[] ");<br/>
+            } else<br/>
+                sb.append("java.util.Vector ");<br/>
+        }<br/>
+<br/>
+        sb.append(generateName(ModelFacade.getName(attr)));<br/>
+        Object/*MExpression*/ init = ModelFacade.getInitialValue(attr);<br/>
+        if (init != null) {<br/>
+            String initStr = generateExpression(init).trim();<br/>
+            if (initStr.length() &gt; 0)<br/>
+                sb.append(" = ").append(initStr);<br/>
+        }<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateParameter(java.lang.Object)<br/>
+     */<br/>
+    public String generateParameter(Object parameter) {<br/>
+        StringBuffer sb = new StringBuffer(20);<br/>
+        //TODO: qualifiers (e.g., const)<br/>
+        //TODO: stereotypes...<br/>
+        sb.append(generateClassifierRef(ModelFacade.getType(parameter)));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(' ');<br/>
+        sb.append(generateName(ModelFacade.getName(parameter)));<br/>
+        //TODO: initial value<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generatePackage(java.lang.Object)<br/>
+     */<br/>
+    public String generatePackage(Object p) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        String packName = generateName(ModelFacade.getName(p));<br/>
+        sb.append("package ").append(packName).append(" {");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+        Collection ownedElements = ModelFacade.getOwnedElements(p);<br/>
+        if (ownedElements != null) {<br/>
+            Iterator ownedEnum = ownedElements.iterator();<br/>
+            while (ownedEnum.hasNext()) {<br/>
+                Object modelElement = /*(MModelElement)*/ ownedEnum.next();<br/>
+                sb.append(generate(modelElement));<br/>
+                sb.append(LINE_SEPARATOR).append(LINE_SEPARATOR);<br/>
+            }<br/>
+        } else {<br/>
+            sb.append("(no elements)");<br/>
+        }<br/>
+        sb.append(LINE_SEPARATOR).append("})").append(LINE_SEPARATOR);<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate the start sequence for a classifier. The start sequence is<br/>
+     * everything from the preceding javadoc comment to the opening curly brace.<br/>
+     * Start sequences are non-empty for classes and interfaces only.<br/>
+     *<br/>
+     * This method is intented for package internal usage only.<br/>
+     *<br/>
+     * @param cls the classifier for which to generate the start sequence<br/>
+     *<br/>
+     * @return the generated start sequence<br/>
+     */<br/>
+    StringBuffer generateClassifierStart(Object cls) {<br/>
+        String sClassifierKeyword;<br/>
+        if (ModelFacade.isAClass(cls))<br/>
+            sClassifierKeyword = "class";<br/>
+        else if (ModelFacade.isAInterface(cls))<br/>
+            sClassifierKeyword = "interface";<br/>
+        else<br/>
+            return null; // actors, use cases etc.<br/>
+<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+<br/>
+        // Add the comments for this classifier first.<br/>
+        // Each pattern here must be similar to corresponding code piece<br/>
+        // Classfier code piece doesn't start with LINE_SEPARATOR<br/>
+        // so the next line is commented. See Issue 1505<br/>
+        //sb.append (LINE_SEPARATOR);<br/>
+        sb.append(DocumentationManager.getComments(cls));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(generateConstraintEnrichedDocComment(cls, true, ""));<br/>
+<br/>
+        // Now add visibility<br/>
+        sb.append(generateVisibility(ModelFacade.getVisibility(cls)));<br/>
+<br/>
+        // Add other modifiers<br/>
+        if (ModelFacade.isAbstract(cls) &amp;&amp; !(ModelFacade.isAInterface(cls))) {<br/>
+            sb.append("abstract ");<br/>
+        }<br/>
+<br/>
+        if (ModelFacade.isLeaf(cls)) {<br/>
+            sb.append("final ");<br/>
+        }<br/>
+<br/>
+        // add additional modifiers<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object smod = ModelFacade.getTaggedValue(cls, "src_modifiers");<br/>
+        if (smod != null &amp;&amp; ModelFacade.getValue(smod) != null) {<br/>
+            sb.append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(ModelFacade.getValue(smod));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        // add classifier keyword and classifier name<br/>
+        sb.append(sClassifierKeyword).append(" ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;sb.append(generateName(ModelFacade.getName(cls)));<br/>
+<br/>
+        // add base class/interface<br/>
+        String baseClass =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    generateGeneralization(ModelFacade.getGeneralizations(cls));<br/>
+        if (!baseClass.equals("")) {<br/>
+            sb.append(" ").append("extends ").append(baseClass);<br/>
+        }<br/>
+<br/>
+        // add implemented interfaces, if needed<br/>
+        // nsuml: realizations!<br/>
+        if (ModelFacade.isAClass(cls)) {<br/>
+            String interfaces = generateSpecification(cls);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    LOG.debug("Specification: " + interfaces);<br/>
+            if (!interfaces.equals("")) {<br/>
+                sb.append(" ").append("implements ").append(interfaces);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        // add opening brace<br/>
+        sb.append(lfBeforeCurly ? (LINE_SEPARATOR + "{") : " {");<br/>
+<br/>
+        // list tagged values for documentation<br/>
+        String tv = generateTaggedValues(cls);<br/>
+        if (tv != null &amp;&amp; tv.length() &gt; 0) {<br/>
+            sb.append(LINE_SEPARATOR).append(INDENT).append(tv);<br/>
+        }<br/>
+<br/>
+        return sb;<br/>
+    }<br/>
+<br/>
+    private StringBuffer generateClassifierEnd(Object cls) {<br/>
+        StringBuffer sb = new StringBuffer();<br/>
+        if (ModelFacade.isAClass(cls) || ModelFacade.isAInterface(cls)) {<br/>
+            if (verboseDocs) {<br/>
+                String classifierkeyword = null;<br/>
+                if (ModelFacade.isAClass(cls)) {<br/>
+                    classifierkeyword = "class";<br/>
+                } else {<br/>
+                    classifierkeyword = "interface";<br/>
+                }<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append("//end of ").append(classifierkeyword);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(" ").append(ModelFacade.getName(cls));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+            }<br/>
+            sb.append("}");<br/>
+        }<br/>
+        return sb;<br/>
+    }<br/>
+    /**<br/>
+     * Append the classifier end sequence to the prefix text specified. The<br/>
+     * classifier end sequence is the closing curly brace together with any<br/>
+     * comments marking the end of the classifier.<br/>
+     *<br/>
+     * This method is intented for package internal usage.<br/>
+     *<br/>
+     * @param sbPrefix the prefix text to be amended. It is OK to call append on<br/>
+     *                 this parameter.<br/>
+     * @param cls      the classifier for which to generate the classifier end<br/>
+     *                 sequence. Only classes and interfaces have a classifier<br/>
+     *                 end sequence.<br/>
+     * @return the complete classifier code, i.e., sbPrefix plus the classifier<br/>
+     *         end sequence<br/>
+     */<br/>
+    StringBuffer appendClassifierEnd(StringBuffer sbPrefix,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     Object/*MClassifier*/ cls) {<br/>
+        sbPrefix.append(generateClassifierEnd(cls));<br/>
+<br/>
+        return sbPrefix;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates code for a classifier. In case of Java code is<br/>
+     * generated for classes and interfaces only at the moment.<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateClassifier(<br/>
+     *         Object)<br/>
+     */<br/>
+    public String generateClassifier(Object cls) {<br/>
+        StringBuffer returnValue = new StringBuffer();<br/>
+        StringBuffer start = generateClassifierStart(cls);<br/>
+        if ((start != null) &amp;&amp; (start.length() &gt; 0)) {<br/>
+            StringBuffer body = generateClassifierBody(cls);<br/>
+            StringBuffer end = generateClassifierEnd(cls);<br/>
+            returnValue.append(start.toString());<br/>
+            if ((body != null) &amp;&amp; (body.length() &gt; 0)) {<br/>
+                returnValue.append(LINE_SEPARATOR);<br/>
+                returnValue.append(body);<br/>
+                if (lfBeforeCurly) {<br/>
+                    returnValue.append(LINE_SEPARATOR);<br/>
+                }<br/>
+            }<br/>
+            returnValue.append((end != null) ? end.toString() : "");<br/>
+        }<br/>
+        return returnValue.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates the body of a class or interface.<br/>
+     * @param cls<br/>
+     * @return StringBuffer<br/>
+     */<br/>
+    private StringBuffer generateClassifierBody(Object cls) {<br/>
+        StringBuffer sb = new StringBuffer();<br/>
+        if (ModelFacade.isAClass(cls) || ModelFacade.isAInterface(cls)) {<br/>
+            String tv = null; // helper for tagged values<br/>
+<br/>
+            // add attributes<br/>
+            Collection strs = ModelFacade.getStructuralFeatures(cls);<br/>
+<br/>
+            if (!strs.isEmpty()) {<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+                if (verboseDocs &amp;&amp; ModelFacade.isAClass(cls)) {<br/>
+                    sb.append(INDENT).append("// Attributes");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+                }<br/>
+<br/>
+                Iterator strEnum = strs.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean first = true;<br/>
+                while (strEnum.hasNext()) {<br/>
+                    Object structuralFeature =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MStructuralFeature)*/ strEnum.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!first)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(INDENT);<br/>
+                    sb.append(generate(structuralFeature));<br/>
+<br/>
+                    tv = generateTaggedValues(structuralFeature);<br/>
+                    if (tv != null &amp;&amp; tv.length() &gt; 0) {<br/>
+                        sb.append(INDENT).append(tv);<br/>
+                    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    first = false;<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // add attributes implementing associations<br/>
+            Collection ends = ModelFacade.getAssociationEnds(cls);<br/>
+            // 2002-06-08<br/>
+            // Jaap Branderhorst<br/>
+            // Bugfix: ends is never null. Should check for isEmpty instead<br/>
+            // old code:<br/>
+            // if (ends != null)<br/>
+            // new code:<br/>
+            if (!ends.isEmpty()) {<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+                if (verboseDocs &amp;&amp; ModelFacade.isAClass(cls)) {<br/>
+                    sb.append(INDENT).append("// Associations");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+                }<br/>
+<br/>
+                Iterator endEnum = ends.iterator();<br/>
+                while (endEnum.hasNext()) {<br/>
+                    Object associationEnd =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MAssociationEnd)*/ endEnum.next();<br/>
+                    Object association =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ModelFacade.getAssociation(associationEnd);<br/>
+<br/>
+                    sb.append(generateAssociationFrom(association,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;      associationEnd));<br/>
+<br/>
+                    tv = generateTaggedValues(association);<br/>
+                    if (tv != null &amp;&amp; tv.length() &gt; 0) {<br/>
+                        sb.append(INDENT).append(tv);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // Inner classes<br/>
+            Collection elements = ModelFacade.getOwnedElements(cls);<br/>
+            for (Iterator i = elements.iterator(); i.hasNext(); ) {<br/>
+                Object element = /*(MModelElement)*/ i.next();<br/>
+                if (ModelFacade.isAClass(element)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    || ModelFacade.isAInterface(element)) {<br/>
+<br/>
+                    sb.append(generateClassifier(element));<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // add operations<br/>
+            // TODO: constructors<br/>
+            Collection behs = ModelFacade.getOperations(cls);<br/>
+<br/>
+            //<br/>
+            // 2002-06-08<br/>
+            // Jaap Branderhorst<br/>
+            // Bugfix: behs is never null. Should check for isEmpty instead<br/>
+            // old code:<br/>
+            // if (behs != null)<br/>
+            // new code:<br/>
+            //<br/>
+            if (!behs.isEmpty()) {<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+                if (verboseDocs) {<br/>
+                    sb.append(INDENT).append("// Operations");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(LINE_SEPARATOR);<br/>
+                }<br/>
+<br/>
+                Iterator behEnum = behs.iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean first = true;<br/>
+                while (behEnum.hasNext()) {<br/>
+                    Object behavioralFeature =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*(MBehavioralFeature)*/ behEnum.next();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!first)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sb.append(INDENT);<br/>
+                    sb.append(generate(behavioralFeature));<br/>
+<br/>
+                    tv = generateTaggedValues(behavioralFeature);<br/>
+<br/>
+                    if ((ModelFacade.isAClass(cls))<br/>
+                            &amp;&amp; (ModelFacade.isAOperation(behavioralFeature))<br/>
+                            &amp;&amp; (!ModelFacade.isAbstract(behavioralFeature))) {<br/>
+                        if (lfBeforeCurly)<br/>
+                            sb.append(LINE_SEPARATOR).append(INDENT);<br/>
+                        else<br/>
+                            sb.append(' ');<br/>
+                        sb.append('{');<br/>
+<br/>
+                        if (tv.length() &gt; 0) {<br/>
+                            sb.append(LINE_SEPARATOR).append(INDENT).append(tv);<br/>
+                        }<br/>
+<br/>
+                        // there is no ReturnType in behavioral feature (nsuml)<br/>
+                        sb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(generateMethodBody(behavioralFeature));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(INDENT);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append("}").append(LINE_SEPARATOR);<br/>
+                    } else {<br/>
+                        sb.append(";").append(LINE_SEPARATOR);<br/>
+                        if (tv.length() &gt; 0) {<br/>
+                            sb.append(INDENT).append(tv).append(LINE_SEPARATOR);<br/>
+                        }<br/>
+                    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    first = false;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return sb;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate the body of a method associated with the given<br/>
+     * operation. This assumes there's at most one method<br/>
+     * associated!<br/>
+     *<br/>
+     * If no method is associated with the operation, a default<br/>
+     * method body will be generated.<br/>
+     */<br/>
+    private String generateMethodBody(Object op) {<br/>
+        //cat.info("generateMethodBody");<br/>
+        if (op != null) {<br/>
+            Collection methods = ModelFacade.getMethods(op);<br/>
+            Iterator i = methods.iterator();<br/>
+            Object m = null;<br/>
+<br/>
+            while (i != null &amp;&amp; i.hasNext()) {<br/>
+                m = i.next();<br/>
+<br/>
+                if (m != null) {<br/>
+                    if (ModelFacade.getBody(m) != null) {<br/>
+                        String body =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (String) ModelFacade.getBody(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ModelFacade.getBody(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Note that this will not preserve empty lines<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// in the body<br/>
+                        StringTokenizer tokenizer =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new StringTokenizer(body, "\r\n");<br/>
+                        StringBuffer bsb = new StringBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (tokenizer.hasMoreTokens()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String token = tokenizer.nextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (token.length() &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bsb.append(token);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bsb.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+                        }<br/>
+                        if (bsb.length() &lt;= 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // generateClassifierBody relies on the string<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    // ending with a new-line<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    bsb.append(LINE_SEPARATOR);<br/>
+                        }<br/>
+                        return bsb.toString();<br/>
+                    } else<br/>
+                        return "";<br/>
+                }<br/>
+            }<br/>
+<br/>
+            // pick out return type<br/>
+            Object/*MParameter*/ rp =<br/>
+                UmlHelper.getHelper().getCore().getReturnParameter(op);<br/>
+            if (rp != null) {<br/>
+                Object/*MClassifier*/ returnType = ModelFacade.getType(rp);<br/>
+                return generateDefaultReturnStatement(returnType);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return generateDefaultReturnStatement(null);<br/>
+    }<br/>
+<br/>
+    private String generateDefaultReturnStatement(Object cls) {<br/>
+        if (cls == null)<br/>
+            return "";<br/>
+<br/>
+        String clsName = ModelFacade.getName(cls);<br/>
+        if (clsName.equals("void"))<br/>
+            return "";<br/>
+        if (clsName.equals("char"))<br/>
+            return INDENT + "return 'x';" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("int"))<br/>
+            return INDENT + "return 0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("boolean"))<br/>
+            return INDENT + "return false;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("byte"))<br/>
+            return INDENT + "return 0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("long"))<br/>
+            return INDENT + "return 0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("float"))<br/>
+            return INDENT + "return 0.0;" + LINE_SEPARATOR;<br/>
+        if (clsName.equals("double"))<br/>
+            return INDENT + "return 0.0;" + LINE_SEPARATOR;<br/>
+        return INDENT + "return null;" + LINE_SEPARATOR;<br/>
+    }<br/>
+<br/>
+    private String generateTaggedValues(Object e) {<br/>
+        if (isInUpdateMode)<br/>
+            return ""; // no tagged values are generated in update mode.<br/>
+        Iterator iter = ModelFacade.getTaggedValues(e);<br/>
+        if (iter == null)<br/>
+            return "";<br/>
+        boolean first = true;<br/>
+        StringBuffer buf = new StringBuffer();<br/>
+        String s = null;<br/>
+        while (iter.hasNext()) {<br/>
+            /*<br/>
+             * 2002-11-07 Jaap Branderhorst Was<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * s = generateTaggedValue((MTaggedValue) iter.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     * which caused problems because the test tags (i.e. tags with<br/>
+             * name &lt;NotationName.getName()&gt;+TEST_SUFFIX) were still<br/>
+             * generated.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     *<br/>
+             * New code:<br/>
+             */<br/>
+            s = generate(/*(MTaggedValue)*/ iter.next());<br/>
+            // end new code<br/>
+            if (s != null &amp;&amp; s.length() &gt; 0) {<br/>
+                if (first) {<br/>
+                    /*<br/>
+                     * Corrected 2001-09-26 STEFFEN ZSCHALER<br/>
+                     *<br/>
+                     * Was:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     buf.append("// {");<br/>
+                     *<br/>
+                     * which caused problems with new lines characters<br/>
+                     * in tagged values (e.g. comments...). The new<br/>
+                     * version still has some problems with tagged<br/>
+                     * values containing "*"+"/" as this closes the<br/>
+                     * comment prematurely, but comments should be<br/>
+                     * taken out of the tagged values list anyway...<br/>
+                     */<br/>
+                    buf.append("/* {");<br/>
+<br/>
+                    first = false;<br/>
+                } else {<br/>
+                    buf.append(", ");<br/>
+                }<br/>
+                buf.append(s);<br/>
+            }<br/>
+        }<br/>
+        /*<br/>
+         * Corrected 2001-09-26 STEFFEN ZSCHALER<br/>
+         *<br/>
+         * Was:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; if (!first) buf.append("}\n");<br/>
+         *<br/>
+         * which caused problems with new-lines in tagged values.<br/>
+         */<br/>
+        if (!first)<br/>
+            buf.append("}*/").append(LINE_SEPARATOR);<br/>
+<br/>
+        return buf.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateTaggedValue(java.lang.Object)<br/>
+     */<br/>
+    public String generateTaggedValue(Object tv) {<br/>
+        if (tv == null)<br/>
+            return "";<br/>
+        String s = generateUninterpreted(ModelFacade.getValueOfTag(tv));<br/>
+        if (s == null || s.length() == 0 || s.equals("/** */"))<br/>
+            return "";<br/>
+        String t = ModelFacade.getTagOfTag(tv);<br/>
+        if (t.equals("documentation"))<br/>
+            return "";<br/>
+        return generateName(t) + "=" + s;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enhance/Create the doccomment for the given model element,<br/>
+     * including tags for any OCL constraints connected to the model<br/>
+     * element. The tags generated are suitable for use with the ocl<br/>
+     * injector which is part of the Dresden OCL Toolkit and are in<br/>
+     * detail:<br/>
+     *<br/>
+     * &amp;nbsp;@invariant for each invariant specified<br/>
+     * &amp;nbsp;@precondition for each precondition specified<br/>
+     * &amp;nbsp;@postcondition for each postcondition specified<br/>
+     * &amp;nbsp;@key-type specifying the class of the keys of a mapped association<br/>
+     * &amp;nbsp; Currently mapped associations are not supported yet...<br/>
+     * &amp;nbsp;@element-type specifying the class referenced in an association<br/>
+     *<br/>
+     * @since 2001-09-26 ArgoUML 0.9.3<br/>
+     * @author Steffen Zschaler<br/>
+     *<br/>
+     * @param me the model element for which the documentation comment is needed<br/>
+     * @param ae the association end which is represented by the model element<br/>
+     * @return the documentation comment for the specified model element, either<br/>
+     * enhanced or completely generated<br/>
+     */<br/>
+    public String generateConstraintEnrichedDocComment(Object me, Object ae) {<br/>
+        String s = generateConstraintEnrichedDocComment(me, true, INDENT);<br/>
+<br/>
+        Object/*MMultiplicity*/ m = ModelFacade.getMultiplicity(ae);<br/>
+        if (!(ModelFacade.M1_1_MULTIPLICITY.equals(m)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;      || ModelFacade.M0_1_MULTIPLICITY.equals(m))) {<br/>
+            // Multiplicity greater 1, that means we will generate some sort of<br/>
+            // collection, so we need to specify the element type tag<br/>
+            StringBuffer sDocComment = new StringBuffer(80);<br/>
+<br/>
+            // Prepare doccomment<br/>
+            if (!(s == null || "".equals(s))) {<br/>
+                // Just remove closing "*/"<br/>
+                sDocComment.append(s.substring(0, s.indexOf("*/") + 1));<br/>
+            } else {<br/>
+                sDocComment.append(INDENT).append("/**").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sDocComment.append(INDENT).append(" * ").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sDocComment.append(INDENT).append(" *");<br/>
+            }<br/>
+<br/>
+            // Build doccomment<br/>
+            Object/*MClassifier*/ type = ModelFacade.getType(ae);<br/>
+            if (type != null) {<br/>
+                sDocComment.append(" @element-type ");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sDocComment.append(ModelFacade.getName(type));<br/>
+            }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // REMOVED: 2002-03-11 STEFFEN ZSCHALER: element type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // unknown is not recognized by the OCL injector...<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //     sDocComment += " @element-type unknown";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    // }<br/>
+            sDocComment.append(LINE_SEPARATOR).append(INDENT).append(" */");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(LINE_SEPARATOR);<br/>
+            return sDocComment.toString();<br/>
+        } else {<br/>
+            return (s != null) ? s : "";<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enhance/Create the doccomment for the given model element,<br/>
+     * including tags for any OCL constraints connected to the model<br/>
+     * element. The tags generated are suitable for use with the ocl<br/>
+     * injector which is part of the Dresden OCL Toolkit and are in<br/>
+     * detail:<br/>
+     *<br/>
+     * &amp;nbsp;@invariant for each invariant specified<br/>
+     * &amp;nbsp;@precondition for each precondition specified<br/>
+     * &amp;nbsp;@postcondition for each postcondition specified<br/>
+     *<br/>
+     * @since 2001-09-26 ArgoUML 0.9.3<br/>
+     * @author Steffen Zschaler<br/>
+     *<br/>
+     * @param me the model element for which the documentation comment is needed<br/>
+     * @param documented if existing tagged values should be generated<br/>
+     *                   in addition to javadoc<br/>
+     * @param indent indent String (usually blanks) for indentation of<br/>
+     *               generated comments<br/>
+     * @return the documentation comment for the specified model<br/>
+     * element, either enhanced or completely generated<br/>
+     */<br/>
+    public static String generateConstraintEnrichedDocComment(<br/>
+            Object/*MModelElement*/ me,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean documented,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String indent)<br/>
+    {<br/>
+        if (isFileGeneration)<br/>
+            documented = true; // always "documented" if we generate file<br/>
+        // Retrieve any existing doccomment<br/>
+        String s =<br/>
+            (VERBOSE_DOCS || DocumentationManager.hasDocs(me))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ? DocumentationManager.getDocs(me, indent)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    : null;<br/>
+        StringBuffer sDocComment = new StringBuffer(80);<br/>
+<br/>
+        if (s != null &amp;&amp; s.trim().length() &gt; 0) {<br/>
+            sDocComment.append(s).append(LINE_SEPARATOR);<br/>
+        }<br/>
+        LOG.debug("documented=" + documented);<br/>
+        if (!documented)<br/>
+            return sDocComment.toString();<br/>
+<br/>
+        // Extract constraints<br/>
+        Collection cConstraints = ModelFacade.getConstraints(me);<br/>
+<br/>
+        if (cConstraints.size() == 0) {<br/>
+            return sDocComment.toString();<br/>
+        }<br/>
+<br/>
+        // Prepare doccomment<br/>
+        if (s != null) {<br/>
+            // Just remove closing */<br/>
+            s = sDocComment.toString();<br/>
+            sDocComment = new StringBuffer(s.substring(0, s.indexOf("*/") + 1));<br/>
+        } else {<br/>
+            sDocComment.append(INDENT).append("/**").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(INDENT).append(" * ").append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(INDENT).append(" *");<br/>
+        }<br/>
+<br/>
+        // Add each constraint<br/>
+<br/>
+        class TagExtractor extends DepthFirstAdapter {<br/>
+            private LinkedList llsTags = new LinkedList();<br/>
+            private String constraintName;<br/>
+            private int constraintID = 0;<br/>
+<br/>
+            /**<br/>
+             * Constructor.<br/>
+             * <br/>
+             * @param sConstraintName The constraint name.<br/>
+             */<br/>
+            public TagExtractor(String sConstraintName) {<br/>
+                super();<br/>
+<br/>
+                constraintName = sConstraintName;<br/>
+            }<br/>
+<br/>
+            public Iterator getTags() {<br/>
+                return llsTags.iterator();<br/>
+            }<br/>
+<br/>
+            /**<br/>
+             * @see tudresden.ocl.parser.analysis.Analysis#caseAConstraintBody(tudresden.ocl.parser.node.AConstraintBody)<br/>
+             */<br/>
+            public void caseAConstraintBody(AConstraintBody node) {<br/>
+                // We don't care for anything below this node, so we<br/>
+                // do not use apply anymore.<br/>
+                String sKind =<br/>
+                    (node.getStereotype() != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ? (node.getStereotype().toString())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    : (null);<br/>
+                String sExpression =<br/>
+                    (node.getExpression() != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ? (node.getExpression().toString())<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    : (null);<br/>
+                String sName =<br/>
+                    (node.getName() != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ? (<span class="mv">node.getName().getText()</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    : (constraintName + "_" + (constraintID++));<br/>
+<br/>
+                if ((sKind == null) || (sExpression == null)) {<br/>
+                    return;<br/>
+                }<br/>
+<br/>
+                String sTag;<br/>
+                if (sKind.equals("inv ")) {<br/>
+                    sTag = "@invariant ";<br/>
+                } else if (sKind.equals("post ")) {<br/>
+                    sTag = "@postcondition ";<br/>
+                } else if (sKind.equals("pre ")) {<br/>
+                    sTag = "@precondition ";<br/>
+                } else {<br/>
+                    return;<br/>
+                }<br/>
+<br/>
+                sTag += sName + ": " + sExpression;<br/>
+                llsTags.addLast(sTag);<br/>
+            }<br/>
+        }<br/>
+<br/>
+        tudresden.ocl.check.types.ModelFacade mf = new ArgoFacade(me);<br/>
+        for (Iterator i = cConstraints.iterator(); i.hasNext();) {<br/>
+            Object constraint = /*(MConstraint)*/ i.next();<br/>
+<br/>
+            try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String body =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    (String) ModelFacade.getBody(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ModelFacade.getBody(constraint));<br/>
+                OclTree otParsed = OclTree.createTree(body, mf);<br/>
+<br/>
+                TagExtractor te =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new TagExtractor(ModelFacade.getName(constraint));<br/>
+                otParsed.apply(te);<br/>
+<br/>
+                for (Iterator j = te.getTags(); j.hasNext();) {<br/>
+                    sDocComment.append(' ').append(j.next());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(LINE_SEPARATOR);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    sDocComment.append(INDENT).append(" *");<br/>
+                }<br/>
+            } catch (IOException ioe) {<br/>
+                // Nothing to be done, should not happen anyway ;-)<br/>
+            }<br/>
+        }<br/>
+<br/>
+        sDocComment.append("/").append(LINE_SEPARATOR);<br/>
+<br/>
+        return sDocComment.toString();<br/>
+    }<br/>
+<br/>
+    private String generateAssociationFrom(Object a, Object associationEnd) {<br/>
+        // TODO: does not handle n-ary associations<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+<br/>
+        Collection connections = ModelFacade.getConnections(a);<br/>
+        Iterator connEnum = connections.iterator();<br/>
+        while (connEnum.hasNext()) {<br/>
+            Object associationEnd2 = /*(MAssociationEnd)*/ connEnum.next();<br/>
+            if (associationEnd2 != associationEnd) {<br/>
+                sb.append(INDENT);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sb.append(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;        generateConstraintEnrichedDocComment(a,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     associationEnd2));<br/>
+                sb.append(generateAssociationEnd(associationEnd2));<br/>
+            }<br/>
+        }<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAssociation(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociation(Object a) {<br/>
+        //    String s = "";<br/>
+        //     String generatedName = generateName(a.getName());<br/>
+        //     s += "MAssociation " + generatedName + " {\n";<br/>
+<br/>
+        //     Iterator endEnum = a.getConnection().iterator();<br/>
+        //     while (endEnum.hasNext()) {<br/>
+        //       MAssociationEnd ae = (MAssociationEnd)endEnum.next();<br/>
+        //       s += generateAssociationEnd(ae);<br/>
+        //       s += ";\n";<br/>
+        //     }<br/>
+        //     s += "}\n";<br/>
+        //    return s;<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAssociationEnd(java.lang.Object)<br/>
+     */<br/>
+    public String generateAssociationEnd(Object ae) {<br/>
+        if (!ModelFacade.isNavigable(ae))<br/>
+            return "";<br/>
+        if (ModelFacade.isAbstract(ModelFacade.getAssociation(ae)))<br/>
+            return "";<br/>
+        //String s = INDENT + "protected ";<br/>
+        // must be public or generate public navigation method!<br/>
+        //String s = INDENT + "public ";<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        sb.append(INDENT).append(generateCoreAssociationEnd(ae));<br/>
+<br/>
+        return (sb.append(";").append(LINE_SEPARATOR)).toString();<br/>
+    }<br/>
+<br/>
+    String generateCoreAssociationEnd(Object ae) {<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        sb.append(generateVisibility(ModelFacade.getVisibility(ae)));<br/>
+<br/>
+        if (ModelFacade.CLASSIFIER_SCOPEKIND.equals(<br/>
+                ModelFacade.getTargetScope(ae)))<br/>
+            sb.append("static ");<br/>
+        //     String n = ae.getName();<br/>
+        //     if (n != null &amp;&amp; !String.UNSPEC.equals(n))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;//         s += generateName(n) + " ";<br/>
+        //     if (ae.isNavigable()) s += "navigable ";<br/>
+        //     if (ae.getIsOrdered()) s += "ordered ";<br/>
+        Object/*MMultiplicity*/ m = ModelFacade.getMultiplicity(ae);<br/>
+        if (ModelFacade.M1_1_MULTIPLICITY.equals(m) <br/>
+                || ModelFacade.M0_1_MULTIPLICITY.equals(m)) {<br/>
+            sb.append(generateClassifierRef(ModelFacade.getType(ae)));<br/>
+        } else {<br/>
+            sb.append("Vector "); //generateMultiplicity(m) + " ";<br/>
+        }<br/>
+<br/>
+        sb.append(' ').append(generateAscEndName(ae));<br/>
+<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // internal methods?<br/>
+<br/>
+    private String generateGeneralization(Collection generalizations) {<br/>
+        if (generalizations == null)<br/>
+            return "";<br/>
+        Collection classes = new ArrayList();<br/>
+        Iterator it = generalizations.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            Object generalization = /*(MGeneralization)*/ it.next();<br/>
+            Object generalizableElement = ModelFacade.getParent(generalization);<br/>
+            // assert ge != null<br/>
+            if (generalizableElement != null)<br/>
+                classes.add(generalizableElement);<br/>
+        }<br/>
+        return generateClassList(classes);<br/>
+    }<br/>
+<br/>
+    //  public String generateSpecification(Collection realizations) {<br/>
+    private String generateSpecification(Object cls) {<br/>
+        Collection realizations =<br/>
+            ModelFacade.getSpecifications(cls);<br/>
+        if (realizations == null)<br/>
+            return "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;LOG.debug("realizations: " + realizations.size());<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        Iterator clsEnum = realizations.iterator();<br/>
+        while (clsEnum.hasNext()) {<br/>
+            Object inter = /*(MInterface)*/ clsEnum.next();<br/>
+            sb.append(generateClassifierRef(inter));<br/>
+            if (clsEnum.hasNext())<br/>
+                sb.append(", ");<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateClassList(Collection classifiers) {<br/>
+        if (classifiers == null)<br/>
+            return "";<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        Iterator clsEnum = classifiers.iterator();<br/>
+        while (clsEnum.hasNext()) {<br/>
+            sb.append(generateClassifierRef(/*(MClassifier)*/ clsEnum.next()));<br/>
+            if (clsEnum.hasNext())<br/>
+                sb.append(", ");<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns a visibility String eihter for a MVisibilityKind (according to<br/>
+     * the definition in NotationProvider2), but also for a model element,<br/>
+     * because if it is a MFeature, then the tag 'src_visibility' is to be<br/>
+     * taken into account for generating language dependent visibilities.<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateVisibility(java.lang.Object)<br/>
+     */<br/>
+    public String generateVisibility(Object o) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (ModelFacade.isAFeature(o)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Object tv = ModelFacade.getTaggedValue(o, "src_visibility");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (tv != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String tagged = (String) ModelFacade.getValue(tv);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tagged != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (tagged.trim().equals("")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| tagged.trim().toLowerCase().equals("package")<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| tagged.trim().toLowerCase().equals("default")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return tagged + " ";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+        }<br/>
+        if (ModelFacade.isAModelElement(o)) {<br/>
+            if (ModelFacade.isPublic(o))<br/>
+                return "public ";<br/>
+            if (ModelFacade.isPrivate(o))<br/>
+                return "private ";<br/>
+            if (ModelFacade.isProtected(o))<br/>
+                return "protected ";<br/>
+        }<br/>
+        if (ModelFacade.isAVisibilityKind(o)) {<br/>
+            if (ModelFacade.PUBLIC_VISIBILITYKIND.equals(o))<br/>
+                return "public ";<br/>
+            if (ModelFacade.PRIVATE_VISIBILITYKIND.equals(o))<br/>
+                return "private ";<br/>
+            if (ModelFacade.PROTECTED_VISIBILITYKIND.equals(o))<br/>
+                return "protected ";<br/>
+        }<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    private String generateScope(Object f) {<br/>
+        if (ModelFacade.isClassifierScope(f))<br/>
+            return "static ";<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate "abstract" keyword for an abstract operation.<br/>
+     */<br/>
+    private String generateAbstractness(Object op) {<br/>
+        if (ModelFacade.isAbstract(op)) {<br/>
+            return "abstract ";<br/>
+        } else {<br/>
+            return "";<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generate "final" keyword for final operations.<br/>
+     */<br/>
+    private String generateChangeability(Object op) {<br/>
+        if (ModelFacade.isLeaf(op)) {<br/>
+            return "final ";<br/>
+        } else {<br/>
+            return "";<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private String generateChangability(Object sf) {<br/>
+        if (!ModelFacade.isChangeable(sf))<br/>
+            return "final ";<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates "synchronized" keyword for guarded operations.<br/>
+     * @param op The operation<br/>
+     * @return String The synchronized keyword if the operation is guarded,<br/>
+     *                else "".<br/>
+     */<br/>
+    private String generateConcurrency(Object op) {<br/>
+        if (ModelFacade.getConcurrency(op) != null<br/>
+            &amp;&amp; ModelFacade.GUARDED_CONCURRENCYKIND.equals(<br/>
+                    ModelFacade.getConcurrency(op))) {<br/>
+            return "synchronized ";<br/>
+        }<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates a String representation of a Multiplicity.<br/>
+     *<br/>
+     * @param m the Multiplicity.<br/>
+     * @return a human readable String.<br/>
+     * @see #ANY_RANGE<br/>
+     * @see #generateMultiplicityRange(Object)<br/>
+     */<br/>
+    public String generateMultiplicity(Object m) {<br/>
+        if (m == null) {<br/>
+            return "";<br/>
+        }<br/>
+        if (ModelFacade.M0_N_MULTIPLICITY.equals(m)) {<br/>
+            return ANY_RANGE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        Iterator rangeEnum = ModelFacade.getRanges(m);<br/>
+        if (rangeEnum == null)<br/>
+            return "";<br/>
+        StringBuffer sb = new StringBuffer(20);<br/>
+        while (rangeEnum.hasNext()) {<br/>
+            Object mr = rangeEnum.next();<br/>
+            sb.append(generateMultiplicityRange(mr));<br/>
+            if (rangeEnum.hasNext())<br/>
+                sb.append(',');<br/>
+        }<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    private String generateMultiplicityRange(Object mr) {<br/>
+        Integer lower = new Integer(ModelFacade.getLower(mr));<br/>
+        Integer upper = new Integer(ModelFacade.getUpper(mr));<br/>
+        if (lower.intValue() == -1 &amp;&amp; upper.intValue() == -1)<br/>
+            return ANY_RANGE;<br/>
+        if (lower.intValue() == -1)<br/>
+            return "*.." + upper.toString();<br/>
+        if (upper.intValue() == -1)<br/>
+            return lower.toString() + "..*";<br/>
+        if (lower.intValue() == upper.intValue())<br/>
+            return lower.toString();<br/>
+        return lower.toString() + ".." + upper.toString();<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateState(java.lang.Object)<br/>
+     */<br/>
+    public String generateState(Object m) {<br/>
+        return ModelFacade.getName(m);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateObjectFlowState(java.lang.Object)<br/>
+     */<br/>
+    public String generateObjectFlowState(Object m) {<br/>
+        Object c = ModelFacade.getType(m);<br/>
+        if (c == null) return "";<br/>
+        return ModelFacade.getName(c);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateStateBody(java.lang.Object)<br/>
+     */<br/>
+    public String generateStateBody(Object m) {<br/>
+        LOG.info("GeneratorJava: generating state body");<br/>
+        StringBuffer sb = new StringBuffer(80);<br/>
+        Object entryAction = ModelFacade.getEntry(m);<br/>
+        Object exitAction = ModelFacade.getExit(m);<br/>
+        Object doAction = ModelFacade.getDoActivity(m);<br/>
+<br/>
+        if (entryAction != null) {<br/>
+            String entryStr = Generate(entryAction);<br/>
+            if (entryStr.length() &gt; 0)<br/>
+                sb.append("entry / ").append(entryStr);<br/>
+        }<br/>
+        if (doAction != null) {<br/>
+            String doStr = Generate(doAction);<br/>
+            if (doStr.length() &gt; 0) {<br/>
+                if (sb.length() &gt; 0)<br/>
+                    sb.append(LINE_SEPARATOR);<br/>
+                sb.append("do / ").append(doStr);<br/>
+            }<br/>
+        }<br/>
+        if (exitAction != null) {<br/>
+            String exitStr = Generate(exitAction);<br/>
+            if (sb.length() &gt; 0)<br/>
+                sb.append(LINE_SEPARATOR);<br/>
+            if (exitStr.length() &gt; 0)<br/>
+                sb.append("exit / ").append(exitStr);<br/>
+        }<br/>
+        Collection trans = ModelFacade.getInternalTransitions(m);<br/>
+        if (trans != null) {<br/>
+            Iterator iter = trans.iterator();<br/>
+            while (iter.hasNext()) {<br/>
+                if (sb.length() &gt; 0)<br/>
+                    sb.append(LINE_SEPARATOR);<br/>
+                sb.append(generateTransition(iter.next()));<br/>
+            }<br/>
+        }<br/>
+<br/>
+        /*   if (trans != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     int size = trans.size();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     MTransition[] transarray = (MTransition[])trans.toArray();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     for (int i = 0; i &lt; size; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     if (s.length() &gt; 0) s += "\n";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     s += Generate(transarray[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     }*/<br/>
+        return sb.toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateTransition(java.lang.Object)<br/>
+     */<br/>
+    public String generateTransition(Object m) {<br/>
+        StringBuffer sb = new StringBuffer(generate(ModelFacade.getName(m)));<br/>
+        String t = generate(ModelFacade.getTrigger(m));<br/>
+        String g = generate(ModelFacade.getGuard(m));<br/>
+        String e = generate(ModelFacade.getEffect(m));<br/>
+        if (sb.length() &gt; 0)<br/>
+            sb.append(": ");<br/>
+        sb.append(t);<br/>
+        if (g.length() &gt; 0)<br/>
+            sb.append(" [").append(g).append(']');<br/>
+        if (e.length() &gt; 0)<br/>
+            sb.append(" / ").append(e);<br/>
+        return sb.toString();<br/>
+<br/>
+        /*  String s = m.getName();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String t = generate(ModelFacade.getTrigger(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String g = generate(ModelFacade.getGuard(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String e = generate(ModelFacade.getEffect(m));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(s == null) s = "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(t == null) t = "";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (s.length() &gt; 0 &amp;&amp;<br/>
+            (t.length() &gt; 0 ||<br/>
+            (g != null &amp;&amp; g.length() &gt; 0) ||<br/>
+            (e != null &amp;&amp; e.length() &gt; 0)))<br/>
+            s += ": ";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    s += t;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (g != null &amp;&amp; g.length() &gt; 0) s += " [" + g + "]";<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (e != null &amp;&amp; e.length() &gt; 0) s += " / " + e;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return s;*/<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateAction(java.lang.Object)<br/>
+     */<br/>
+    public String generateAction(Object m) {<br/>
+        // return m.getName();<br/>
+<br/>
+        if (m != null) {<br/>
+            Object script = ModelFacade.getScript(m);<br/>
+            if ((script != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    &amp;&amp; (ModelFacade.getBody(script) != null)) {<br/>
+                return ModelFacade.getBody(script).toString();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+        }<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateGuard(java.lang.Object)<br/>
+     */<br/>
+    public String generateGuard(Object m) {<br/>
+        //return generateExpression(ModelFacade.getExpression(m));<br/>
+        if (m != null &amp;&amp; ModelFacade.getExpression(m) != null)<br/>
+            return generateExpression(ModelFacade.getExpression(m));<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateMessage(java.lang.Object)<br/>
+     */<br/>
+    public String generateMessage(Object m) {<br/>
+        if (m == null)<br/>
+            return "";<br/>
+        return generateName(ModelFacade.getName(m)) + "::"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    + generateAction(ModelFacade.getAction(m));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Generates the text for a (trigger) event. <br/>
+     * <br/>
+     * @author MVW<br/>
+     * @param m Object of any MEvent kind<br/>
+     * @return The generated event (as a String).<br/>
+     */<br/>
+    public String generateEvent(Object m) {<br/>
+        if (ModelFacade.isAChangeEvent(m))<br/>
+            return "when(" <br/>
+                + generateExpression(ModelFacade.getExpression(m)) <br/>
+                + ")";<br/>
+        if (ModelFacade.isATimeEvent(m))<br/>
+            return "after(" <br/>
+                + generateExpression(ModelFacade.getExpression(m)) <br/>
+                + ")";<br/>
+        if (ModelFacade.isASignalEvent(m))<br/>
+            return generateName(ModelFacade.getName(m));<br/>
+        if (ModelFacade.isACallEvent(m))<br/>
+            return generateName(ModelFacade.getName(m));<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+    String generateAscEndName(Object ae) {<br/>
+        String n = ModelFacade.getName(ae);<br/>
+        Object/*MAssociation*/ asc = ModelFacade.getAssociation(ae);<br/>
+        String ascName = ModelFacade.getName(asc);<br/>
+        if (n != null &amp;&amp; n != null &amp;&amp; n.length() &gt; 0) {<br/>
+            n = generateName(n);<br/>
+        } else if (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   ascName != null &amp;&amp; ascName != null &amp;&amp; ascName.length() &gt; 0) {<br/>
+            n = generateName(ascName);<br/>
+        } else {<br/>
+            n = "my" + generateClassifierRef(ModelFacade.getType(ae));<br/>
+        }<br/>
+        return n;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+       Gets the Java package name for a given namespace,<br/>
+       ignoring the root namespace (which is the model).<br/>
+<br/>
+       @param namespace the namespace<br/>
+       @return the Java package name<br/>
+    */<br/>
+    public String getPackageName(Object namespace) {<br/>
+        if (namespace == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || !ModelFacade.isANamespace(namespace)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || ModelFacade.getNamespace(namespace) == null)<br/>
+            return "";<br/>
+        String packagePath = ModelFacade.getName(namespace);<br/>
+        while ((namespace = ModelFacade.getNamespace(namespace)) != null) {<br/>
+            // ommit root package name; it's the model's root<br/>
+            if (ModelFacade.getNamespace(namespace) != null)<br/>
+                packagePath =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    ModelFacade.getName(namespace) + '.' + packagePath;<br/>
+        }<br/>
+        return packagePath;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Update a source code file.<br/>
+     *<br/>
+     * @param mClassifier The classifier to update from.<br/>
+     * @param file The file to update.<br/>
+     */<br/>
+    private static void update(Object mClassifier, File file) <br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;throws IOException, ANTLRException {<br/>
+<br/>
+        LOG.info("Parsing " + file.getPath());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String encoding = null;<br/>
+        if (Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING) == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    || Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        .trim().equals("")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    encoding = System.getProperty("file.encoding");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    encoding = Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+        FileInputStream in = new FileInputStream(file);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;JavaLexer lexer =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    new JavaLexer(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;            new BufferedReader(new InputStreamReader(in, encoding)));<br/>
+        JavaRecognizer parser = new JavaRecognizer(lexer);<br/>
+        CodePieceCollector cpc = new CodePieceCollector();<br/>
+        parser.compilationUnit(cpc);<br/>
+        in.close();<br/>
+<br/>
+        File origFile = new File(file.getAbsolutePath());<br/>
+        File newFile = new File(file.getAbsolutePath() + ".updated");<br/>
+        File backupFile = new File(file.getAbsolutePath() + ".backup");<br/>
+        if (backupFile.exists())<br/>
+            backupFile.delete();<br/>
+        //cat.info("Generating " + newFile.getPath());<br/>
+        isInUpdateMode = true;<br/>
+        cpc.filter(file, newFile, ModelFacade.getNamespace(mClassifier));<br/>
+        isInUpdateMode = false;<br/>
+        //cat.info("Backing up " + file.getPath());<br/>
+        file.renameTo(backupFile);<br/>
+        LOG.info("Updating " + file.getPath());<br/>
+        newFile.renameTo(origFile);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleName()<br/>
+     */<br/>
+    public String getModuleName() {<br/>
+        return "GeneratorJava";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleDescription()<br/>
+     */<br/>
+    public String getModuleDescription() {<br/>
+        return "Java Notation and Code Generator";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleAuthor()<br/>
+     */<br/>
+    public String getModuleAuthor() {<br/>
+        return "ArgoUML Core";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleVersion()<br/>
+     */<br/>
+    public String getModuleVersion() {<br/>
+        return ArgoVersion.getVersion();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#getModuleKey()<br/>
+     */<br/>
+    public String getModuleKey() {<br/>
+        return "module.language.java.generator";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the _lfBeforeCurly.<br/>
+     * @return boolean<br/>
+     */<br/>
+    public boolean isLfBeforeCurly() {<br/>
+        return lfBeforeCurly;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the _verboseDocs.<br/>
+     * @return boolean<br/>
+     */<br/>
+    public boolean isVerboseDocs() {<br/>
+        return verboseDocs;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the lfBeforeCurly.<br/>
+     * @param beforeCurl The new value.<br/>
+     */<br/>
+    public void setLfBeforeCurly(boolean beforeCurl) {<br/>
+        lfBeforeCurly = beforeCurl;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the verboseDocs.<br/>
+     * @param verbose The new value.<br/>
+     */<br/>
+    public void setVerboseDocs(boolean verbose) {<br/>
+        verboseDocs = verbose;<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.Pluggable#inContext(java.lang.Object[])<br/>
+     */<br/>
+    public boolean inContext(Object[] o) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see org.argouml.application.api.ArgoModule#isModuleEnabled()<br/>
+     */<br/>
+    public boolean isModuleEnabled() { return true; }<br/>
+    <br/>
+    /**<br/>
+     * @see org.argouml.application.api.NotationProvider2#generateActionState(java.lang.Object)<br/>
+     */<br/>
+    public String generateActionState(Object actionState) {       <br/>
+        return generateState(actionState);<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

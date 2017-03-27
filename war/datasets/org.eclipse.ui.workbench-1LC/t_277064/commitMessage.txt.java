@@ -1,0 +1,1 @@
+Fixed bug 262613: [FilteredTree] Image leak in FilteredTree

@@ -1,0 +1,1 @@
+fix - [ 675067 ] NullFigure returning its own Rectangle

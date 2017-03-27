@@ -1,0 +1,1 @@
+Reveal on setSelection not needed.

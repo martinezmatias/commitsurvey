@@ -1,0 +1,1 @@
++ RFE 994367: show heat generated for each weapon in unit selection dialog.

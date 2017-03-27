@@ -1,0 +1,1 @@
+[intern] changes for low level abstraction - separation of views from Frame

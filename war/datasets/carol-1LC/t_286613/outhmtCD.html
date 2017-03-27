@@ -1,0 +1,1208 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_RegistryWrapperContext_1.1.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2005 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: RegistryWrapperContext.java,v 1.1 2005-03-10 10:05:02 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jndi.registry;<br/>
+<br/>
+import java.rmi.AlreadyBoundException;<br/>
+import java.rmi.NotBoundException;<br/>
+import java.rmi.Remote;<br/>
+import java.rmi.RemoteException;<br/>
+import java.rmi.registry.Registry;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.naming.Binding;<br/>
+import javax.naming.CompositeName;<br/>
+import javax.naming.CompoundName;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NameAlreadyBoundException;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.naming.NameParser;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+<br/>
+import org.objectweb.carol.jndi.ns.JRMPRegistry;<br/>
+import org.objectweb.carol.rmi.exception.NamingExceptionHelper;<br/>
+<br/>
+/**<br/>
+ * Wrapper on a Registry object and implementing Context<br/>
+ * @author Guillaume Riviere<br/>
+ * @author Florent Benoit (Refactoring)<br/>
+ */<br/>
+public class RegistryWrapperContext implements Context {<br/>
+<br/>
+    /**<br/>
+     * LocalRegistry for bindings and lookup<br/>
+     */<br/>
+    private Registry registry;<br/>
+<br/>
+    /**<br/>
+     * the JRMP JNDI environment<br/>
+     */<br/>
+    private static Hashtable environment = null;<br/>
+<br/>
+    /**<br/>
+     * Simple name parser<br/>
+     */<br/>
+    private static final NameParser NAME_PARSER = new SimpleNameParser();<br/>
+<br/>
+    /**<br/>
+     * Create a local context for the registry<br/>
+     * @param env hashtable used<br/>
+     */<br/>
+    public RegistryWrapperContext(Hashtable env) {<br/>
+        registry = <span class="del"><span class="mv">JRMPRegistry</span>.<span class="mv">registry</span></span>;<br/>
+        environment = env;<br/>
+        environment.put(Context.INITIAL_CONTEXT_FACTORY, "org.objectweb.carol.jndi.spi.JRMPContextWrapperFactory");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookup(Name name) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            return this;<br/>
+        }<br/>
+        Remote obj;<br/>
+        try {<br/>
+            obj = <span class="mv">registry</span>.lookup(name.get(0));<br/>
+        } catch (NotBoundException e) {<br/>
+            NameNotFoundException nnfe = new NameNotFoundException(name.get(0));<br/>
+            nnfe.setRootCause(e);<br/>
+            throw nnfe;<br/>
+        } catch (Exception e) {<br/>
+            throw NamingExceptionHelper.create("Cannot lookup name '" + name + "' : " + e.getMessage(), e);<br/>
+        }<br/>
+        return obj;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookup(String name) throws NamingException {<br/>
+        return lookup(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void bind(Name name, Object obj) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            throw new NamingException("Cannot bind empty name");<br/>
+        }<br/>
+<br/>
+        if (!(obj instanceof Remote)) {<br/>
+            throw new NamingException(<br/>
+                    "Can only bind object which implements Remote interface. This is not the case for object '" + obj<br/>
+                            + "' with name '" + name + "'.");<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            <span class="mv">registry</span>.bind(name.get(0), (Remote) obj);<br/>
+        } catch (AlreadyBoundException e) {<br/>
+            NamingException ne = new NameAlreadyBoundException(name.get(0));<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void bind(String name, Object obj) throws NamingException {<br/>
+        bind(new CompositeName(name), obj);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object, overwriting any existing binding. All<br/>
+     * intermediate contexts and the target context (that named by all but<br/>
+     * terminal atomic component of the name) must already exist.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rebind(Name name, Object obj) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            throw new NamingException("Cannot rebind empty name");<br/>
+        }<br/>
+        if (!(obj instanceof Remote)) {<br/>
+            throw new NamingException(<br/>
+                    "Can only rebind object which implements Remote interface. This is not the case for object '" + obj<br/>
+                            + "' with name '" + name + "'.");<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            <span class="mv">registry</span>.rebind(name.get(0), (Remote) obj);<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object, overwriting any existing binding.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rebind(String name, Object obj) throws NamingException {<br/>
+        rebind(new CompositeName(name), obj);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Unbinds the named object. Removes the terminal atomic name in<br/>
+     * &lt;code&gt;name&lt;/code&gt; from the target context--that named by all but the<br/>
+     * terminal atomic part of &lt;code&gt;name&lt;/code&gt;.<br/>
+     * @param name the name to unbind; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void unbind(Name name) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            throw new NamingException("Cannot unbind empty name");<br/>
+        }<br/>
+        try {<br/>
+            <span class="mv">registry</span>.unbind(name.get(0));<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Unbinds the named object.<br/>
+     * @param name the name to unbind; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void unbind(String name) throws NamingException {<br/>
+        unbind(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a new name to the object bound to an old name, and unbinds the old<br/>
+     * name. Both names are relative to this context. Any attributes associated<br/>
+     * with the old name become associated with the new name.<br/>
+     * @param oldName the name of the existing binding; may not be empty<br/>
+     * @param newName the name of the new binding; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rename(Name oldName, Name newName) throws NamingException {<br/>
+        bind(newName, lookup(oldName));<br/>
+        unbind(oldName);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a new name to the object bound to an old name, and unbinds the old<br/>
+     * name.<br/>
+     * @param oldName the name of the existing binding; may not be empty<br/>
+     * @param newName the name of the new binding; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rename(String oldName, String newName) throws NamingException {<br/>
+        rename(new CompositeName(oldName), new CompositeName(newName));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the class<br/>
+     * names of objects bound to them. The contents of any subcontexts are not<br/>
+     * included.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the names and class names of the bindings in<br/>
+     *         this context. Each element of the enumeration is of type<br/>
+     *         &lt;tt&gt;NameClassPair&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration list(Name name) throws NamingException {<br/>
+        if (!name.isEmpty()) {<br/>
+            throw new NamingException("Cannot list with a given empty name");<br/>
+        }<br/>
+        try {<br/>
+            String[] names = <span class="mv">registry</span>.list();<br/>
+            return new LocalEnumeration(this, names);<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the class<br/>
+     * names of objects bound to them.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the names and class names of the bindings in<br/>
+     *         this context. Each element of the enumeration is of type<br/>
+     *         &lt;tt&gt;NameClassPair&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration list(String name) throws NamingException {<br/>
+        return list(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the objects<br/>
+     * bound to them. The contents of any subcontexts are not included.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the bindings in this context. Each element of<br/>
+     *         the enumeration is of type &lt;tt&gt;Binding&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration listBindings(Name name) throws NamingException {<br/>
+        if (!name.isEmpty()) {<br/>
+            throw new NamingException("can not list");<br/>
+        }<br/>
+        try {<br/>
+            String[] names = <span class="mv"><span class="upd">registry</span>.<span class="mv">list</span>()</span>;<br/>
+            return new LocalEnumeration(this, names);<br/>
+        } catch (RemoteException e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the objects<br/>
+     * bound to them.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the bindings in this context. Each element of<br/>
+     *         the enumeration is of type &lt;tt&gt;Binding&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration listBindings(String name) throws NamingException {<br/>
+        return listBindings(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Destroys the named context and removes it from the namespace. Any<br/>
+     * attributes associated with the name are also removed. Intermediate<br/>
+     * contexts are not destroyed.<br/>
+     * @param name the name of the context to be destroyed; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void destroySubcontext(Name name) throws NamingException {<br/>
+        throw new NamingException("destroySubcontext() method not implemented");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Destroys the named context and removes it from the namespace.<br/>
+     * @param name the name of the context to be destroyed; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void destroySubcontext(String name) throws NamingException {<br/>
+        destroySubcontext(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Creates and binds a new context.<br/>
+     * @param name the name of the context to create; may not be empty<br/>
+     * @return the newly created context<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Context createSubcontext(Name name) throws NamingException {<br/>
+        throw new NamingException("createSubcontext() method not implemented");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Creates and binds a new context.<br/>
+     * @param name the name of the context to create; may not be empty<br/>
+     * @return the newly created context<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Context createSubcontext(String name) throws NamingException {<br/>
+        return createSubcontext(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object, following links except for the terminal<br/>
+     * atomic component of the name.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;, not following the terminal<br/>
+     *         link (if any).<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookupLink(Name name) throws NamingException {<br/>
+        return lookup(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object, following links except for the terminal<br/>
+     * atomic component of the name.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;, not following the terminal<br/>
+     *         link (if any)<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookupLink(String name) throws NamingException {<br/>
+        return lookup(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the parser associated with the named context.<br/>
+     * @param name the name of the context from which to get the parser<br/>
+     * @return a name parser that can parse compound names into their atomic<br/>
+     *         components<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NameParser getNameParser(Name name) throws NamingException {<br/>
+        return NAME_PARSER;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the parser associated with the named context.<br/>
+     * @param name the name of the context from which to get the parser<br/>
+     * @return a name parser that can parse compound names into their atomic<br/>
+     *         components<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NameParser getNameParser(String name) throws NamingException {<br/>
+        return NAME_PARSER;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Composes the name of this context with a name relative to this context.<br/>
+     * @param name a name relative to this context<br/>
+     * @param prefix the name of this context relative to one of its ancestors<br/>
+     * @return the composition of &lt;code&gt;prefix&lt;/code&gt; and &lt;code&gt;name&lt;/code&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Name composeName(Name name, Name prefix) throws NamingException {<br/>
+        Name result = (Name) prefix.clone();<br/>
+        return result.addAll(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Composes the name of this context with a name relative to this context.<br/>
+     * @param name a name relative to this context<br/>
+     * @param prefix the name of this context relative to one of its ancestors<br/>
+     * @return the composition of &lt;code&gt;prefix&lt;/code&gt; and &lt;code&gt;name&lt;/code&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public String composeName(String name, String prefix) throws NamingException {<br/>
+        return composeName(new CompositeName(name), new CompositeName(prefix)).toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Adds a new environment property to the environment of this context. If<br/>
+     * the property already exists, its value is overwritten. See class<br/>
+     * description for more details on environment properties.<br/>
+     * @param propName the name of the environment property to add; may not be<br/>
+     *        null<br/>
+     * @param propVal the value of the property to add; may not be null<br/>
+     * @return the previous value of the property, or null if the property was<br/>
+     *         not in the environment before<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object addToEnvironment(String propName, Object propVal) throws NamingException {<br/>
+        return environment.put(propName, propVal);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Removes an environment property from the environment of this context. See<br/>
+     * class description for more details on environment properties.<br/>
+     * @param propName the name of the environment property to remove; may not<br/>
+     *        be null<br/>
+     * @return the previous value of the property, or null if the property was<br/>
+     *         not in the environment<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object removeFromEnvironment(String propName) throws NamingException {<br/>
+        return environment.remove(propName);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the environment in effect for this context. See class<br/>
+     * description for more details on environment properties.<br/>
+     * @return the environment of this context; never null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Hashtable getEnvironment() throws NamingException {<br/>
+        return (Hashtable) environment.clone();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Closes this context. This method releases this context's resources<br/>
+     * immediately, instead of waiting for them to be released automatically by<br/>
+     * the garbage collector.<br/>
+     */<br/>
+    public void close() {<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the full name of this context within its own namespace.<br/>
+     * @return this context's name in its own namespace; never null<br/>
+     */<br/>
+    public String getNameInNamespace() {<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+/**<br/>
+ * A very simple Compound Name parser<br/>
+ */<br/>
+<br/>
+class SimpleNameParser implements NameParser {<br/>
+<br/>
+    /**<br/>
+     * Default syntax<br/>
+     */<br/>
+    private static final Properties SYNTAX = new Properties();<br/>
+<br/>
+    /**<br/>
+     * Parses a name into its components.<br/>
+     * @param name The non-null string name to parse.<br/>
+     * @return A non-null parsed form of the name using the naming convention of<br/>
+     *         this parser.<br/>
+     * @exception NamingException If a naming exception was encountered.<br/>
+     */<br/>
+    public Name parse(String name) throws NamingException {<br/>
+        return (new CompoundName(name, SYNTAX));<br/>
+    }<br/>
+}<br/>
+<br/>
+/**<br/>
+ * Local enumeration for local context<br/>
+ */<br/>
+<br/>
+class LocalEnumeration implements NamingEnumeration {<br/>
+<br/>
+    /**<br/>
+     * Initial context<br/>
+     */<br/>
+    private Context localContext;<br/>
+<br/>
+    /**<br/>
+     * List of names<br/>
+     */<br/>
+    private final String[] names;<br/>
+<br/>
+    /**<br/>
+     * Index of names<br/>
+     */<br/>
+    private int nextName;<br/>
+<br/>
+    /**<br/>
+     * Default constructor<br/>
+     * @param ctx given context<br/>
+     * @param names names to enumerate<br/>
+     */<br/>
+    public LocalEnumeration(Context ctx, String[] names) {<br/>
+        this.localContext = ctx;<br/>
+        this.names = names;<br/>
+        nextName = 0;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumeration is finished ?<br/>
+     * @return true is this is finished<br/>
+     */<br/>
+    public boolean hasMore() {<br/>
+        return (nextName &lt; names.length);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Next object of the enumeration<br/>
+     * @throws NamingException if compositeName object cannot be built<br/>
+     */<br/>
+    public Object next() throws NamingException {<br/>
+        if (!hasMore()) {<br/>
+            throw (new java.util.NoSuchElementException());<br/>
+        }<br/>
+        String name = names[nextName++];<br/>
+        Name cname = (new CompositeName()).add(name);<br/>
+<br/>
+        Object obj = localContext.lookup(cname);<br/>
+        return (new Binding(cname.toString(), obj));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumeration is finished ?<br/>
+     * @return true is this is finished<br/>
+     */<br/>
+    public boolean hasMoreElements() {<br/>
+        return hasMore();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Next object of the enumeration<br/>
+     */<br/>
+    public Object nextElement() {<br/>
+        try {<br/>
+            return next();<br/>
+        } catch (NamingException e) {<br/>
+            throw new java.util.NoSuchElementException(e.toString());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Close the enumeration<br/>
+     */<br/>
+    public void close() {<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_RegistryWrapperContext_1.2.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2005 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: RegistryWrapperContext.java,v 1.2 2005-03-10 12:22:02 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+package org.objectweb.carol.jndi.registry;<br/>
+<br/>
+import java.rmi.AlreadyBoundException;<br/>
+import java.rmi.NotBoundException;<br/>
+import java.rmi.Remote;<br/>
+import java.rmi.RemoteException;<br/>
+import java.rmi.registry.Registry;<br/>
+import java.util.Hashtable;<br/>
+import java.util.Properties;<br/>
+<br/>
+import javax.naming.Binding;<br/>
+import javax.naming.CompositeName;<br/>
+import javax.naming.CompoundName;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NameAlreadyBoundException;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.naming.NameParser;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+<br/>
+import org.objectweb.carol.jndi.ns.JRMPRegistry;<br/>
+import org.objectweb.carol.rmi.exception.NamingExceptionHelper;<br/>
+<br/>
+/**<br/>
+ * Wrapper on a Registry object and implementing Context<br/>
+ * @author Guillaume Riviere<br/>
+ * @author Florent Benoit (Refactoring)<br/>
+ */<br/>
+public class RegistryWrapperContext implements Context {<br/>
+<br/>
+    /**<br/>
+     * LocalRegistry for bindings and lookup<br/>
+     */<br/>
+    private Registry registry;<br/>
+<br/>
+    /**<br/>
+     * the JRMP JNDI environment<br/>
+     */<br/>
+    private static Hashtable environment = null;<br/>
+<br/>
+    /**<br/>
+     * Simple name parser<br/>
+     */<br/>
+    private static final NameParser NAME_PARSER = new SimpleNameParser();<br/>
+<br/>
+    /**<br/>
+     * Create a local context for the registry<br/>
+     * @param env hashtable used<br/>
+     */<br/>
+    public RegistryWrapperContext(Hashtable env) {<br/>
+        registry = <span class="mv"><span class="mv">JRMPRegistry</span>.<span class="upd">getRegistry</span>()</span>;<br/>
+        environment = env;<br/>
+        environment.put(Context.INITIAL_CONTEXT_FACTORY, "org.objectweb.carol.jndi.spi.JRMPContextWrapperFactory");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookup(Name name) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            return this;<br/>
+        }<br/>
+        Remote obj;<br/>
+        try {<br/>
+            obj = <span class="mv">registry</span>.lookup(name.get(0));<br/>
+        } catch (NotBoundException e) {<br/>
+            NameNotFoundException nnfe = new NameNotFoundException(name.get(0));<br/>
+            nnfe.setRootCause(e);<br/>
+            throw nnfe;<br/>
+        } catch (Exception e) {<br/>
+            throw NamingExceptionHelper.create("Cannot lookup name '" + name + "' : " + e.getMessage(), e);<br/>
+        }<br/>
+        return obj;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookup(String name) throws NamingException {<br/>
+        return lookup(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void bind(Name name, Object obj) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            throw new NamingException("Cannot bind empty name");<br/>
+        }<br/>
+<br/>
+        if (!(obj instanceof Remote)) {<br/>
+            throw new NamingException(<br/>
+                    "Can only bind object which implements Remote interface. This is not the case for object '" + obj<br/>
+                            + "' with name '" + name + "'.");<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            <span class="mv">registry</span>.bind(name.get(0), (Remote) obj);<br/>
+        } catch (AlreadyBoundException e) {<br/>
+            NamingException ne = new NameAlreadyBoundException(name.get(0));<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void bind(String name, Object obj) throws NamingException {<br/>
+        bind(new CompositeName(name), obj);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object, overwriting any existing binding. All<br/>
+     * intermediate contexts and the target context (that named by all but<br/>
+     * terminal atomic component of the name) must already exist.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rebind(Name name, Object obj) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            throw new NamingException("Cannot rebind empty name");<br/>
+        }<br/>
+        if (!(obj instanceof Remote)) {<br/>
+            throw new NamingException(<br/>
+                    "Can only rebind object which implements Remote interface. This is not the case for object '" + obj<br/>
+                            + "' with name '" + name + "'.");<br/>
+        }<br/>
+<br/>
+        try {<br/>
+            <span class="mv">registry</span>.rebind(name.get(0), (Remote) obj);<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a name to an object, overwriting any existing binding.<br/>
+     * @param name the name to bind; may not be empty<br/>
+     * @param obj the object to bind; possibly null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rebind(String name, Object obj) throws NamingException {<br/>
+        rebind(new CompositeName(name), obj);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Unbinds the named object. Removes the terminal atomic name in<br/>
+     * &lt;code&gt;name&lt;/code&gt; from the target context--that named by all but the<br/>
+     * terminal atomic part of &lt;code&gt;name&lt;/code&gt;.<br/>
+     * @param name the name to unbind; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void unbind(Name name) throws NamingException {<br/>
+        if (name.isEmpty()) {<br/>
+            throw new NamingException("Cannot unbind empty name");<br/>
+        }<br/>
+        try {<br/>
+            <span class="mv">registry</span>.unbind(name.get(0));<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Unbinds the named object.<br/>
+     * @param name the name to unbind; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void unbind(String name) throws NamingException {<br/>
+        unbind(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a new name to the object bound to an old name, and unbinds the old<br/>
+     * name. Both names are relative to this context. Any attributes associated<br/>
+     * with the old name become associated with the new name.<br/>
+     * @param oldName the name of the existing binding; may not be empty<br/>
+     * @param newName the name of the new binding; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rename(Name oldName, Name newName) throws NamingException {<br/>
+        bind(newName, lookup(oldName));<br/>
+        unbind(oldName);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Binds a new name to the object bound to an old name, and unbinds the old<br/>
+     * name.<br/>
+     * @param oldName the name of the existing binding; may not be empty<br/>
+     * @param newName the name of the new binding; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void rename(String oldName, String newName) throws NamingException {<br/>
+        rename(new CompositeName(oldName), new CompositeName(newName));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the class<br/>
+     * names of objects bound to them. The contents of any subcontexts are not<br/>
+     * included.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the names and class names of the bindings in<br/>
+     *         this context. Each element of the enumeration is of type<br/>
+     *         &lt;tt&gt;NameClassPair&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration list(Name name) throws NamingException {<br/>
+        if (!name.isEmpty()) {<br/>
+            throw new NamingException("Cannot list with a given empty name");<br/>
+        }<br/>
+        try {<br/>
+            String[] names = <span class="mv">registry</span>.list();<br/>
+            return new LocalEnumeration(this, names);<br/>
+        } catch (Exception e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the class<br/>
+     * names of objects bound to them.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the names and class names of the bindings in<br/>
+     *         this context. Each element of the enumeration is of type<br/>
+     *         &lt;tt&gt;NameClassPair&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration list(String name) throws NamingException {<br/>
+        return list(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the objects<br/>
+     * bound to them. The contents of any subcontexts are not included.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the bindings in this context. Each element of<br/>
+     *         the enumeration is of type &lt;tt&gt;Binding&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration listBindings(Name name) throws NamingException {<br/>
+        if (!name.isEmpty()) {<br/>
+            throw new NamingException("can not list");<br/>
+        }<br/>
+        try {<br/>
+            String[] names = <span class="add"><span class="mv">registry</span>.<span class="mv">list</span>()</span>;<br/>
+            return new LocalEnumeration(this, names);<br/>
+        } catch (RemoteException e) {<br/>
+            NamingException ne = new NamingException();<br/>
+            ne.setRootCause(e);<br/>
+            throw ne;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumerates the names bound in the named context, along with the objects<br/>
+     * bound to them.<br/>
+     * @param name the name of the context to list<br/>
+     * @return an enumeration of the bindings in this context. Each element of<br/>
+     *         the enumeration is of type &lt;tt&gt;Binding&lt;/tt&gt;.<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NamingEnumeration listBindings(String name) throws NamingException {<br/>
+        return listBindings(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Destroys the named context and removes it from the namespace. Any<br/>
+     * attributes associated with the name are also removed. Intermediate<br/>
+     * contexts are not destroyed.<br/>
+     * @param name the name of the context to be destroyed; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void destroySubcontext(Name name) throws NamingException {<br/>
+        throw new NamingException("destroySubcontext() method not implemented");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Destroys the named context and removes it from the namespace.<br/>
+     * @param name the name of the context to be destroyed; may not be empty<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public void destroySubcontext(String name) throws NamingException {<br/>
+        destroySubcontext(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Creates and binds a new context.<br/>
+     * @param name the name of the context to create; may not be empty<br/>
+     * @return the newly created context<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Context createSubcontext(Name name) throws NamingException {<br/>
+        throw new NamingException("createSubcontext() method not implemented");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Creates and binds a new context.<br/>
+     * @param name the name of the context to create; may not be empty<br/>
+     * @return the newly created context<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Context createSubcontext(String name) throws NamingException {<br/>
+        return createSubcontext(new CompositeName(name));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object, following links except for the terminal<br/>
+     * atomic component of the name.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;, not following the terminal<br/>
+     *         link (if any).<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookupLink(Name name) throws NamingException {<br/>
+        return lookup(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the named object, following links except for the terminal<br/>
+     * atomic component of the name.<br/>
+     * @param name the name of the object to look up<br/>
+     * @return the object bound to &lt;tt&gt;name&lt;/tt&gt;, not following the terminal<br/>
+     *         link (if any)<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object lookupLink(String name) throws NamingException {<br/>
+        return lookup(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the parser associated with the named context.<br/>
+     * @param name the name of the context from which to get the parser<br/>
+     * @return a name parser that can parse compound names into their atomic<br/>
+     *         components<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NameParser getNameParser(Name name) throws NamingException {<br/>
+        return NAME_PARSER;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the parser associated with the named context.<br/>
+     * @param name the name of the context from which to get the parser<br/>
+     * @return a name parser that can parse compound names into their atomic<br/>
+     *         components<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public NameParser getNameParser(String name) throws NamingException {<br/>
+        return NAME_PARSER;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Composes the name of this context with a name relative to this context.<br/>
+     * @param name a name relative to this context<br/>
+     * @param prefix the name of this context relative to one of its ancestors<br/>
+     * @return the composition of &lt;code&gt;prefix&lt;/code&gt; and &lt;code&gt;name&lt;/code&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Name composeName(Name name, Name prefix) throws NamingException {<br/>
+        Name result = (Name) prefix.clone();<br/>
+        return result.addAll(name);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Composes the name of this context with a name relative to this context.<br/>
+     * @param name a name relative to this context<br/>
+     * @param prefix the name of this context relative to one of its ancestors<br/>
+     * @return the composition of &lt;code&gt;prefix&lt;/code&gt; and &lt;code&gt;name&lt;/code&gt;<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public String composeName(String name, String prefix) throws NamingException {<br/>
+        return composeName(new CompositeName(name), new CompositeName(prefix)).toString();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Adds a new environment property to the environment of this context. If<br/>
+     * the property already exists, its value is overwritten. See class<br/>
+     * description for more details on environment properties.<br/>
+     * @param propName the name of the environment property to add; may not be<br/>
+     *        null<br/>
+     * @param propVal the value of the property to add; may not be null<br/>
+     * @return the previous value of the property, or null if the property was<br/>
+     *         not in the environment before<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object addToEnvironment(String propName, Object propVal) throws NamingException {<br/>
+        return environment.put(propName, propVal);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Removes an environment property from the environment of this context. See<br/>
+     * class description for more details on environment properties.<br/>
+     * @param propName the name of the environment property to remove; may not<br/>
+     *        be null<br/>
+     * @return the previous value of the property, or null if the property was<br/>
+     *         not in the environment<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Object removeFromEnvironment(String propName) throws NamingException {<br/>
+        return environment.remove(propName);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the environment in effect for this context. See class<br/>
+     * description for more details on environment properties.<br/>
+     * @return the environment of this context; never null<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public Hashtable getEnvironment() throws NamingException {<br/>
+        return (Hashtable) environment.clone();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Closes this context. This method releases this context's resources<br/>
+     * immediately, instead of waiting for them to be released automatically by<br/>
+     * the garbage collector.<br/>
+     */<br/>
+    public void close() {<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Retrieves the full name of this context within its own namespace.<br/>
+     * @return this context's name in its own namespace; never null<br/>
+     */<br/>
+    public String getNameInNamespace() {<br/>
+        return "";<br/>
+    }<br/>
+<br/>
+}<br/>
+<br/>
+/**<br/>
+ * A very simple Compound Name parser<br/>
+ */<br/>
+<br/>
+class SimpleNameParser implements NameParser {<br/>
+<br/>
+    /**<br/>
+     * Default syntax<br/>
+     */<br/>
+    private static final Properties SYNTAX = new Properties();<br/>
+<br/>
+    /**<br/>
+     * Parses a name into its components.<br/>
+     * @param name The non-null string name to parse.<br/>
+     * @return A non-null parsed form of the name using the naming convention of<br/>
+     *         this parser.<br/>
+     * @exception NamingException If a naming exception was encountered.<br/>
+     */<br/>
+    public Name parse(String name) throws NamingException {<br/>
+        return (new CompoundName(name, SYNTAX));<br/>
+    }<br/>
+}<br/>
+<br/>
+/**<br/>
+ * Local enumeration for local context<br/>
+ */<br/>
+<br/>
+class LocalEnumeration implements NamingEnumeration {<br/>
+<br/>
+    /**<br/>
+     * Initial context<br/>
+     */<br/>
+    private Context localContext;<br/>
+<br/>
+    /**<br/>
+     * List of names<br/>
+     */<br/>
+    private final String[] names;<br/>
+<br/>
+    /**<br/>
+     * Index of names<br/>
+     */<br/>
+    private int nextName;<br/>
+<br/>
+    /**<br/>
+     * Default constructor<br/>
+     * @param ctx given context<br/>
+     * @param names names to enumerate<br/>
+     */<br/>
+    public LocalEnumeration(Context ctx, String[] names) {<br/>
+        this.localContext = ctx;<br/>
+        this.names = names;<br/>
+        nextName = 0;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumeration is finished ?<br/>
+     * @return true is this is finished<br/>
+     */<br/>
+    public boolean hasMore() {<br/>
+        return (nextName &lt; names.length);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Next object of the enumeration<br/>
+     * @throws NamingException if compositeName object cannot be built<br/>
+     */<br/>
+    public Object next() throws NamingException {<br/>
+        if (!hasMore()) {<br/>
+            throw (new java.util.NoSuchElementException());<br/>
+        }<br/>
+        String name = names[nextName++];<br/>
+        Name cname = (new CompositeName()).add(name);<br/>
+<br/>
+        Object obj = localContext.lookup(cname);<br/>
+        return (new Binding(cname.toString(), obj));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Enumeration is finished ?<br/>
+     * @return true is this is finished<br/>
+     */<br/>
+    public boolean hasMoreElements() {<br/>
+        return hasMore();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return Next object of the enumeration<br/>
+     */<br/>
+    public Object nextElement() {<br/>
+        try {<br/>
+            return next();<br/>
+        } catch (NamingException e) {<br/>
+            throw new java.util.NoSuchElementException(e.toString());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Close the enumeration<br/>
+     */<br/>
+    public void close() {<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1 @@
+Bug 140944 - [Themes] PERF: org.eclipse.ui.themes.ColorUtil.process should cache result from getDeclaredFields

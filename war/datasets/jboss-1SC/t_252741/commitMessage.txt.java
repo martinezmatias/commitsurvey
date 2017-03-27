@@ -1,0 +1,1 @@
+(JBXB-3) Refactoring of public API: GenericObjectModelFactory.completedRoot() -> ObjectModelFactory.completeRoot()

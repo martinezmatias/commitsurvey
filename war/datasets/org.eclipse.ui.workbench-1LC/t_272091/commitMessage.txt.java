@@ -1,0 +1,1 @@
+The  \n was not rendering properly on my home machine (was showing boxes).

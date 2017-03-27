@@ -1,0 +1,1 @@
+Add empty setEnumerationLiterals method.

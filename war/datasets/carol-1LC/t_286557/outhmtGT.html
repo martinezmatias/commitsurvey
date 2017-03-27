@@ -1,0 +1,908 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_LmiInitialContext_1.5.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2004 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: LmiInitialContext.java,v 1.5 2004-09-01 11:02:41 benoitf Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+<br/>
+package org.objectweb.carol.jndi.lmi;<br/>
+<br/>
+//java import<br/>
+import java.rmi.Remote;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import javax.naming.Binding;<br/>
+import javax.naming.CompositeName;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.InvalidNameException;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NameAlreadyBoundException;<br/>
+import javax.naming.NameClassPair;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.naming.NameParser;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.NotContextException;<br/>
+import javax.naming.OperationNotSupportedException;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.Referenceable;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import org.objectweb.carol.util.configuration.TraceCarol;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt; LmiInitialContext &lt;/code&gt; is the CAROL LMI JNDI SPI Context for<br/>
+ * local context. This context is accessible only in local jvm, this is a<br/>
+ * singleton (the close method do nothing). This cotext bind and return Local<br/>
+ * Java Refferences<br/>
+ * @author Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @see javax.naming.Context<br/>
+ * @see javax.naming.InitialContext<br/>
+ * @version 1.0, 15/07/2002<br/>
+ */<br/>
+public class LmiInitialContext implements Context {<br/>
+<br/>
+    /**<br/>
+     * Lmi Environment<br/>
+     */<br/>
+    private static Hashtable lmiEnv = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Lmi bindings<br/>
+     */<br/>
+    private static Hashtable bindings = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Lmi Name Parser<br/>
+     */<br/>
+    private static NameParser lmiParser = new LmiNameParser();<br/>
+<br/>
+    /**<br/>
+     * Resolve a Remote Object: If this object is a reference return the<br/>
+     * reference<br/>
+     * @param o the object to resolve<br/>
+     * @param n the name of this object<br/>
+     * @return a &lt;code&gt;Referenceable&lt;/code&gt; if o is a Reference and the<br/>
+     *         inititial object o if else<br/>
+     */<br/>
+    private Object resolveObject(Object o, Name name) {<br/>
+        try {<br/>
+            if (o instanceof Reference) {<br/>
+                // build of the Referenceable object with is Reference<br/>
+                Reference objRef = (Reference) o;<br/>
+                ObjectFactory objFact = (ObjectFactory) (Thread.currentThread().getContextClassLoader()<br/>
+                        .loadClass(objRef.getFactoryClassName())).newInstance();<br/>
+                return objFact.getObjectInstance(objRef, name, this, this.getEnvironment());<br/>
+            } else {<br/>
+                return o;<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            TraceCarol.error("LmiInitialContext.resolveObject()", e);<br/>
+            return o;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Encode an Object : If the object is a referenceable bind this reference<br/>
+     * @param o the object to encode<br/>
+     * @return a &lt;code&gt;Remote Object&lt;/code&gt; if o is a ressource o if else<br/>
+     */<br/>
+    private Object encodeObject(Object o) throws NamingException {<br/>
+        try {<br/>
+            if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Referenceable)) {<br/>
+                return ((Referenceable) o).getReference();<br/>
+            } else if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Reference)) {<br/>
+                return (Reference) o;<br/>
+            } else {<br/>
+                return o;<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            throw new NamingException("" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor, load communication framework and instaciate initial contexts<br/>
+     */<br/>
+    public LmiInitialContext() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.LmiInitialContext()");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor, load communication framework and instaciate initial contexts<br/>
+     */<br/>
+    public LmiInitialContext(Hashtable ev) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.LmiInitialContext(Hashtable env)");<br/>
+        }<br/>
+        if (ev != null) {<br/>
+            lmiEnv = (Hashtable) (ev.clone());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    // Inital context wrapper see the Context documentation for this methods<br/>
+    public Object lookup(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.lookup(\"" + name + "\")");<br/>
+        }<br/>
+        if (<span class="upd">(name == null) &amp;&amp; (name.equals(""))</span>) {<br/>
+            return (new LmiInitialContext(lmiEnv));<br/>
+        }<br/>
+        Object o = bindings.get(name);<br/>
+        if (o != null) {<br/>
+            return resolveObject(o, new CompositeName(name));<br/>
+        } else {<br/>
+            throw new NameNotFoundException(name + " not found");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public Object lookup(Name name) throws NamingException {<br/>
+        return lookup(name.toString());<br/>
+    }<br/>
+<br/>
+    public void bind(String name, Object obj) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.bind(\"" + name + "\","<br/>
+                    + simpleClass(obj.getClass().getName()) + " object)");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            throw new InvalidNameException("Cannot bind empty name");<br/>
+        }<br/>
+        if (bindings.get(name) != null) {<br/>
+            throw new NameAlreadyBoundException("Use rebind to override");<br/>
+        }<br/>
+        bindings.put(name, encodeObject(obj));<br/>
+    }<br/>
+<br/>
+    public void bind(Name name, Object obj) throws NamingException {<br/>
+        bind(name.toString(), obj);<br/>
+<br/>
+    }<br/>
+<br/>
+    public void rebind(String name, Object obj) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.rebind(\"" + name + "\","<br/>
+                    + simpleClass(obj.getClass().getName()) + " object)");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            throw new InvalidNameException("Cannot bind empty name");<br/>
+        }<br/>
+        bindings.put(name, encodeObject(obj));<br/>
+    }<br/>
+<br/>
+    public void rebind(Name name, Object obj) throws NamingException {<br/>
+        rebind(name.toString(), obj);<br/>
+    }<br/>
+<br/>
+    public void unbind(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.unbind(\"" + name + "\")");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            throw new InvalidNameException("Cannot unbind empty name");<br/>
+        }<br/>
+        bindings.remove(name);<br/>
+    }<br/>
+<br/>
+    public void unbind(Name name) throws NamingException {<br/>
+        unbind(name.toString());<br/>
+    }<br/>
+<br/>
+    public void rename(String oldName, String newName) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.rename(\"" + oldName + "\",\"" + newName + "\")");<br/>
+        }<br/>
+        if (oldName.equals("") || newName.equals("")) throw new InvalidNameException("Cannot rename empty name");<br/>
+        if (bindings.get(newName) != null) throw new NameAlreadyBoundException(newName + " is already bound");<br/>
+<br/>
+        Object oldb = bindings.remove(oldName);<br/>
+        if (oldb == null) throw new NameNotFoundException(oldName + " not bound");<br/>
+        bindings.put(newName, oldb);<br/>
+    }<br/>
+<br/>
+    public void rename(Name oldname, Name newname) throws NamingException {<br/>
+        rename(oldname.toString(), newname.toString());<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.list(\"" + name + "\")");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            return new LmiNames(bindings.keys());<br/>
+        }<br/>
+<br/>
+        Object target = lookup(name);<br/>
+        if (target instanceof Context) {<br/>
+            return ((Context) target).list("");<br/>
+        }<br/>
+        throw new NotContextException(name + " cannot be listed");<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(Name name) throws NamingException {<br/>
+        return list(name.toString());<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.listBindings(\"" + name + "\")/rmi name=\"");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            return new LmiBindings(bindings.keys());<br/>
+        }<br/>
+        Object target = lookup(name);<br/>
+        if (target instanceof Context) {<br/>
+            return ((Context) target).listBindings("");<br/>
+        }<br/>
+        throw new NotContextException(name + " cannot be listed");<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(Name name) throws NamingException {<br/>
+        return listBindings(name.toString());<br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(String name) throws NamingException {<br/>
+        TraceCarol.error("LmiInitialContext.destroySubcontext(\"" + name + "\"): Not supported");<br/>
+        throw new OperationNotSupportedException("LmiInitialContext.destroySubcontext(\"" + name + "\"): Not supported");<br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(Name name) throws NamingException {<br/>
+        destroySubcontext(name.toString());<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(String name) throws NamingException {<br/>
+        TraceCarol.error("LmiInitialContext.createSubcontext(\"" + name + "\"): Not supported");<br/>
+        throw new OperationNotSupportedException("LmiInitialContext.createSubcontext(\"" + name + "\"): Not supported");<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(Name name) throws NamingException {<br/>
+        return createSubcontext(name.toString());<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.lookupLink(\"" + name + "\")");<br/>
+        }<br/>
+        return lookup(name);<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(Name name) throws NamingException {<br/>
+        return lookupLink(name.toString());<br/>
+    }<br/>
+<br/>
+    public NameParser getNameParser(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.getNameParser(\"" + name + "\")");<br/>
+        }<br/>
+        return lmiParser;<br/>
+    }<br/>
+<br/>
+    public NameParser getNameParser(Name name) throws NamingException {<br/>
+        return getNameParser(name.toString());<br/>
+    }<br/>
+<br/>
+    public String composeName(String name, String prefix) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.composeName(" + name + "," + prefix + ")");<br/>
+        }<br/>
+        Name result = composeName(new CompositeName(name), new CompositeName(prefix));<br/>
+        return result.toString();<br/>
+    }<br/>
+<br/>
+    public Name composeName(Name name, Name prefix) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.composeName(" + name + "," + prefix + ")");<br/>
+        }<br/>
+        Name result = (Name) (prefix.clone());<br/>
+        result.addAll(name);<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public Object addToEnvironment(String propName, Object propVal) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.addToEnvironment(\"" + propName + "\","<br/>
+                    + simpleClass(propVal.getClass().getName()) + " object)");<br/>
+        }<br/>
+        if (lmiEnv == null) {<br/>
+            lmiEnv = new Hashtable();<br/>
+        }<br/>
+        return lmiEnv.put(propName, propVal);<br/>
+    }<br/>
+<br/>
+    public Object removeFromEnvironment(String propName) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.removeFromEnvironment(\"" + propName + "\")");<br/>
+        }<br/>
+        if (lmiEnv == null) return null;<br/>
+        return lmiEnv.remove(propName);<br/>
+    }<br/>
+<br/>
+    public Hashtable getEnvironment() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.getEnvironment()");<br/>
+        }<br/>
+        if (lmiEnv == null) {<br/>
+            lmiEnv = new Hashtable();<br/>
+        }<br/>
+        return lmiEnv;<br/>
+    }<br/>
+<br/>
+    public void close() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.close()");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public String getNameInNamespace() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.getNameInNamespace()");<br/>
+        }<br/>
+        return "lmiContext";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Just the name of the class without the package<br/>
+     */<br/>
+    private String simpleClass(String c) {<br/>
+        return c.substring(c.lastIndexOf('.') + 1);<br/>
+    }<br/>
+<br/>
+    // Class for enumerating name/class pairs<br/>
+    class LmiNames implements NamingEnumeration {<br/>
+<br/>
+        Enumeration names;<br/>
+<br/>
+        LmiNames(Enumeration names) {<br/>
+            this.names = names;<br/>
+        }<br/>
+<br/>
+        public boolean hasMoreElements() {<br/>
+            return names.hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public boolean hasMore() throws NamingException {<br/>
+            return hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public Object nextElement() {<br/>
+            String name = (String) names.nextElement();<br/>
+            String className = bindings.get(name).getClass().getName();<br/>
+            return new NameClassPair(name, className);<br/>
+        }<br/>
+<br/>
+        public Object next() throws NamingException {<br/>
+            return nextElement();<br/>
+        }<br/>
+<br/>
+        public void close() throws NamingException {<br/>
+            names = null;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    // Class for enumerating bindings<br/>
+    class LmiBindings implements NamingEnumeration {<br/>
+<br/>
+        Enumeration names;<br/>
+<br/>
+        LmiBindings(Enumeration names) {<br/>
+            this.names = names;<br/>
+        }<br/>
+<br/>
+        public boolean hasMoreElements() {<br/>
+            return names.hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public boolean hasMore() throws NamingException {<br/>
+            return hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public Object nextElement() {<br/>
+            String name = (String) names.nextElement();<br/>
+            return new Binding(name, bindings.get(name));<br/>
+        }<br/>
+<br/>
+        public Object next() throws NamingException {<br/>
+            return nextElement();<br/>
+        }<br/>
+<br/>
+        public void close() throws NamingException {<br/>
+            names = null;<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_LmiInitialContext_1.6.java</h1>
+<div class="code">
+<div class="id">
+/**<br/>
+ * Copyright (C) 2002,2004 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ *<br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ *<br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ * --------------------------------------------------------------------------<br/>
+ * $Id: LmiInitialContext.java,v 1.6 2005-02-04 17:52:48 el-vadimo Exp $<br/>
+ * --------------------------------------------------------------------------<br/>
+ */<br/>
+<br/>
+package org.objectweb.carol.jndi.lmi;<br/>
+<br/>
+//java import<br/>
+import java.rmi.Remote;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import javax.naming.Binding;<br/>
+import javax.naming.CompositeName;<br/>
+import javax.naming.Context;<br/>
+import javax.naming.InvalidNameException;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NameAlreadyBoundException;<br/>
+import javax.naming.NameClassPair;<br/>
+import javax.naming.NameNotFoundException;<br/>
+import javax.naming.NameParser;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.NotContextException;<br/>
+import javax.naming.OperationNotSupportedException;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.Referenceable;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import org.objectweb.carol.util.configuration.TraceCarol;<br/>
+<br/>
+/**<br/>
+ * Class &lt;code&gt; LmiInitialContext &lt;/code&gt; is the CAROL LMI JNDI SPI Context for<br/>
+ * local context. This context is accessible only in local jvm, this is a<br/>
+ * singleton (the close method do nothing). This cotext bind and return Local<br/>
+ * Java Refferences<br/>
+ * @author Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @see javax.naming.Context<br/>
+ * @see javax.naming.InitialContext<br/>
+ * @version 1.0, 15/07/2002<br/>
+ */<br/>
+public class LmiInitialContext implements Context {<br/>
+<br/>
+    /**<br/>
+     * Lmi Environment<br/>
+     */<br/>
+    private static Hashtable lmiEnv = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Lmi bindings<br/>
+     */<br/>
+    private static Hashtable bindings = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Lmi Name Parser<br/>
+     */<br/>
+    private static NameParser lmiParser = new LmiNameParser();<br/>
+<br/>
+    /**<br/>
+     * Resolve a Remote Object: If this object is a reference return the<br/>
+     * reference<br/>
+     * @param o the object to resolve<br/>
+     * @param n the name of this object<br/>
+     * @return a &lt;code&gt;Referenceable&lt;/code&gt; if o is a Reference and the<br/>
+     *         inititial object o if else<br/>
+     */<br/>
+    private Object resolveObject(Object o, Name name) {<br/>
+        try {<br/>
+            if (o instanceof Reference) {<br/>
+                // build of the Referenceable object with is Reference<br/>
+                Reference objRef = (Reference) o;<br/>
+                ObjectFactory objFact = (ObjectFactory) (Thread.currentThread().getContextClassLoader()<br/>
+                        .loadClass(objRef.getFactoryClassName())).newInstance();<br/>
+                return objFact.getObjectInstance(objRef, name, this, this.getEnvironment());<br/>
+            } else {<br/>
+                return o;<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            TraceCarol.error("LmiInitialContext.resolveObject()", e);<br/>
+            return o;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Encode an Object : If the object is a referenceable bind this reference<br/>
+     * @param o the object to encode<br/>
+     * @return a &lt;code&gt;Remote Object&lt;/code&gt; if o is a ressource o if else<br/>
+     */<br/>
+    private Object encodeObject(Object o) throws NamingException {<br/>
+        try {<br/>
+            if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Referenceable)) {<br/>
+                return ((Referenceable) o).getReference();<br/>
+            } else if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Reference)) {<br/>
+                return (Reference) o;<br/>
+            } else {<br/>
+                return o;<br/>
+            }<br/>
+        } catch (Exception e) {<br/>
+            throw new NamingException("" + e);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor, load communication framework and instaciate initial contexts<br/>
+     */<br/>
+    public LmiInitialContext() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.LmiInitialContext()");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Constructor, load communication framework and instaciate initial contexts<br/>
+     */<br/>
+    public LmiInitialContext(Hashtable ev) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.LmiInitialContext(Hashtable env)");<br/>
+        }<br/>
+        if (ev != null) {<br/>
+            lmiEnv = (Hashtable) (ev.clone());<br/>
+        }<br/>
+    }<br/>
+<br/>
+    // Inital context wrapper see the Context documentation for this methods<br/>
+    public Object lookup(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.lookup(\"" + name + "\")");<br/>
+        }<br/>
+        if (<span class="upd">(name == null) || (name.equals(""))</span>) {<br/>
+            return (new LmiInitialContext(lmiEnv));<br/>
+        }<br/>
+        Object o = bindings.get(name);<br/>
+        if (o != null) {<br/>
+            return resolveObject(o, new CompositeName(name));<br/>
+        } else {<br/>
+            throw new NameNotFoundException(name + " not found");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public Object lookup(Name name) throws NamingException {<br/>
+        return lookup(name.toString());<br/>
+    }<br/>
+<br/>
+    public void bind(String name, Object obj) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.bind(\"" + name + "\","<br/>
+                    + simpleClass(obj.getClass().getName()) + " object)");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            throw new InvalidNameException("Cannot bind empty name");<br/>
+        }<br/>
+        if (bindings.get(name) != null) {<br/>
+            throw new NameAlreadyBoundException("Use rebind to override");<br/>
+        }<br/>
+        bindings.put(name, encodeObject(obj));<br/>
+    }<br/>
+<br/>
+    public void bind(Name name, Object obj) throws NamingException {<br/>
+        bind(name.toString(), obj);<br/>
+<br/>
+    }<br/>
+<br/>
+    public void rebind(String name, Object obj) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.rebind(\"" + name + "\","<br/>
+                    + simpleClass(obj.getClass().getName()) + " object)");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            throw new InvalidNameException("Cannot bind empty name");<br/>
+        }<br/>
+        bindings.put(name, encodeObject(obj));<br/>
+    }<br/>
+<br/>
+    public void rebind(Name name, Object obj) throws NamingException {<br/>
+        rebind(name.toString(), obj);<br/>
+    }<br/>
+<br/>
+    public void unbind(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.unbind(\"" + name + "\")");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            throw new InvalidNameException("Cannot unbind empty name");<br/>
+        }<br/>
+        bindings.remove(name);<br/>
+    }<br/>
+<br/>
+    public void unbind(Name name) throws NamingException {<br/>
+        unbind(name.toString());<br/>
+    }<br/>
+<br/>
+    public void rename(String oldName, String newName) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.rename(\"" + oldName + "\",\"" + newName + "\")");<br/>
+        }<br/>
+        if (oldName.equals("") || newName.equals("")) throw new InvalidNameException("Cannot rename empty name");<br/>
+        if (bindings.get(newName) != null) throw new NameAlreadyBoundException(newName + " is already bound");<br/>
+<br/>
+        Object oldb = bindings.remove(oldName);<br/>
+        if (oldb == null) throw new NameNotFoundException(oldName + " not bound");<br/>
+        bindings.put(newName, oldb);<br/>
+    }<br/>
+<br/>
+    public void rename(Name oldname, Name newname) throws NamingException {<br/>
+        rename(oldname.toString(), newname.toString());<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.list(\"" + name + "\")");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            return new LmiNames(bindings.keys());<br/>
+        }<br/>
+<br/>
+        Object target = lookup(name);<br/>
+        if (target instanceof Context) {<br/>
+            return ((Context) target).list("");<br/>
+        }<br/>
+        throw new NotContextException(name + " cannot be listed");<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(Name name) throws NamingException {<br/>
+        return list(name.toString());<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.listBindings(\"" + name + "\")/rmi name=\"");<br/>
+        }<br/>
+        if (name.equals("")) {<br/>
+            return new LmiBindings(bindings.keys());<br/>
+        }<br/>
+        Object target = lookup(name);<br/>
+        if (target instanceof Context) {<br/>
+            return ((Context) target).listBindings("");<br/>
+        }<br/>
+        throw new NotContextException(name + " cannot be listed");<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(Name name) throws NamingException {<br/>
+        return listBindings(name.toString());<br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(String name) throws NamingException {<br/>
+        TraceCarol.error("LmiInitialContext.destroySubcontext(\"" + name + "\"): Not supported");<br/>
+        throw new OperationNotSupportedException("LmiInitialContext.destroySubcontext(\"" + name + "\"): Not supported");<br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(Name name) throws NamingException {<br/>
+        destroySubcontext(name.toString());<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(String name) throws NamingException {<br/>
+        TraceCarol.error("LmiInitialContext.createSubcontext(\"" + name + "\"): Not supported");<br/>
+        throw new OperationNotSupportedException("LmiInitialContext.createSubcontext(\"" + name + "\"): Not supported");<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(Name name) throws NamingException {<br/>
+        return createSubcontext(name.toString());<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.lookupLink(\"" + name + "\")");<br/>
+        }<br/>
+        return lookup(name);<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(Name name) throws NamingException {<br/>
+        return lookupLink(name.toString());<br/>
+    }<br/>
+<br/>
+    public NameParser getNameParser(String name) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.getNameParser(\"" + name + "\")");<br/>
+        }<br/>
+        return lmiParser;<br/>
+    }<br/>
+<br/>
+    public NameParser getNameParser(Name name) throws NamingException {<br/>
+        return getNameParser(name.toString());<br/>
+    }<br/>
+<br/>
+    public String composeName(String name, String prefix) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.composeName(" + name + "," + prefix + ")");<br/>
+        }<br/>
+        Name result = composeName(new CompositeName(name), new CompositeName(prefix));<br/>
+        return result.toString();<br/>
+    }<br/>
+<br/>
+    public Name composeName(Name name, Name prefix) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.composeName(" + name + "," + prefix + ")");<br/>
+        }<br/>
+        Name result = (Name) (prefix.clone());<br/>
+        result.addAll(name);<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    public Object addToEnvironment(String propName, Object propVal) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.addToEnvironment(\"" + propName + "\","<br/>
+                    + simpleClass(propVal.getClass().getName()) + " object)");<br/>
+        }<br/>
+        if (lmiEnv == null) {<br/>
+            lmiEnv = new Hashtable();<br/>
+        }<br/>
+        return lmiEnv.put(propName, propVal);<br/>
+    }<br/>
+<br/>
+    public Object removeFromEnvironment(String propName) throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.removeFromEnvironment(\"" + propName + "\")");<br/>
+        }<br/>
+        if (lmiEnv == null) return null;<br/>
+        return lmiEnv.remove(propName);<br/>
+    }<br/>
+<br/>
+    public Hashtable getEnvironment() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.getEnvironment()");<br/>
+        }<br/>
+        if (lmiEnv == null) {<br/>
+            lmiEnv = new Hashtable();<br/>
+        }<br/>
+        return lmiEnv;<br/>
+    }<br/>
+<br/>
+    public void close() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.close()");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    public String getNameInNamespace() throws NamingException {<br/>
+        if (TraceCarol.isDebugJndiCarol()) {<br/>
+            TraceCarol.debugJndiCarol("LmiInitialContext.getNameInNamespace()");<br/>
+        }<br/>
+        return "lmiContext";<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Just the name of the class without the package<br/>
+     */<br/>
+    private String simpleClass(String c) {<br/>
+        return c.substring(c.lastIndexOf('.') + 1);<br/>
+    }<br/>
+<br/>
+    // Class for enumerating name/class pairs<br/>
+    class LmiNames implements NamingEnumeration {<br/>
+<br/>
+        Enumeration names;<br/>
+<br/>
+        LmiNames(Enumeration names) {<br/>
+            this.names = names;<br/>
+        }<br/>
+<br/>
+        public boolean hasMoreElements() {<br/>
+            return names.hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public boolean hasMore() throws NamingException {<br/>
+            return hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public Object nextElement() {<br/>
+            String name = (String) names.nextElement();<br/>
+            String className = bindings.get(name).getClass().getName();<br/>
+            return new NameClassPair(name, className);<br/>
+        }<br/>
+<br/>
+        public Object next() throws NamingException {<br/>
+            return nextElement();<br/>
+        }<br/>
+<br/>
+        public void close() throws NamingException {<br/>
+            names = null;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    // Class for enumerating bindings<br/>
+    class LmiBindings implements NamingEnumeration {<br/>
+<br/>
+        Enumeration names;<br/>
+<br/>
+        LmiBindings(Enumeration names) {<br/>
+            this.names = names;<br/>
+        }<br/>
+<br/>
+        public boolean hasMoreElements() {<br/>
+            return names.hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public boolean hasMore() throws NamingException {<br/>
+            return hasMoreElements();<br/>
+        }<br/>
+<br/>
+        public Object nextElement() {<br/>
+            String name = (String) names.nextElement();<br/>
+            return new Binding(name, bindings.get(name));<br/>
+        }<br/>
+<br/>
+        public Object next() throws NamingException {<br/>
+            return nextElement();<br/>
+        }<br/>
+<br/>
+        public void close() throws NamingException {<br/>
+            names = null;<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_FilterOptionsPlugin_1.5.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.mail.folderoptions;<br/>
+<br/>
+import org.columba.core.config.DefaultItem;<br/>
+import org.columba.core.xml.XmlElement;<br/>
+<br/>
+import org.columba.mail.folder.Folder;<br/>
+import org.columba.mail.gui.frame.MailFrameMediator;<br/>
+import org.columba.mail.gui.frame.MailFrameView;<br/>
+import org.columba.mail.gui.frame.TableViewOwner;<br/>
+import org.columba.mail.gui.table.FilterToolbar;<br/>
+import org.columba.mail.gui.table.TableController;<br/>
+import org.columba.mail.gui.table.model.TableModelFilter;<br/>
+<br/>
+<br/>
+/**<br/>
+ * Covers all filter options offered by the message list<br/>
+ * filter toolbar.<br/>
+ * &lt;p&gt;<br/>
+ *<br/>
+ * @author fdietz<br/>
+ */<br/>
+public class FilterOptionsPlugin extends AbstractFolderOptionsPlugin {<br/>
+    /**<br/>
+ * Constructor<br/>
+ *<br/>
+ * @param mediator  mail frame mediator<br/>
+ */<br/>
+    public FilterOptionsPlugin(MailFrameMediator mediator) {<br/>
+        super("filter", "FilterOptions", mediator);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+ * @see org.columba.mail.folderoptions.AbstractFolderOptionsPlugin#saveOptionsToXml(org.columba.mail.folder.Folder)<br/>
+ */<br/>
+    public void saveOptionsToXml(Folder folder) {<br/>
+        XmlElement parent = getConfigNode(folder);<br/>
+        DefaultItem item = new DefaultItem(parent);<br/>
+<br/>
+        TableController tableController = ((TableViewOwner) getMediator()).getTableController();<br/>
+<br/>
+        TableModelFilter model = tableController.getTableModelFilteredView();<br/>
+<br/>
+        item.set("new_state", model.getNewFlag());<br/>
+<br/>
+        item.set("answered_state", model.getAnsweredFlag());<br/>
+        item.set("flagged_state", model.getFlaggedFlag());<br/>
+        item.set("attachment_state", model.getAttachmentFlag());<br/>
+        item.set("expunged_state", model.getExpungedFlag());<br/>
+<br/>
+        item.set("pattern", model.getPatternString());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+ * @see org.columba.mail.folderoptions.AbstractFolderOptionsPlugin#loadOptionsFromXml(org.columba.mail.folder.Folder)<br/>
+ */<br/>
+    public void loadOptionsFromXml(Folder folder) {<br/>
+        XmlElement parent = getConfigNode(folder);<br/>
+        DefaultItem item = new DefaultItem(parent);<br/>
+<br/>
+        TableController tableController = ((TableViewOwner) getMediator()).getTableController();<br/>
+        TableModelFilter model = tableController.getTableModelFilteredView();<br/>
+        FilterToolbar toolbar = ((<span class="del"><span class="del">MailFrameView</span></span>) getMediator().<span class="upd">getView</span>()).getFilterToolbar();<br/>
+<br/>
+        model.setNewFlag(item.getBoolean("new_state"));<br/>
+        toolbar.enableNew(item.getBoolean("new_state"));<br/>
+<br/>
+        model.setAnsweredFlag(item.getBoolean("answered_state"));<br/>
+        toolbar.enableAnswered(item.getBoolean("answered_state"));<br/>
+<br/>
+        model.setFlaggedFlag(item.getBoolean("flagged_state"));<br/>
+        toolbar.enableFlagged(item.getBoolean("flagged_state"));<br/>
+<br/>
+        model.setAttachmentFlag(item.getBoolean("attachment_state"));<br/>
+        toolbar.enableAttachment(item.getBoolean("attachment_state"));<br/>
+<br/>
+        model.setExpungedFlag(item.getBoolean("expunged_state"));<br/>
+        toolbar.enableExpunged(item.getBoolean("expunged_state"));<br/>
+<br/>
+        String t = item.get("pattern");<br/>
+<br/>
+        if (t == null) {<br/>
+            t = "";<br/>
+        }<br/>
+<br/>
+        model.setPatternString(t);<br/>
+        toolbar.setPattern(t);<br/>
+<br/>
+        // enable filtering<br/>
+        model.setDataFiltering(true);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+   * @see org.columba.mail.folderoptions.AbstractFolderOptionsPlugin#createDefaultElement()<br/>
+   */<br/>
+    public XmlElement createDefaultElement(boolean global) {<br/>
+        XmlElement parent = super.createDefaultElement(global);<br/>
+        parent.addAttribute("new_state", "false");<br/>
+        parent.addAttribute("answered_state", "false");<br/>
+        parent.addAttribute("flagged_state", "false");<br/>
+        parent.addAttribute("expunged_state", "false");<br/>
+        parent.addAttribute("attachment_state", "false");<br/>
+        parent.addAttribute("pattern", "");<br/>
+<br/>
+        return parent;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_FilterOptionsPlugin_1.6.java</h1>
+<div class="code">
+<div class="id">
+//The contents of this file are subject to the Mozilla Public License Version 1.1<br/>
+//(the "License"); you may not use this file except in compliance with the <br/>
+//License. You may obtain a copy of the License at http://www.mozilla.org/MPL/<br/>
+//<br/>
+//Software distributed under the License is distributed on an "AS IS" basis,<br/>
+//WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License <br/>
+//for the specific language governing rights and<br/>
+//limitations under the License.<br/>
+//<br/>
+//The Original Code is "The Columba Project"<br/>
+//<br/>
+//The Initial Developers of the Original Code are Frederik Dietz and Timo Stich.<br/>
+//Portions created by Frederik Dietz and Timo Stich are Copyright (C) 2003. <br/>
+//<br/>
+//All Rights Reserved.<br/>
+package org.columba.mail.folderoptions;<br/>
+<br/>
+import org.columba.core.config.DefaultItem;<br/>
+import org.columba.core.xml.XmlElement;<br/>
+<br/>
+import org.columba.mail.folder.Folder;<br/>
+import org.columba.mail.gui.frame.MailFrameMediator;<br/>
+import org.columba.mail.gui.frame.MailFrameView;<br/>
+import org.columba.mail.gui.frame.TableViewOwner;<br/>
+import org.columba.mail.gui.table.FilterToolbar;<br/>
+import org.columba.mail.gui.table.TableController;<br/>
+import org.columba.mail.gui.table.model.TableModelFilter;<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">columba</span></span>.<span class="add">mail</span></span>.<span class="add">gui</span></span>.<span class="add">view</span></span>.<span class="add">AbstractMailView</span></span>;</span><br/>
+<br/>
+<br/>
+/**<br/>
+ * Covers all filter options offered by the message list<br/>
+ * filter toolbar.<br/>
+ * &lt;p&gt;<br/>
+ *<br/>
+ * @author fdietz<br/>
+ */<br/>
+public class FilterOptionsPlugin extends AbstractFolderOptionsPlugin {<br/>
+    /**<br/>
+ * Constructor<br/>
+ *<br/>
+ * @param mediator  mail frame mediator<br/>
+ */<br/>
+    public FilterOptionsPlugin(MailFrameMediator mediator) {<br/>
+        super("filter", "FilterOptions", mediator);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+ * @see org.columba.mail.folderoptions.AbstractFolderOptionsPlugin#saveOptionsToXml(org.columba.mail.folder.Folder)<br/>
+ */<br/>
+    public void saveOptionsToXml(Folder folder) {<br/>
+        XmlElement parent = getConfigNode(folder);<br/>
+        DefaultItem item = new DefaultItem(parent);<br/>
+<br/>
+        TableController tableController = ((TableViewOwner) getMediator()).getTableController();<br/>
+<br/>
+        TableModelFilter model = tableController.getTableModelFilteredView();<br/>
+<br/>
+        item.set("new_state", model.getNewFlag());<br/>
+<br/>
+        item.set("answered_state", model.getAnsweredFlag());<br/>
+        item.set("flagged_state", model.getFlaggedFlag());<br/>
+        item.set("attachment_state", model.getAttachmentFlag());<br/>
+        item.set("expunged_state", model.getExpungedFlag());<br/>
+<br/>
+        item.set("pattern", model.getPatternString());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+ * @see org.columba.mail.folderoptions.AbstractFolderOptionsPlugin#loadOptionsFromXml(org.columba.mail.folder.Folder)<br/>
+ */<br/>
+    public void loadOptionsFromXml(Folder folder) {<br/>
+        XmlElement parent = getConfigNode(folder);<br/>
+        DefaultItem item = new DefaultItem(parent);<br/>
+<br/>
+        TableController tableController = ((TableViewOwner) getMediator()).getTableController();<br/>
+        TableModelFilter model = tableController.getTableModelFilteredView();<br/>
+        FilterToolbar toolbar = ((<span class="add"><span class="add">AbstractMailView</span></span>) getMediator().<span class="upd">getBaseView</span>()).getFilterToolbar();<br/>
+<br/>
+        model.setNewFlag(item.getBoolean("new_state"));<br/>
+        toolbar.enableNew(item.getBoolean("new_state"));<br/>
+<br/>
+        model.setAnsweredFlag(item.getBoolean("answered_state"));<br/>
+        toolbar.enableAnswered(item.getBoolean("answered_state"));<br/>
+<br/>
+        model.setFlaggedFlag(item.getBoolean("flagged_state"));<br/>
+        toolbar.enableFlagged(item.getBoolean("flagged_state"));<br/>
+<br/>
+        model.setAttachmentFlag(item.getBoolean("attachment_state"));<br/>
+        toolbar.enableAttachment(item.getBoolean("attachment_state"));<br/>
+<br/>
+        model.setExpungedFlag(item.getBoolean("expunged_state"));<br/>
+        toolbar.enableExpunged(item.getBoolean("expunged_state"));<br/>
+<br/>
+        String t = item.get("pattern");<br/>
+<br/>
+        if (t == null) {<br/>
+            t = "";<br/>
+        }<br/>
+<br/>
+        model.setPatternString(t);<br/>
+        toolbar.setPattern(t);<br/>
+<br/>
+        // enable filtering<br/>
+        model.setDataFiltering(true);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+   * @see org.columba.mail.folderoptions.AbstractFolderOptionsPlugin#createDefaultElement()<br/>
+   */<br/>
+    public XmlElement createDefaultElement(boolean global) {<br/>
+        XmlElement parent = super.createDefaultElement(global);<br/>
+        parent.addAttribute("new_state", "false");<br/>
+        parent.addAttribute("answered_state", "false");<br/>
+        parent.addAttribute("flagged_state", "false");<br/>
+        parent.addAttribute("expunged_state", "false");<br/>
+        parent.addAttribute("attachment_state", "false");<br/>
+        parent.addAttribute("pattern", "");<br/>
+<br/>
+        return parent;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

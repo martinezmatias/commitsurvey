@@ -1,0 +1,2 @@
+serviceClass: s2.client.QuizService
+path: F7DAF7B65111CBADB822EAC539AFE7BC.gwt.rpc

@@ -1,0 +1,1 @@
+[intern]notify is better than notifyAll in this case ;-)

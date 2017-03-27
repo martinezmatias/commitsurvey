@@ -1,0 +1,1 @@
+Don't connect all objects. Should be done in JOnAS

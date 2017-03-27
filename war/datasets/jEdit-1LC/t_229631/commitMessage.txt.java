@@ -1,0 +1,1 @@
+Updated for jEdit 4.0 API

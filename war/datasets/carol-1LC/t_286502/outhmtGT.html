@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_OpenOrbReferenceContextWrapperFactory_1.1.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)IIOPReferenceContextWrapper.java&nbsp;&nbsp;&nbsp;&nbsp;1.0 02/07/15<br/>
+ *<br/>
+ * Copyright (C) 2002 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ * <br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ * <br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ */<br/>
+package org.objectweb.carol.jndi.iiop;<br/>
+<br/>
+// java import<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.NamingException;<br/>
+<br/>
+import com.sun.jndi.cosnaming.CNCtxFactory;<br/>
+/*<br/>
+ * Class &lt;code&gt;OpenOrbRemoteReferenceContextWrapperFactory&lt;/code&gt; is the CAROL JNDI Context factory.<br/>
+ *  This context factory build the iiop context for reference wrapping to/from an openorb remote object<br/>
+ * <br/>
+ * @author  Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @see javax.naming.spi.InitialContextFactory<br/>
+ * @version 1.0, 15/07/2002<br/>
+ */<br/>
+public class OpenOrbReferenceContextWrapperFactory extends CNCtxFactory {<br/>
+<br/>
+    /**<br/>
+     * Get/Build the IIOP Wrapper InitialContext<br/>
+     *<br/>
+     * @param env the inital IIOP environement<br/>
+     * @return a &lt;code&gt;Context&lt;/code&gt; coresponding to the inital IIOP environement with <br/>
+     *         IIOP Serializable ressource wrapping<br/>
+     *<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */   <br/>
+    public Context getInitialContext(Hashtable env) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;env.put("java.naming.factory.initial","org.openorb.rmi.jndi.CtxFactory");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return <span class="del">new <span class="del"><span class="mv">IIOPReferenceContextWrapper</span></span>(<span class="mv">super.getInitialContext(env)</span>)</span>;<br/>
+    }<br/>
+<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_OpenOrbReferenceContextWrapperFactory_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)IIOPReferenceContextWrapper.java&nbsp;&nbsp;&nbsp;&nbsp;1.0 02/07/15<br/>
+ *<br/>
+ * Copyright (C) 2002 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ * <br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ * <br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ */<br/>
+package org.objectweb.carol.jndi.iiop;<br/>
+<br/>
+// java import<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.NamingException;<br/>
+<br/>
+import com.sun.jndi.cosnaming.CNCtxFactory;<br/>
+/*<br/>
+ * Class &lt;code&gt;OpenOrbRemoteReferenceContextWrapperFactory&lt;/code&gt; is the CAROL JNDI Context factory.<br/>
+ *  This context factory build the iiop context for reference wrapping to/from an openorb remote object<br/>
+ * <br/>
+ * @author  Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @see javax.naming.spi.InitialContextFactory<br/>
+ * @version 1.0, 15/07/2002<br/>
+ */<br/>
+public class OpenOrbReferenceContextWrapperFactory extends CNCtxFactory {<br/>
+<br/>
+    /**<br/>
+     * Get/Build the IIOP Wrapper InitialContext<br/>
+     *<br/>
+     * @param env the inital IIOP environement<br/>
+     * @return a &lt;code&gt;Context&lt;/code&gt; coresponding to the inital IIOP environement with <br/>
+     *         IIOP Serializable ressource wrapping<br/>
+     *<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */   <br/>
+    public Context getInitialContext(Hashtable env) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;env.put("java.naming.factory.initial","org.openorb.rmi.jndi.CtxFactory");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return  <span class="add"><span class="mv">IIOPReferenceContextWrapper</span>.<span class="add">getSingleInstance</span>(<span class="mv">super.getInitialContext(env)</span>)</span>;<br/>
+    }<br/>
+<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

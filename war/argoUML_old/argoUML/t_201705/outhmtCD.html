@@ -1,0 +1,505 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_MultiEditorPane_1.4.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.ui;<br/>
+<br/>
+import java.awt.*;<br/>
+import java.awt.event.*;<br/>
+import java.util.*;<br/>
+import java.io.*;<br/>
+<br/>
+import javax.swing.*;<br/>
+import javax.swing.event.*;<br/>
+import javax.swing.tree.*;<br/>
+<br/>
+import org.tigris.gef.base.*;<br/>
+import org.tigris.gef.graph.presentation.*;<br/>
+<br/>
+import <span class="mv"><span class="upd">org.argouml.<span class="mv">util</span></span></span>.*;<br/>
+import <span class="del"><span class="mv"><span class="upd">org.argouml.<span class="mv">uml</span></span></span>.<span class="mv">ui</span></span>.*;<br/>
+<span class="del">import <span class="del"><span class="mv"><span class="upd">org.argouml.<span class="mv">uml</span>.<span class="mv">diagram</span></span></span>.<span class="mv">ui</span></span>.*;</span><br/>
+<br/>
+<br/>
+/** The upper right pane in the Argo/UML user interface.  It has<br/>
+ *  several tabs with different kinds of "major" editors that allow<br/>
+ *  the user to edit whatever is selected in the NavigatorPane. */<br/>
+<br/>
+public class MultiEditorPane extends JPanel<br/>
+implements ChangeListener, MouseListener {<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // instance variables<br/>
+<br/>
+  protected Object _target;<br/>
+  protected JTabbedPane _tabs = new JTabbedPane(JTabbedPane.BOTTOM);<br/>
+  protected Editor _ed;<br/>
+ // protected ForwardingPanel _awt_comp;<br/>
+  protected Vector _tabPanels = new Vector();<br/>
+  protected Component _lastTab;<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // constructors<br/>
+<br/>
+  public MultiEditorPane(StatusBar sb) {<br/>
+    <span class="del"><span class="del"><span class="del"><span class="del">System</span>.<span class="del">out</span></span>.<span class="del">println</span>(<span class="mv">"making MultiEditorPane"</span>)</span>;</span><br/>
+    ConfigLoader.loadTabs(_tabPanels, "multi", sb);<br/>
+<br/>
+    setLayout(new BorderLayout());<br/>
+    add(_tabs, BorderLayout.CENTER);<br/>
+<br/>
+    _tabs.addChangeListener(this);<br/>
+    for (int i = 0; i &lt; _tabPanels.size(); i++) {<br/>
+      String title = "tab";<br/>
+      JPanel t = (JPanel) _tabPanels.elementAt(i);<br/>
+      if (t instanceof TabSpawnable)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;title = ((TabSpawnable)t).getTitle();<br/>
+      _tabs.addTab("As " + title, t);<br/>
+    } /* end for */<br/>
+<br/>
+    for (int i = 0; i &lt; _tabPanels.size(); i++)<br/>
+      _tabs.setEnabledAt(i, false);<br/>
+<br/>
+<br/>
+    _tabs.addChangeListener(this);<br/>
+    _tabs.addMouseListener(this);<br/>
+    setTarget(null);<br/>
+  }<br/>
+<br/>
+<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // accessors<br/>
+<br/>
+  public Dimension getPreferredSize() { return new Dimension(400, 500); }<br/>
+  public Dimension getMinimumSize() { return new Dimension(100, 100); }<br/>
+<br/>
+  public void setTarget(Object target) {<br/>
+    //System.out.println("MultiEditorPane setTarget: " + target);<br/>
+    if(_target == target) return;<br/>
+    int nextTab = -1;<br/>
+    int currentTab = _tabs.getSelectedIndex();<br/>
+    int tabCount = _tabs.getTabCount();<br/>
+    _target = target;<br/>
+    for (int i = 0; i &lt; tabCount; i++) {<br/>
+        Component tab = _tabs.getComponentAt(i);<br/>
+        if (tab instanceof TabModelTarget) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    TabModelTarget tabMT = (TabModelTarget) tab;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    tabMT.setTarget(_target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean shouldEnable = tabMT.shouldBeEnabled();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    _tabs.setEnabledAt(i, shouldEnable);<br/>
+            if(shouldEnable &amp;&amp; (nextTab == -1 || i == currentTab)) <br/>
+                nextTab = i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+//    if this target doesn't match the tabs expectation    <br/>
+//        leave the previous tab displayed<br/>
+    <br/>
+//    <br/>
+//    if (nextTab != -1 &amp;&amp; nextTab != currentTab) <br/>
+//        _tabs.setSelectedIndex(nextTab);<br/>
+//    _tabs.setVisible(nextTab != -1);<br/>
+  }<br/>
+<br/>
+<br/>
+  public Object getTarget() { return _target; }<br/>
+<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // actions<br/>
+<br/>
+  public int getIndexOfNamedTab(String tabName) {<br/>
+    for (int i = 0; i &lt; _tabPanels.size(); i++) {<br/>
+      String title = _tabs.getTitleAt(i);<br/>
+      if (title != null &amp;&amp; title.equals(tabName)) return i;<br/>
+    }<br/>
+    return -1;<br/>
+  }<br/>
+<br/>
+  public void selectTabNamed(String tabName) {<br/>
+    int index = getIndexOfNamedTab(tabName);<br/>
+    if (index != -1) _tabs.setSelectedIndex(index);<br/>
+  }<br/>
+<br/>
+  public void selectNextTab() {<br/>
+    int size = _tabPanels.size();<br/>
+    int currentTab = _tabs.getSelectedIndex();<br/>
+    for (int i = 1; i &lt; _tabPanels.size(); i++) {<br/>
+      int newTab = (currentTab + i) % size;<br/>
+      if (_tabs.isEnabledAt(newTab)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;_tabs.setSelectedIndex(newTab);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  public void select(Object o) {<br/>
+    Component curTab = _tabs.getSelectedComponent();<br/>
+    if (curTab instanceof TabDiagram) {<br/>
+      JGraph jg = ((TabDiagram)curTab).getJGraph();<br/>
+      jg.selectByOwnerOrFig(o);<br/>
+    }<br/>
+    //needs-more-work: handle tables<br/>
+  }<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // event handlers<br/>
+<br/>
+  /** called when the user selects a tab, by clicking or otherwise. */<br/>
+  public void stateChanged(ChangeEvent e) {<br/>
+    //needs-more-work: should fire its own event and ProjectBrowser<br/>
+    //should register a listener<br/>
+    if (_lastTab != null) { _lastTab.setVisible(false); }<br/>
+    _lastTab = _tabs.getSelectedComponent();<br/>
+    //System.out.println("MultiEditorPane state changed:" +<br/>
+    //  _lastTab.getClass().getName());<br/>
+    _lastTab.setVisible(true);<br/>
+    if (_lastTab instanceof TabModelTarget)<br/>
+      ((TabModelTarget)_lastTab).refresh();<br/>
+  }<br/>
+<br/>
+  public void mousePressed(MouseEvent me) { }<br/>
+  public void mouseReleased(MouseEvent me) { }<br/>
+  public void mouseEntered(MouseEvent me) { }<br/>
+  public void mouseExited(MouseEvent me) { }<br/>
+<br/>
+  public void mouseClicked(MouseEvent me) {<br/>
+    int tab = _tabs.getSelectedIndex();<br/>
+    if (tab != -1) {<br/>
+      Rectangle tabBounds = _tabs.getBoundsAt(tab);<br/>
+      if (!tabBounds.contains(me.getX(), me.getY())) return;<br/>
+      if (me.getClickCount() == 1) mySingleClick(tab);<br/>
+      else if (me.getClickCount() &gt;= 2) myDoubleClick(tab);<br/>
+    }<br/>
+  }<br/>
+<br/>
+<br/>
+  /** called when the user clicks once on a tab. */<br/>
+  public void mySingleClick(int tab) {<br/>
+    //needs-more-work: should fire its own event and ProjectBrowser<br/>
+    //should register a listener<br/>
+    //System.out.println("single: " + _tabs.getComponentAt(tab).toString());<br/>
+  }<br/>
+<br/>
+  /** called when the user clicks twice on a tab. */<br/>
+  public void myDoubleClick(int tab) {<br/>
+    //needs-more-work: should fire its own event and ProjectBrowser<br/>
+    //should register a listener<br/>
+    //System.out.println("double: " + _tabs.getComponentAt(tab).toString());<br/>
+    JPanel t = (JPanel) _tabPanels.elementAt(tab);<br/>
+    if (t instanceof TabSpawnable) ((TabSpawnable)t).spawn();<br/>
+  }<br/>
+<br/>
+    public void addNavigationListener(NavigationListener navListener) {<br/>
+        Iterator iter = _tabPanels.iterator();<br/>
+        Object panel;<br/>
+        while(iter.hasNext()) {<br/>
+            panel = iter.next();<br/>
+            if(panel instanceof TabProps) {<br/>
+                ((TabProps) panel).addNavigationListener(navListener);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    public void removeNavigationListener(NavigationListener navListener) {<br/>
+        Iterator iter = _tabPanels.iterator();<br/>
+        Object panel;<br/>
+        while(iter.hasNext()) {<br/>
+            panel = iter.next();<br/>
+            if(panel instanceof TabProps) {<br/>
+                ((TabProps) panel).removeNavigationListener(navListener);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+} /* end class MultiEditorPane */<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_MultiEditorPane_1.5.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-99 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.ui;<br/>
+<br/>
+import java.awt.*;<br/>
+import java.awt.event.*;<br/>
+import java.util.*;<br/>
+import java.io.*;<br/>
+<br/>
+import javax.swing.*;<br/>
+import javax.swing.event.*;<br/>
+import javax.swing.tree.*;<br/>
+<br/>
+import org.tigris.gef.base.*;<br/>
+import org.tigris.gef.graph.presentation.*;<br/>
+<br/>
+import <span class="add"><span class="mv"><span class="upd">org.argouml.<span class="add">application</span></span></span>.<span class="add">api</span></span>.*;<br/>
+import <span class="mv"><span class="upd">org.argouml.<span class="mv">util</span></span></span>.*;<br/>
+<span class="add">import <span class="mv"><span class="upd">org.argouml.<span class="mv">uml</span>.<span class="mv">ui</span></span></span>.*;</span><br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add"><span class="add">org</span>.<span class="add">argouml</span></span>.<span class="mv">uml</span></span>.<span class="mv">diagram</span></span>.<span class="mv">ui</span></span>.*;</span><br/>
+<br/>
+<br/>
+/** The upper right pane in the Argo/UML user interface.  It has<br/>
+ *  several tabs with different kinds of "major" editors that allow<br/>
+ *  the user to edit whatever is selected in the NavigatorPane. */<br/>
+<br/>
+public class MultiEditorPane extends JPanel<br/>
+implements ChangeListener, MouseListener {<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // instance variables<br/>
+<br/>
+  protected Object _target;<br/>
+  protected JTabbedPane _tabs = new JTabbedPane(JTabbedPane.BOTTOM);<br/>
+  protected Editor _ed;<br/>
+ // protected ForwardingPanel _awt_comp;<br/>
+  protected Vector _tabPanels = new Vector();<br/>
+  protected Component _lastTab;<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // constructors<br/>
+<br/>
+  public MultiEditorPane(StatusBar sb) {<br/>
+    <span class="add"><span class="add"><span class="add"><span class="add">Argo</span>.<span class="add">log</span></span>.<span class="add">info</span>(<span class="mv">"making MultiEditorPane"</span>)</span>;</span><br/>
+    ConfigLoader.loadTabs(_tabPanels, "multi", sb);<br/>
+<br/>
+    setLayout(new BorderLayout());<br/>
+    add(_tabs, BorderLayout.CENTER);<br/>
+<br/>
+    _tabs.addChangeListener(this);<br/>
+    for (int i = 0; i &lt; _tabPanels.size(); i++) {<br/>
+      String title = "tab";<br/>
+      JPanel t = (JPanel) _tabPanels.elementAt(i);<br/>
+      if (t instanceof TabSpawnable)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;title = ((TabSpawnable)t).getTitle();<br/>
+      _tabs.addTab("As " + title, t);<br/>
+    } /* end for */<br/>
+<br/>
+    for (int i = 0; i &lt; _tabPanels.size(); i++)<br/>
+      _tabs.setEnabledAt(i, false);<br/>
+<br/>
+<br/>
+    _tabs.addChangeListener(this);<br/>
+    _tabs.addMouseListener(this);<br/>
+    setTarget(null);<br/>
+  }<br/>
+<br/>
+<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // accessors<br/>
+<br/>
+  public Dimension getPreferredSize() { return new Dimension(400, 500); }<br/>
+  public Dimension getMinimumSize() { return new Dimension(100, 100); }<br/>
+<br/>
+  public void setTarget(Object target) {<br/>
+    //System.out.println("MultiEditorPane setTarget: " + target);<br/>
+    if(_target == target) return;<br/>
+    int nextTab = -1;<br/>
+    int currentTab = _tabs.getSelectedIndex();<br/>
+    int tabCount = _tabs.getTabCount();<br/>
+    _target = target;<br/>
+    for (int i = 0; i &lt; tabCount; i++) {<br/>
+        Component tab = _tabs.getComponentAt(i);<br/>
+        if (tab instanceof TabModelTarget) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    TabModelTarget tabMT = (TabModelTarget) tab;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    tabMT.setTarget(_target);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    boolean shouldEnable = tabMT.shouldBeEnabled();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    _tabs.setEnabledAt(i, shouldEnable);<br/>
+            if(shouldEnable &amp;&amp; (nextTab == -1 || i == currentTab)) <br/>
+                nextTab = i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+//    if this target doesn't match the tabs expectation    <br/>
+//        leave the previous tab displayed<br/>
+    <br/>
+//    <br/>
+//    if (nextTab != -1 &amp;&amp; nextTab != currentTab) <br/>
+//        _tabs.setSelectedIndex(nextTab);<br/>
+//    _tabs.setVisible(nextTab != -1);<br/>
+  }<br/>
+<br/>
+<br/>
+  public Object getTarget() { return _target; }<br/>
+<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // actions<br/>
+<br/>
+  public int getIndexOfNamedTab(String tabName) {<br/>
+    for (int i = 0; i &lt; _tabPanels.size(); i++) {<br/>
+      String title = _tabs.getTitleAt(i);<br/>
+      if (title != null &amp;&amp; title.equals(tabName)) return i;<br/>
+    }<br/>
+    return -1;<br/>
+  }<br/>
+<br/>
+  public void selectTabNamed(String tabName) {<br/>
+    int index = getIndexOfNamedTab(tabName);<br/>
+    if (index != -1) _tabs.setSelectedIndex(index);<br/>
+  }<br/>
+<br/>
+  public void selectNextTab() {<br/>
+    int size = _tabPanels.size();<br/>
+    int currentTab = _tabs.getSelectedIndex();<br/>
+    for (int i = 1; i &lt; _tabPanels.size(); i++) {<br/>
+      int newTab = (currentTab + i) % size;<br/>
+      if (_tabs.isEnabledAt(newTab)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;_tabs.setSelectedIndex(newTab);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return;<br/>
+      }<br/>
+    }<br/>
+  }<br/>
+<br/>
+  public void select(Object o) {<br/>
+    Component curTab = _tabs.getSelectedComponent();<br/>
+    if (curTab instanceof TabDiagram) {<br/>
+      JGraph jg = ((TabDiagram)curTab).getJGraph();<br/>
+      jg.selectByOwnerOrFig(o);<br/>
+    }<br/>
+    //needs-more-work: handle tables<br/>
+  }<br/>
+<br/>
+  ////////////////////////////////////////////////////////////////<br/>
+  // event handlers<br/>
+<br/>
+  /** called when the user selects a tab, by clicking or otherwise. */<br/>
+  public void stateChanged(ChangeEvent e) {<br/>
+    //needs-more-work: should fire its own event and ProjectBrowser<br/>
+    //should register a listener<br/>
+    if (_lastTab != null) { _lastTab.setVisible(false); }<br/>
+    _lastTab = _tabs.getSelectedComponent();<br/>
+    //System.out.println("MultiEditorPane state changed:" +<br/>
+    //  _lastTab.getClass().getName());<br/>
+    _lastTab.setVisible(true);<br/>
+    if (_lastTab instanceof TabModelTarget)<br/>
+      ((TabModelTarget)_lastTab).refresh();<br/>
+  }<br/>
+<br/>
+  public void mousePressed(MouseEvent me) { }<br/>
+  public void mouseReleased(MouseEvent me) { }<br/>
+  public void mouseEntered(MouseEvent me) { }<br/>
+  public void mouseExited(MouseEvent me) { }<br/>
+<br/>
+  public void mouseClicked(MouseEvent me) {<br/>
+    int tab = _tabs.getSelectedIndex();<br/>
+    if (tab != -1) {<br/>
+      Rectangle tabBounds = _tabs.getBoundsAt(tab);<br/>
+      if (!tabBounds.contains(me.getX(), me.getY())) return;<br/>
+      if (me.getClickCount() == 1) mySingleClick(tab);<br/>
+      else if (me.getClickCount() &gt;= 2) myDoubleClick(tab);<br/>
+    }<br/>
+  }<br/>
+<br/>
+<br/>
+  /** called when the user clicks once on a tab. */<br/>
+  public void mySingleClick(int tab) {<br/>
+    //needs-more-work: should fire its own event and ProjectBrowser<br/>
+    //should register a listener<br/>
+    //System.out.println("single: " + _tabs.getComponentAt(tab).toString());<br/>
+  }<br/>
+<br/>
+  /** called when the user clicks twice on a tab. */<br/>
+  public void myDoubleClick(int tab) {<br/>
+    //needs-more-work: should fire its own event and ProjectBrowser<br/>
+    //should register a listener<br/>
+    //System.out.println("double: " + _tabs.getComponentAt(tab).toString());<br/>
+    JPanel t = (JPanel) _tabPanels.elementAt(tab);<br/>
+    if (t instanceof TabSpawnable) ((TabSpawnable)t).spawn();<br/>
+  }<br/>
+<br/>
+    public void addNavigationListener(NavigationListener navListener) {<br/>
+        Iterator iter = _tabPanels.iterator();<br/>
+        Object panel;<br/>
+        while(iter.hasNext()) {<br/>
+            panel = iter.next();<br/>
+            if(panel instanceof TabProps) {<br/>
+                ((TabProps) panel).addNavigationListener(navListener);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    public void removeNavigationListener(NavigationListener navListener) {<br/>
+        Iterator iter = _tabPanels.iterator();<br/>
+        Object panel;<br/>
+        while(iter.hasNext()) {<br/>
+            panel = iter.next();<br/>
+            if(panel instanceof TabProps) {<br/>
+                ((TabProps) panel).removeNavigationListener(navListener);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+} /* end class MultiEditorPane */<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,48 @@
+.container-fluid {
+  margin-right: auto;
+  margin-left: auto;
+  max-width: 95%;
+} 
+
+.add {
+	border:1px solid green;
+}
+
+.del {
+	border:1px solid red;
+}
+
+.mv {
+	border:1px solid blue;
+}
+
+.upd {
+	border:1px solid orange;
+}
+
+.scrollable {
+	overflow: auto;
+}
+
+.selected {
+	background-color: lightblue;	
+}
+
+.no-overflow {
+	overflow: hidden;
+}
+/*body, html {
+	height: 95%;
+	overflow: hidden;
+}*/
+body, html {
+	overflow: hidden;
+}
+
+.max-height {
+	height: 95%;
+}
+
+pre #src #dst {
+	font-size: 10pt;
+}

@@ -1,0 +1,1 @@
++ Patch 1442366: Edge Bug fixed.

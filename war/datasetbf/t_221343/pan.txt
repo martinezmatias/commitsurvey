@@ -1,0 +1,2 @@
+h#0_MC-DM:Different method call to a class instance(context:null)
+h#0_MC-DM:Different method call to a class instance(context:null)

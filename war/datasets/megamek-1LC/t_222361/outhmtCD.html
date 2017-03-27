@@ -1,0 +1,650 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_CommonSettingsDialog_1.22.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2003, 2004 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it <br/>
+ *  under the terms of the GNU General Public License as published by the Free <br/>
+ *  Software Foundation; either version 2 of the License, or (at your option) <br/>
+ *  any later version.<br/>
+ * <br/>
+ *  This program is distributed in the hope that it will be useful, but <br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY <br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License <br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.client;<br/>
+<br/>
+import java.awt.*;<br/>
+import java.awt.event.*;<br/>
+<br/>
+import megamek.common.Settings;<br/>
+<br/>
+public class CommonSettingsDialog extends Dialog implements ActionListener {<br/>
+<br/>
+    private ScrollPane  scrOptions = new ScrollPane();<br/>
+<br/>
+    private Checkbox    minimapEnabled;<br/>
+    private Checkbox    autoEndFiring;<br/>
+    private Checkbox    nagForMASC;<br/>
+    private Checkbox    nagForPSR;<br/>
+    private Checkbox    nagForNoAction;<br/>
+    private Checkbox    animateMove;<br/>
+    private Checkbox    showWrecks;<br/>
+    private Checkbox    soundMute;<br/>
+    private Checkbox    showMapHexPopup;<br/>
+    private TextField   tooltipDelay;<br/>
+    private Choice      unitStartChar;<br/>
+    private TextField   maxPathfinderTime;<br/>
+    private Checkbox    getFocus;<br/>
+    <br/>
+    private Checkbox    rightDragScroll;<br/>
+    private Checkbox    ctlScroll;<br/>
+    private Checkbox    clickEdgeScroll;<br/>
+    private Checkbox    alwaysRightClickScroll;<br/>
+    private Checkbox    autoEdgeScroll;<br/>
+    private TextField   scrollSensitivity;<br/>
+<br/>
+    private static final String CANCEL = "CANCEL";<br/>
+    private static final String UPDATE = "UPDATE";<br/>
+<br/>
+    /**<br/>
+     * Standard constructor.  There is no default constructor for this class.<br/>
+     *<br/>
+     * @param   owner - the &lt;code&gt;Frame&lt;/code&gt; that owns this dialog.<br/>
+     */<br/>
+    public CommonSettingsDialog( Frame owner) {<br/>
+        // Initialize our superclass with a title.<br/>
+        super( owner, "Client Settings" );<br/>
+<br/>
+        // Lay out this dialog.<br/>
+        Panel tempPanel = new Panel();<br/>
+        tempPanel.setLayout( new GridLayout(0, 1) );<br/>
+<br/>
+        // Add the setting controls.<br/>
+        Panel panSetting;<br/>
+        minimapEnabled<br/>
+            = new Checkbox( "The minimap can be shown." );<br/>
+        tempPanel.add( minimapEnabled );<br/>
+        <br/>
+        autoEndFiring<br/>
+            = new Checkbox( "Skip 'Done' when firing all weapons." );<br/>
+        tempPanel.add( autoEndFiring );<br/>
+        <br/>
+        nagForMASC<br/>
+            = new Checkbox( "Confirm all movement that uses MASC." );<br/>
+        tempPanel.add( nagForMASC );<br/>
+        <br/>
+        nagForPSR<br/>
+            = new Checkbox( "Confirm all movement that requires a PSR." );<br/>
+        tempPanel.add( nagForPSR );<br/>
+        <br/>
+        nagForNoAction<br/>
+            = new Checkbox( "Confirm done when no movement/firing/physicals declared." );<br/>
+        tempPanel.add( nagForNoAction );<br/>
+        <br/>
+        animateMove<br/>
+            = new Checkbox( "Animate movement." );<br/>
+        tempPanel.add( animateMove );<br/>
+        <br/>
+        showWrecks<br/>
+            = new Checkbox( "Show wrecks." );<br/>
+        tempPanel.add( showWrecks );<br/>
+        <br/>
+        soundMute<br/>
+            = new Checkbox( "Mute sound." );<br/>
+        tempPanel.add( soundMute );<br/>
+        <br/>
+        showMapHexPopup<br/>
+            = new Checkbox( "Show map hex popup." );<br/>
+        tempPanel.add( showMapHexPopup );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        tooltipDelay<br/>
+            = new TextField(4);<br/>
+        panSetting.add( tooltipDelay );<br/>
+        panSetting.add( new Label("Tooltip popup delay.") );<br/>
+        tempPanel.add( panSetting );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        unitStartChar<br/>
+            = new Choice();<br/>
+        // Add option for "A, B, C, D..."<br/>
+        unitStartChar.addItem( "\u0041, \u0042, \u0043, \u0044..." );<br/>
+        // Add option for "ALPHA, BETA, GAMMA, DELTA..."<br/>
+        unitStartChar.addItem( "\u0391, \u0392, \u0393, \u0394..." );<br/>
+        // Add option for "alpha, beta, gamma, delta..."<br/>
+        unitStartChar.addItem( "\u03B1, \u03B2, \u03B3, \u03B4..." );<br/>
+        panSetting.add( unitStartChar );<br/>
+        panSetting.add( new Label("ProtoMech unit codes.") );<br/>
+        tempPanel.add( panSetting );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        maxPathfinderTime<br/>
+            = new TextField(5);<br/>
+        panSetting.add( maxPathfinderTime );<br/>
+        panSetting.add( new Label("Pathfinder time limit (milliseconds).") );<br/>
+        tempPanel.add( panSetting );<br/>
+        getFocus<br/>
+            = new Checkbox( "Get Focus when a new phase begins.");<br/>
+        tempPanel.add( getFocus );<br/>
+<br/>
+// scrolling options<br/>
+        tempPanel.add( new Label("Clicking on the MiniMap and using the numpad arrow keys always scrolls the main display.") );<br/>
+        tempPanel.add( new Label("Additionaly, you may choose to scroll:") );<br/>
+<br/>
+        rightDragScroll<br/>
+            = new Checkbox( "By right-clicking on the map and dragging." );<br/>
+        tempPanel.add( rightDragScroll );<br/>
+        <br/>
+        ctlScroll<br/>
+            = new Checkbox( <span class="upd">"By holding down CTL and dragging."</span> );<br/>
+            tempPanel.add( ctlScroll );<br/>
+<br/>
+        clickEdgeScroll<br/>
+            = new Checkbox( "By right-clicking near the edge of the map." );<br/>
+            tempPanel.add( clickEdgeScroll );<br/>
+<br/>
+        alwaysRightClickScroll<br/>
+            = new Checkbox( "Use the right-click near the edge of the map scrolling also in the firing phase." );<br/>
+            tempPanel.add( alwaysRightClickScroll );<br/>
+        <br/>
+        autoEdgeScroll<br/>
+            = new Checkbox( "Automatically, whenever you left-click near the edge of the map." );<br/>
+            tempPanel.add( autoEdgeScroll );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        scrollSensitivity<br/>
+            = new TextField(4);<br/>
+        panSetting.add( scrollSensitivity );<br/>
+        panSetting.add( new Label("Scroll sensitivity.") );<br/>
+        tempPanel.add( panSetting );<br/>
+// scrolling options<br/>
+<br/>
+        scrOptions.add(tempPanel);<br/>
+<br/>
+        // add the scrollable panel<br/>
+        GridBagLayout gridbag = new GridBagLayout();<br/>
+        GridBagConstraints c = new GridBagConstraints();<br/>
+        setLayout(gridbag);<br/>
+            <br/>
+        c.insets = new Insets(1, 1, 1, 1);<br/>
+        c.weightx = 1.0;    c.weighty = 1.0;<br/>
+        c.fill = GridBagConstraints.BOTH;<br/>
+        c.gridwidth = GridBagConstraints.REMAINDER;<br/>
+        gridbag.setConstraints(scrOptions, c);<br/>
+        this.add(scrOptions);<br/>
+<br/>
+        // Add the dialog controls.<br/>
+        Panel buttons = new Panel();<br/>
+        buttons.setLayout( new GridLayout(1, 0) );<br/>
+        buttons.add( new Label() );<br/>
+        Button update = new Button( "Update" );<br/>
+        update.setActionCommand( CommonSettingsDialog.UPDATE );<br/>
+        update.addActionListener( this );<br/>
+        buttons.add( update );<br/>
+        buttons.add( new Label() );<br/>
+        Button cancel = new Button( "Cancel" );<br/>
+        cancel.setActionCommand( CommonSettingsDialog.CANCEL );<br/>
+        cancel.addActionListener( this );<br/>
+        buttons.add( cancel );<br/>
+        buttons.add( new Label() );<br/>
+<br/>
+        c.weightx = 1.0;    c.weighty = 0.0;<br/>
+        gridbag.setConstraints(buttons, c);<br/>
+        this.add( buttons );<br/>
+<br/>
+        // Close this dialog when the window manager says to.<br/>
+        addWindowListener(new WindowAdapter() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    public void windowClosing(WindowEvent e) { cancel(); }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+<br/>
+        // Center this dialog.<br/>
+        pack();<br/>
+<br/>
+        Dimension screenSize = owner.getToolkit().getScreenSize();<br/>
+        setSize(Math.min(tempPanel.getSize().width+50,screenSize.width), Math.min(tempPanel.getSize().height+100,screenSize.height));<br/>
+<br/>
+        setLocation(owner.getLocation().x + owner.getSize().width/2 - getSize().width/2,<br/>
+                    owner.getLocation().y + owner.getSize().height/2 - getSize().height/2);<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Display the current settings in this dialog.<br/>
+     * &lt;p/&gt;<br/>
+     * Overrides &lt;code&gt;Dialog#show()&lt;/code&gt;.<br/>
+     */<br/>
+    public void show() {<br/>
+        minimapEnabled.setState( Settings.minimapEnabled );<br/>
+        autoEndFiring.setState( Settings.autoEndFiring );<br/>
+        nagForMASC.setState( Settings.nagForMASC );<br/>
+        nagForPSR.setState( Settings.nagForPSR );<br/>
+        nagForNoAction.setState( Settings.nagForNoAction );<br/>
+        animateMove.setState( Settings.showMoveStep );<br/>
+        showWrecks.setState( Settings.showWrecks );<br/>
+        soundMute.setState( Settings.soundMute );<br/>
+        showMapHexPopup.setState( Settings.showMapHexPopup );<br/>
+        tooltipDelay.setText( Integer.toString(Settings.tooltipDelay ) );<br/>
+<br/>
+        // Select the correct char set (give a nice default to start).<br/>
+        unitStartChar.select(0);<br/>
+        for ( int loop = 0; loop &lt; unitStartChar.getItemCount(); loop++ ) {<br/>
+            if ( unitStartChar.getItem(loop).charAt(0) ==<br/>
+                 Settings.unitStartChar ) {<br/>
+                unitStartChar.select(loop);<br/>
+                break;<br/>
+            }<br/>
+        }<br/>
+<br/>
+        maxPathfinderTime.setText( Integer.toString(Settings.maxPathfinderTime ) );<br/>
+<br/>
+        rightDragScroll.setState( Settings.rightDragScroll );<br/>
+        ctlScroll.setState( Settings.ctlScroll );<br/>
+        clickEdgeScroll.setState( Settings.clickEdgeScroll );<br/>
+        alwaysRightClickScroll.setState( Settings.alwaysRightClickScroll );<br/>
+        autoEdgeScroll.setState( Settings.autoEdgeScroll );<br/>
+        scrollSensitivity.setText( Integer.toString(Settings.getScrollSensitivity() ) );<br/>
+<br/>
+<br/>
+        getFocus.setState( Settings.getFocus );<br/>
+        super.show();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Cancel any updates made in this dialog, and closes it.<br/>
+     */<br/>
+    private void cancel() {<br/>
+        this.setVisible( false );<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Update the settings from this dialog's values, then closes it.<br/>
+     */<br/>
+    private void update() {<br/>
+        Settings.minimapEnabled = minimapEnabled.getState();<br/>
+        Settings.autoEndFiring =  autoEndFiring.getState();<br/>
+        Settings.nagForMASC =     nagForMASC.getState();<br/>
+        Settings.nagForPSR =      nagForPSR.getState();<br/>
+        Settings.nagForNoAction = nagForNoAction.getState();<br/>
+        Settings.showMoveStep =   animateMove.getState();<br/>
+        Settings.showWrecks =     showWrecks.getState();<br/>
+        Settings.soundMute =      soundMute.getState();<br/>
+        Settings.showMapHexPopup= showMapHexPopup.getState();<br/>
+        Settings.tooltipDelay =   Integer.parseInt(tooltipDelay.getText());<br/>
+        Settings.unitStartChar=   unitStartChar.getSelectedItem().charAt(0);<br/>
+<br/>
+        Settings.rightDragScroll        = rightDragScroll.getState();<br/>
+        Settings.ctlScroll              = ctlScroll.getState();<br/>
+        Settings.clickEdgeScroll        = clickEdgeScroll.getState();<br/>
+        Settings.alwaysRightClickScroll = alwaysRightClickScroll.getState();<br/>
+        Settings.autoEdgeScroll         = autoEdgeScroll.getState();<br/>
+        Settings.setScrollSensitivity( Integer.parseInt(scrollSensitivity.getText()) );<br/>
+<br/>
+        Settings.maxPathfinderTime    = Integer.parseInt(maxPathfinderTime.getText());<br/>
+<br/>
+        Settings.getFocus =       getFocus.getState();<br/>
+        Settings.save();<br/>
+        this.setVisible( false );<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Handle the player pressing the action buttons.<br/>
+     * &lt;p/&gt;<br/>
+     * Implements the &lt;code&gt;ActionListener&lt;/code&gt; interface.<br/>
+     *<br/>
+     * @param   event - the &lt;code&gt;ActionEvent&lt;/code&gt; that initiated this call.<br/>
+     */<br/>
+    public void actionPerformed( ActionEvent event ) {<br/>
+        String command = event.getActionCommand();<br/>
+        if ( CommonSettingsDialog.UPDATE.equalsIgnoreCase( command ) ) {<br/>
+            update();<br/>
+        }<br/>
+        else if ( CommonSettingsDialog.CANCEL.equalsIgnoreCase( command ) ) {<br/>
+            cancel();<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_CommonSettingsDialog_1.23.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2003, 2004 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it <br/>
+ *  under the terms of the GNU General Public License as published by the Free <br/>
+ *  Software Foundation; either version 2 of the License, or (at your option) <br/>
+ *  any later version.<br/>
+ * <br/>
+ *  This program is distributed in the hope that it will be useful, but <br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY <br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License <br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.client;<br/>
+<br/>
+import java.awt.*;<br/>
+import java.awt.event.*;<br/>
+<br/>
+import megamek.common.Settings;<br/>
+<br/>
+public class CommonSettingsDialog extends Dialog implements ActionListener {<br/>
+<br/>
+    private ScrollPane  scrOptions = new ScrollPane();<br/>
+<br/>
+    private Checkbox    minimapEnabled;<br/>
+    private Checkbox    autoEndFiring;<br/>
+    private Checkbox    nagForMASC;<br/>
+    private Checkbox    nagForPSR;<br/>
+    private Checkbox    nagForNoAction;<br/>
+    private Checkbox    animateMove;<br/>
+    private Checkbox    showWrecks;<br/>
+    private Checkbox    soundMute;<br/>
+    private Checkbox    showMapHexPopup;<br/>
+    private TextField   tooltipDelay;<br/>
+    private Choice      unitStartChar;<br/>
+    private TextField   maxPathfinderTime;<br/>
+    private Checkbox    getFocus;<br/>
+    <br/>
+    private Checkbox    rightDragScroll;<br/>
+    private Checkbox    ctlScroll;<br/>
+    private Checkbox    clickEdgeScroll;<br/>
+    private Checkbox    alwaysRightClickScroll;<br/>
+    private Checkbox    autoEdgeScroll;<br/>
+    private TextField   scrollSensitivity;<br/>
+<br/>
+    private static final String CANCEL = "CANCEL";<br/>
+    private static final String UPDATE = "UPDATE";<br/>
+<br/>
+    /**<br/>
+     * Standard constructor.  There is no default constructor for this class.<br/>
+     *<br/>
+     * @param   owner - the &lt;code&gt;Frame&lt;/code&gt; that owns this dialog.<br/>
+     */<br/>
+    public CommonSettingsDialog( Frame owner) {<br/>
+        // Initialize our superclass with a title.<br/>
+        super( owner, "Client Settings" );<br/>
+<br/>
+        // Lay out this dialog.<br/>
+        Panel tempPanel = new Panel();<br/>
+        tempPanel.setLayout( new GridLayout(0, 1) );<br/>
+<br/>
+        // Add the setting controls.<br/>
+        Panel panSetting;<br/>
+        minimapEnabled<br/>
+            = new Checkbox( "The minimap can be shown." );<br/>
+        tempPanel.add( minimapEnabled );<br/>
+        <br/>
+        autoEndFiring<br/>
+            = new Checkbox( "Skip 'Done' when firing all weapons." );<br/>
+        tempPanel.add( autoEndFiring );<br/>
+        <br/>
+        nagForMASC<br/>
+            = new Checkbox( "Confirm all movement that uses MASC." );<br/>
+        tempPanel.add( nagForMASC );<br/>
+        <br/>
+        nagForPSR<br/>
+            = new Checkbox( "Confirm all movement that requires a PSR." );<br/>
+        tempPanel.add( nagForPSR );<br/>
+        <br/>
+        nagForNoAction<br/>
+            = new Checkbox( "Confirm done when no movement/firing/physicals declared." );<br/>
+        tempPanel.add( nagForNoAction );<br/>
+        <br/>
+        animateMove<br/>
+            = new Checkbox( "Animate movement." );<br/>
+        tempPanel.add( animateMove );<br/>
+        <br/>
+        showWrecks<br/>
+            = new Checkbox( "Show wrecks." );<br/>
+        tempPanel.add( showWrecks );<br/>
+        <br/>
+        soundMute<br/>
+            = new Checkbox( "Mute sound." );<br/>
+        tempPanel.add( soundMute );<br/>
+        <br/>
+        showMapHexPopup<br/>
+            = new Checkbox( "Show map hex popup." );<br/>
+        tempPanel.add( showMapHexPopup );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        tooltipDelay<br/>
+            = new TextField(4);<br/>
+        panSetting.add( tooltipDelay );<br/>
+        panSetting.add( new Label("Tooltip popup delay.") );<br/>
+        tempPanel.add( panSetting );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        unitStartChar<br/>
+            = new Choice();<br/>
+        // Add option for "A, B, C, D..."<br/>
+        unitStartChar.addItem( "\u0041, \u0042, \u0043, \u0044..." );<br/>
+        // Add option for "ALPHA, BETA, GAMMA, DELTA..."<br/>
+        unitStartChar.addItem( "\u0391, \u0392, \u0393, \u0394..." );<br/>
+        // Add option for "alpha, beta, gamma, delta..."<br/>
+        unitStartChar.addItem( "\u03B1, \u03B2, \u03B3, \u03B4..." );<br/>
+        panSetting.add( unitStartChar );<br/>
+        panSetting.add( new Label("ProtoMech unit codes.") );<br/>
+        tempPanel.add( panSetting );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        maxPathfinderTime<br/>
+            = new TextField(5);<br/>
+        panSetting.add( maxPathfinderTime );<br/>
+        panSetting.add( new Label("Pathfinder time limit (milliseconds).") );<br/>
+        tempPanel.add( panSetting );<br/>
+        getFocus<br/>
+            = new Checkbox( "Get Focus when a new phase begins.");<br/>
+        tempPanel.add( getFocus );<br/>
+<br/>
+// scrolling options<br/>
+        tempPanel.add( new Label("Clicking on the MiniMap and using the numpad arrow keys always scrolls the main display.") );<br/>
+        tempPanel.add( new Label("Additionaly, you may choose to scroll:") );<br/>
+<br/>
+        rightDragScroll<br/>
+            = new Checkbox( "By right-clicking on the map and dragging." );<br/>
+        tempPanel.add( rightDragScroll );<br/>
+        <br/>
+        ctlScroll<br/>
+            = new Checkbox( <span class="upd">"By holding down CTRL and dragging."</span> );<br/>
+            tempPanel.add( ctlScroll );<br/>
+<br/>
+        clickEdgeScroll<br/>
+            = new Checkbox( "By right-clicking near the edge of the map." );<br/>
+            tempPanel.add( clickEdgeScroll );<br/>
+<br/>
+        alwaysRightClickScroll<br/>
+            = new Checkbox( "Use the right-click near the edge of the map scrolling also in the firing phase." );<br/>
+            tempPanel.add( alwaysRightClickScroll );<br/>
+        <br/>
+        autoEdgeScroll<br/>
+            = new Checkbox( "Automatically, whenever you left-click near the edge of the map." );<br/>
+            tempPanel.add( autoEdgeScroll );<br/>
+<br/>
+        panSetting = new Panel();<br/>
+        scrollSensitivity<br/>
+            = new TextField(4);<br/>
+        panSetting.add( scrollSensitivity );<br/>
+        panSetting.add( new Label("Scroll sensitivity.") );<br/>
+        tempPanel.add( panSetting );<br/>
+// scrolling options<br/>
+<br/>
+        scrOptions.add(tempPanel);<br/>
+<br/>
+        // add the scrollable panel<br/>
+        GridBagLayout gridbag = new GridBagLayout();<br/>
+        GridBagConstraints c = new GridBagConstraints();<br/>
+        setLayout(gridbag);<br/>
+            <br/>
+        c.insets = new Insets(1, 1, 1, 1);<br/>
+        c.weightx = 1.0;    c.weighty = 1.0;<br/>
+        c.fill = GridBagConstraints.BOTH;<br/>
+        c.gridwidth = GridBagConstraints.REMAINDER;<br/>
+        gridbag.setConstraints(scrOptions, c);<br/>
+        this.add(scrOptions);<br/>
+<br/>
+        // Add the dialog controls.<br/>
+        Panel buttons = new Panel();<br/>
+        buttons.setLayout( new GridLayout(1, 0) );<br/>
+        buttons.add( new Label() );<br/>
+        Button update = new Button( "Update" );<br/>
+        update.setActionCommand( CommonSettingsDialog.UPDATE );<br/>
+        update.addActionListener( this );<br/>
+        buttons.add( update );<br/>
+        buttons.add( new Label() );<br/>
+        Button cancel = new Button( "Cancel" );<br/>
+        cancel.setActionCommand( CommonSettingsDialog.CANCEL );<br/>
+        cancel.addActionListener( this );<br/>
+        buttons.add( cancel );<br/>
+        buttons.add( new Label() );<br/>
+<br/>
+        c.weightx = 1.0;    c.weighty = 0.0;<br/>
+        gridbag.setConstraints(buttons, c);<br/>
+        this.add( buttons );<br/>
+<br/>
+        // Close this dialog when the window manager says to.<br/>
+        addWindowListener(new WindowAdapter() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    public void windowClosing(WindowEvent e) { cancel(); }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+<br/>
+        // Center this dialog.<br/>
+        pack();<br/>
+<br/>
+        Dimension screenSize = owner.getToolkit().getScreenSize();<br/>
+        setSize(Math.min(tempPanel.getSize().width+50,screenSize.width), Math.min(tempPanel.getSize().height+100,screenSize.height));<br/>
+<br/>
+        setLocation(owner.getLocation().x + owner.getSize().width/2 - getSize().width/2,<br/>
+                    owner.getLocation().y + owner.getSize().height/2 - getSize().height/2);<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Display the current settings in this dialog.<br/>
+     * &lt;p/&gt;<br/>
+     * Overrides &lt;code&gt;Dialog#show()&lt;/code&gt;.<br/>
+     */<br/>
+    public void show() {<br/>
+        minimapEnabled.setState( Settings.minimapEnabled );<br/>
+        autoEndFiring.setState( Settings.autoEndFiring );<br/>
+        nagForMASC.setState( Settings.nagForMASC );<br/>
+        nagForPSR.setState( Settings.nagForPSR );<br/>
+        nagForNoAction.setState( Settings.nagForNoAction );<br/>
+        animateMove.setState( Settings.showMoveStep );<br/>
+        showWrecks.setState( Settings.showWrecks );<br/>
+        soundMute.setState( Settings.soundMute );<br/>
+        showMapHexPopup.setState( Settings.showMapHexPopup );<br/>
+        tooltipDelay.setText( Integer.toString(Settings.tooltipDelay ) );<br/>
+<br/>
+        // Select the correct char set (give a nice default to start).<br/>
+        unitStartChar.select(0);<br/>
+        for ( int loop = 0; loop &lt; unitStartChar.getItemCount(); loop++ ) {<br/>
+            if ( unitStartChar.getItem(loop).charAt(0) ==<br/>
+                 Settings.unitStartChar ) {<br/>
+                unitStartChar.select(loop);<br/>
+                break;<br/>
+            }<br/>
+        }<br/>
+<br/>
+        maxPathfinderTime.setText( Integer.toString(Settings.maxPathfinderTime ) );<br/>
+<br/>
+        rightDragScroll.setState( Settings.rightDragScroll );<br/>
+        ctlScroll.setState( Settings.ctlScroll );<br/>
+        clickEdgeScroll.setState( Settings.clickEdgeScroll );<br/>
+        alwaysRightClickScroll.setState( Settings.alwaysRightClickScroll );<br/>
+        autoEdgeScroll.setState( Settings.autoEdgeScroll );<br/>
+        scrollSensitivity.setText( Integer.toString(Settings.getScrollSensitivity() ) );<br/>
+<br/>
+<br/>
+        getFocus.setState( Settings.getFocus );<br/>
+        super.show();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Cancel any updates made in this dialog, and closes it.<br/>
+     */<br/>
+    private void cancel() {<br/>
+        this.setVisible( false );<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Update the settings from this dialog's values, then closes it.<br/>
+     */<br/>
+    private void update() {<br/>
+        Settings.minimapEnabled = minimapEnabled.getState();<br/>
+        Settings.autoEndFiring =  autoEndFiring.getState();<br/>
+        Settings.nagForMASC =     nagForMASC.getState();<br/>
+        Settings.nagForPSR =      nagForPSR.getState();<br/>
+        Settings.nagForNoAction = nagForNoAction.getState();<br/>
+        Settings.showMoveStep =   animateMove.getState();<br/>
+        Settings.showWrecks =     showWrecks.getState();<br/>
+        Settings.soundMute =      soundMute.getState();<br/>
+        Settings.showMapHexPopup= showMapHexPopup.getState();<br/>
+        Settings.tooltipDelay =   Integer.parseInt(tooltipDelay.getText());<br/>
+        Settings.unitStartChar=   unitStartChar.getSelectedItem().charAt(0);<br/>
+<br/>
+        Settings.rightDragScroll        = rightDragScroll.getState();<br/>
+        Settings.ctlScroll              = ctlScroll.getState();<br/>
+        Settings.clickEdgeScroll        = clickEdgeScroll.getState();<br/>
+        Settings.alwaysRightClickScroll = alwaysRightClickScroll.getState();<br/>
+        Settings.autoEdgeScroll         = autoEdgeScroll.getState();<br/>
+        Settings.setScrollSensitivity( Integer.parseInt(scrollSensitivity.getText()) );<br/>
+<br/>
+        Settings.maxPathfinderTime    = Integer.parseInt(maxPathfinderTime.getText());<br/>
+<br/>
+        Settings.getFocus =       getFocus.getState();<br/>
+        Settings.save();<br/>
+        this.setVisible( false );<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Handle the player pressing the action buttons.<br/>
+     * &lt;p/&gt;<br/>
+     * Implements the &lt;code&gt;ActionListener&lt;/code&gt; interface.<br/>
+     *<br/>
+     * @param   event - the &lt;code&gt;ActionEvent&lt;/code&gt; that initiated this call.<br/>
+     */<br/>
+    public void actionPerformed( ActionEvent event ) {<br/>
+        String command = event.getActionCommand();<br/>
+        if ( CommonSettingsDialog.UPDATE.equalsIgnoreCase( command ) ) {<br/>
+            update();<br/>
+        }<br/>
+        else if ( CommonSettingsDialog.CANCEL.equalsIgnoreCase( command ) ) {<br/>
+            cancel();<br/>
+        }<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

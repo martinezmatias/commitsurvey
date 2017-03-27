@@ -1,0 +1,1 @@
+[intern] make splash frame close before new account wizard comes up

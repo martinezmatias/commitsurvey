@@ -1,0 +1,1 @@
+added xml.root buffer-local property to user's guide source files

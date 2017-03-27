@@ -1,0 +1,1 @@
+Fixed access of static members through class declaration (not instance).

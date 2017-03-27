@@ -1,0 +1,2079 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Client_1.150.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek -<br/>
+ * Copyright (C) 2000,2001,2002,2003,2004,2005 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.client;<br/>
+<br/>
+import java.io.FileWriter;<br/>
+import java.io.IOException;<br/>
+import java.io.ObjectInputStream;<br/>
+import java.io.ObjectOutputStream;<br/>
+import java.net.Socket;<br/>
+import java.net.SocketException;<br/>
+import java.net.UnknownHostException;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Vector;<br/>
+<br/>
+import megamek.common.*;<br/>
+import megamek.common.actions.AttackAction;<br/>
+import megamek.common.actions.ClubAttackAction;<br/>
+import megamek.common.actions.DodgeAction;<br/>
+import megamek.common.actions.EntityAction;<br/>
+import megamek.common.actions.FlipArmsAction;<br/>
+import megamek.common.actions.TorsoTwistAction;<br/>
+<br/>
+public class Client implements Runnable {<br/>
+    // we need these to communicate with the server<br/>
+    private String name;<br/>
+    Socket socket;<br/>
+    private ObjectInputStream in = null;<br/>
+    private ObjectOutputStream out = null;<br/>
+<br/>
+    // some info about us and the server<br/>
+    private boolean connected = false;<br/>
+    public int local_pn = -1;<br/>
+    private int connFailures = 0;<br/>
+    private static final int MAX_CONN_FAILURES = 100;<br/>
+    private String host;<br/>
+    private int port;<br/>
+    <br/>
+    // the game state object<br/>
+    public Game game = new Game();<br/>
+<br/>
+    // here's some game phase stuff<br/>
+    private MapSettings mapSettings;<br/>
+    public String eotr;<br/>
+    <br/>
+    private Thread pump;<br/>
+<br/>
+    // I send out game events!<br/>
+    private Vector gameListeners = new Vector();<br/>
+    //And close client events!<br/>
+    private Vector closeClientListeners = new Vector();<br/>
+<br/>
+    // we might want to keep a server log...<br/>
+    private megamek.server.ServerLog serverlog;<br/>
+<br/>
+    /**<br/>
+     * Construct a client which will try to connect.  If the connection<br/>
+     * fails, it will alert the player, free resources and hide the frame.<br/>
+     *<br/>
+     * @param name the player name for this client<br/>
+     * @param host the hostname<br/>
+     * @param port the host port<br/>
+     */<br/>
+    public Client(String name, String host, int port) {<br/>
+        // construct new client<br/>
+        this.name = name;<br/>
+        this.host = host;<br/>
+        this.port = port;<br/>
+<br/>
+        if (<span class="mv">Settings.keepServerlog</span>) {<br/>
+            // we need to keep a copy of the log<br/>
+            serverlog = new megamek.server.ServerLog(Settings.serverlogFilename, true, (new Integer(Settings.serverlogMaxSize).longValue() * 1024 * 1024) );<br/>
+        };<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Attempt to connect to the specified host<br/>
+     */<br/>
+    public void connect() throws UnknownHostException, IOException {<br/>
+        socket = new Socket(host, port);<br/>
+        pump = new Thread(this, "Client Pump");<br/>
+        pump.start();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Shuts down threads and sockets<br/>
+     */<br/>
+    public void die() {<br/>
+        // If we're still connected, tell the server that we're going down.<br/>
+        if (connected) {<br/>
+            send(new Packet(Packet.COMMAND_CLOSE_CONNECTION));<br/>
+        }<br/>
+        connected = false;<br/>
+        pump = null;<br/>
+<br/>
+        // shut down threads &amp; sockets<br/>
+        try {<br/>
+            socket.close();<br/>
+            in.close();<br/>
+            out.close();<br/>
+        } catch (IOException e) {<br/>
+            e.printStackTrace();<br/>
+        } catch (NullPointerException e) {<br/>
+            // not a big deal, just never connected<br/>
+        }<br/>
+        <br/>
+        for (int i = 0; i &lt; closeClientListeners.size(); i++){<br/>
+            ((CloseClientListener)closeClientListeners.elementAt(i)).clientClosed();<br/>
+        }<br/>
+<br/>
+        if (serverlog != null) {<br/>
+            try {<br/>
+                serverlog.close();<br/>
+            } catch (IOException e) {<br/>
+                System.err.print("Exception closing logfile: ");<br/>
+                e.printStackTrace();<br/>
+            };<br/>
+        }<br/>
+        System.out.println("client: died");<br/>
+        <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The client has become disconnected from the server<br/>
+     */<br/>
+    protected void disconnected() {<br/>
+        if (connected) {<br/>
+            connected = false;<br/>
+            die();<br/>
+        }<br/>
+        if (!host.equals("localhost")) {<br/>
+            processGameEvent(new GameEvent(this, GameEvent.GAME_PLAYER_DISCONNECTED, getLocalPlayer(), ""));<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Return an enumeration of the players in the game<br/>
+     */<br/>
+    public Enumeration getPlayers() {<br/>
+        return game.getPlayers();<br/>
+    }<br/>
+<br/>
+    public Entity getEntity(int id) {<br/>
+        return game.getEntity(id);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the individual player assigned the index<br/>
+     * parameter.<br/>
+     */<br/>
+    public Player getPlayer(int idx) {<br/>
+        return (Player) game.getPlayer(idx);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the local player<br/>
+     */<br/>
+    public Player getLocalPlayer() {<br/>
+        return getPlayer(local_pn);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns an &lt;code&gt;Enumeration&lt;/code&gt; of the entities that match<br/>
+     * the selection criteria.<br/>
+     */<br/>
+    public Enumeration getSelectedEntities(EntitySelector selector) {<br/>
+        return game.getSelectedEntities(selector);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of first selectable entity<br/>
+     */<br/>
+    public int getFirstEntityNum() {<br/>
+        return game.getFirstEntityNum();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of the next selectable entity after the one given<br/>
+     */<br/>
+    public int getNextEntityNum(int entityId) {<br/>
+        return game.getNextEntityNum(entityId);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of the first deployable entity<br/>
+     */<br/>
+    public int getFirstDeployableEntityNum() {<br/>
+        return game.getFirstDeployableEntityNum();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of the next deployable entity<br/>
+     */<br/>
+    public int getNextDeployableEntityNum(int entityId) {<br/>
+        return game.getNextDeployableEntityNum(entityId);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Shortcut to game.board<br/>
+     */<br/>
+    public Board getBoard() {<br/>
+        return game.board;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns an emumeration of the entities in game.entities<br/>
+     */<br/>
+    public Enumeration getEntities() {<br/>
+        return game.getEntities();<br/>
+    }<br/>
+<br/>
+    public MapSettings getMapSettings() {<br/>
+        return mapSettings;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Changes the game phase, and the displays that go<br/>
+     * along with it.<br/>
+     */<br/>
+    protected void changePhase(int phase) {<br/>
+        this.game.setPhase(phase);<br/>
+<br/>
+        // Handle phase-specific items.<br/>
+        switch (phase) {<br/>
+            case Game.PHASE_LOUNGE :<br/>
+                game.reset();<br/>
+                break;<br/>
+            case Game.PHASE_STARTING_SCENARIO :<br/>
+                sendDone(true);<br/>
+                break;<br/>
+            case Game.PHASE_EXCHANGE :<br/>
+                sendDone(true);<br/>
+                break;<br/>
+            case Game.PHASE_DEPLOY_MINEFIELDS :<br/>
+                break;<br/>
+            case Game.PHASE_DEPLOYMENT :<br/>
+                memDump("entering deployment phase");<br/>
+                break;<br/>
+            case Game.PHASE_TARGETING :<br/>
+                memDump("entering targeting phase");<br/>
+                break;<br/>
+            case Game.PHASE_MOVEMENT :<br/>
+                memDump("entering movement phase");<br/>
+                break;<br/>
+            case Game.PHASE_OFFBOARD :<br/>
+                memDump("entering offboard phase");<br/>
+                break;<br/>
+            case Game.PHASE_FIRING :<br/>
+                memDump("entering firing phase");<br/>
+                break;<br/>
+            case Game.PHASE_PHYSICAL :<br/>
+                game.resetActions();<br/>
+                memDump("entering physical phase");<br/>
+                break;<br/>
+            case Game.PHASE_INITIATIVE :<br/>
+                game.resetActions();<br/>
+                game.resetCharges();<br/>
+                break;<br/>
+            case Game.PHASE_MOVEMENT_REPORT :<br/>
+            case Game.PHASE_OFFBOARD_REPORT :<br/>
+            case Game.PHASE_FIRING_REPORT :<br/>
+            case Game.PHASE_END :<br/>
+            case Game.PHASE_VICTORY :<br/>
+                break;<br/>
+        }<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_PHASE_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Adds the specified game listener to receive<br/>
+     * board events from this board.<br/>
+     *<br/>
+     * @param l            the game listener.<br/>
+     */<br/>
+    public void addGameListener(GameListener l) {<br/>
+        gameListeners.addElement(l);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds the specified close client listener to receive<br/>
+     * close client events.<br/>
+     * This is used by external programs running megamek<br/>
+     *<br/>
+     * @param l            the game listener.<br/>
+     */<br/>
+    public void addCloseClientListener(CloseClientListener l) {<br/>
+        closeClientListeners.addElement(l);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Removes the specified game listener.<br/>
+     *<br/>
+     * @param l            the game listener.<br/>
+     */<br/>
+    public void removeGameListener(GameListener l) {<br/>
+        gameListeners.removeElement(l);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Processes game events occurring on this<br/>
+     * connection by dispatching them to any registered<br/>
+     * GameListener objects.<br/>
+     *<br/>
+     * @param be        the board event.<br/>
+     */<br/>
+    protected void processGameEvent(GameEvent ge) {<br/>
+        for (Enumeration e = gameListeners.elements(); e.hasMoreElements();) {<br/>
+            GameListener l = (GameListener) e.nextElement();<br/>
+            switch (ge.type) {<br/>
+                case GameEvent.GAME_PLAYER_CHAT :<br/>
+                    l.gamePlayerChat(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_PLAYER_STATUSCHANGE :<br/>
+                    l.gamePlayerStatusChange(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_PHASE_CHANGE :<br/>
+                    l.gamePhaseChange(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_TURN_CHANGE :<br/>
+                    l.gameTurnChange(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_NEW_ENTITIES :<br/>
+                    l.gameNewEntities(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_NEW_SETTINGS :<br/>
+                    l.gameNewSettings(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_PLAYER_DISCONNECTED :<br/>
+                    l.gameDisconnected(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_END:<br/>
+                    l.gameEnd(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_REPORT:<br/>
+                    l.gameReport(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_MAP_QUERY:<br/>
+                    l.gameMapQuery(ge);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *<br/>
+     */<br/>
+    public void retrieveServerInfo() {<br/>
+        int retry = 50;<br/>
+        while (retry-- &gt; 0 &amp;&amp; !connected) {<br/>
+            synchronized (this) {<br/>
+                try {<br/>
+                    wait(100);<br/>
+                } catch (InterruptedException ex) {<br/>
+                    ;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * is it my turn?<br/>
+     */<br/>
+    public boolean isMyTurn() {<br/>
+        return game.getTurn() != null &amp;&amp; game.getTurn().isValid(local_pn, game);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Can I unload entities stranded on immobile transports?<br/>
+     */<br/>
+    public boolean canUnloadStranded() {<br/>
+        return game.getTurn() instanceof GameTurn.UnloadStrandedTurn &amp;&amp; game.getTurn().isValid(local_pn, game);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send command to unload stranded entities to the server<br/>
+     */<br/>
+    public void sendUnloadStranded(int[] entityIds) {<br/>
+        Object[] data = new Object[1];<br/>
+        data[0] = entityIds;<br/>
+        send(new Packet(Packet.COMMAND_UNLOAD_STRANDED, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Change whose turn it is.<br/>
+     */<br/>
+    protected void changeTurnIndex(int index) {<br/>
+        game.setTurnIndex(index);<br/>
+        Player player = getPlayer(game.getTurn().getPlayerNum());<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_TURN_CHANGE, player, ""));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send mode-change data to the server<br/>
+     */<br/>
+    public void sendModeChange(int nEntity, int nEquip, int nMode) {<br/>
+        Object[] data = { new Integer(nEntity), new Integer(nEquip), new Integer(nMode)};<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_MODECHANGE, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send mode-change data to the server<br/>
+     */<br/>
+    public void sendAmmoChange(int nEntity, int nWeapon, int nAmmo) {<br/>
+        Object[] data = { new Integer(nEntity), new Integer(nWeapon), new Integer(nAmmo)};<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_AMMOCHANGE, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send movement data for the given entity to the server.<br/>
+     */<br/>
+    public void moveEntity(int id, MovePath md) {<br/>
+        Object[] data = new Object[2];<br/>
+<br/>
+        data[0] = new Integer(id);<br/>
+        data[1] = md;<br/>
+<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_MOVE, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Maintain backwards compatability.<br/>
+     *<br/>
+     * @param   id - the &lt;code&gt;int&lt;/code&gt; ID of the deployed entity<br/>
+     * @param   c - the &lt;code&gt;Coords&lt;/code&gt; where the entity should be deployed<br/>
+     * @param   nFacing - the &lt;code&gt;int&lt;/code&gt; direction the entity should face<br/>
+     */<br/>
+    public void deploy(int id, Coords c, int nFacing) {<br/>
+        this.deploy(id, c, nFacing, new Vector());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Deploy an entity at the given coordinates, with the given facing,<br/>
+     * and starting with the given units already loaded.<br/>
+     *<br/>
+     * @param   id - the &lt;code&gt;int&lt;/code&gt; ID of the deployed entity<br/>
+     * @param   c - the &lt;code&gt;Coords&lt;/code&gt; where the entity should be deployed<br/>
+     * @param   nFacing - the &lt;code&gt;int&lt;/code&gt; direction the entity should face<br/>
+     * @param   loadedUnits - a &lt;code&gt;List&lt;/code&gt; of units that start the game<br/>
+     *          being transported byt the deployed entity.<br/>
+     */<br/>
+    public void deploy(int id, Coords c, int nFacing, Vector loadedUnits) {<br/>
+        int packetCount = 4 + loadedUnits.size();<br/>
+        int index = 0;<br/>
+        Object[] data = new Object[packetCount];<br/>
+        data[index++] = new Integer(id);<br/>
+        data[index++] = c;<br/>
+        data[index++] = new Integer(nFacing);<br/>
+        data[index++] = new Integer(loadedUnits.size());<br/>
+<br/>
+        Enumeration iter = loadedUnits.elements();<br/>
+        while (iter.hasMoreElements()) {<br/>
+            data[index++] = new Integer(((Entity) iter.nextElement()).getId());<br/>
+        }<br/>
+<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_DEPLOY, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send a weapon fire command to the server.<br/>
+     */<br/>
+    public void sendAttackData(int aen, Vector attacks) {<br/>
+        Object[] data = new Object[2];<br/>
+<br/>
+        data[0] = new Integer(aen);<br/>
+        data[1] = attacks;<br/>
+<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_ATTACK, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send the game options to the server<br/>
+     */<br/>
+    public void sendGameOptions(String password, Vector options) {<br/>
+        final Object[] data = new Object[2];<br/>
+        data[0] = password;<br/>
+        data[1] = options;<br/>
+        send(new Packet(Packet.COMMAND_SENDING_GAME_SETTINGS, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send the game settings to the server<br/>
+     */<br/>
+    public void sendMapSettings(MapSettings settings) {<br/>
+        send(new Packet(Packet.COMMAND_SENDING_MAP_SETTINGS, settings));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send the game settings to the server<br/>
+     */<br/>
+    public void sendMapQuery(MapSettings query) {<br/>
+        send(new Packet(Packet.COMMAND_QUERY_MAP_SETTINGS, query));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Broadcast a general chat message from the local player<br/>
+     */<br/>
+    public void sendChat(String message) {<br/>
+        send(new Packet(Packet.COMMAND_CHAT, message));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "player done" message to the server.<br/>
+     */<br/>
+    public synchronized void sendDone(boolean done) {<br/>
+        send(new Packet(Packet.COMMAND_PLAYER_READY, new Boolean(done)));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "reroll initiative" message to the server.<br/>
+     */<br/>
+    public void sendRerollInitiativeRequest() {<br/>
+        send(new Packet(Packet.COMMAND_REROLL_INITIATIVE));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends the info associated with the local player.<br/>
+     */<br/>
+    public void sendPlayerInfo() {<br/>
+        Player player = game.getPlayer(local_pn);<br/>
+        Settings.lastPlayerColor = player.getColorIndex();<br/>
+        Settings.lastPlayerCategory = player.getCamoCategory();<br/>
+        Settings.lastPlayerCamoName = player.getCamoFileName();<br/>
+        send(new Packet(Packet.COMMAND_PLAYER_UPDATE, player));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends an "add entity" packet<br/>
+     */<br/>
+    public void sendAddEntity(Entity entity) {<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_ADD, entity));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends an "deploy minefields" packet<br/>
+     */<br/>
+    public void sendDeployMinefields(Vector minefields) {<br/>
+        send(new Packet(Packet.COMMAND_DEPLOY_MINEFIELDS, minefields));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "set Artillery Autohit Hexes" packet<br/>
+     */<br/>
+    public void sendArtyAutoHitHexes(Vector hexes) {<br/>
+        send(new Packet(Packet.COMMAND_SET_ARTYAUTOHITHEXES, hexes));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Sends an "update entity" packet<br/>
+     */<br/>
+    public void sendUpdateEntity(Entity entity) {<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_UPDATE, entity));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "delete entity" packet<br/>
+     */<br/>
+    public void sendDeleteEntity(int id) {<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_REMOVE, new Integer(id)));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Receives player information from the message packet.<br/>
+     */<br/>
+    protected void receivePlayerInfo(Packet c) {<br/>
+        int pindex = c.getIntValue(0);<br/>
+        Player newPlayer = (Player) c.getObject(1);<br/>
+        if (getPlayer(newPlayer.getId()) == null) {<br/>
+            game.addPlayer(pindex, newPlayer);<br/>
+        } else {<br/>
+            game.setPlayer(pindex, newPlayer);<br/>
+        }<br/>
+        Settings.lastPlayerColor = newPlayer.getColorIndex();<br/>
+        Settings.lastPlayerCategory = newPlayer.getCamoCategory();<br/>
+        Settings.lastPlayerCamoName = newPlayer.getCamoFileName();<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_PLAYER_STATUSCHANGE, newPlayer, ""));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads the turn list from the data in the packet<br/>
+     */<br/>
+    protected void receiveTurns(Packet packet) {<br/>
+        game.setTurnVector((Vector) packet.getObject(0));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads the board from the data in the net command.<br/>
+     */<br/>
+    protected void receiveBoard(Packet c) {<br/>
+        Board newBoard = (Board) c.getObject(0);<br/>
+        game.board.newData(newBoard);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads the entities from the data in the net command.<br/>
+     */<br/>
+    protected void receiveEntities(Packet c) {<br/>
+        Vector newEntities = (Vector) c.getObject(0);<br/>
+        Vector newOutOfGame = (Vector) c.getObject(1);<br/>
+<br/>
+        // Replace the entities in the game.<br/>
+        game.setEntitiesVector(newEntities);<br/>
+        if (newOutOfGame != null) {<br/>
+            game.setOutOfGameEntitiesVector(newOutOfGame);<br/>
+        }<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads entity update data from the data in the net command.<br/>
+     */<br/>
+    protected void receiveEntityUpdate(Packet c) {<br/>
+        int eindex = c.getIntValue(0);<br/>
+        Entity entity = (Entity) c.getObject(1);<br/>
+        // Replace this entity in the game.<br/>
+        game.setEntity(eindex, entity);        <br/>
+<br/>
+        processGameEvent(new GameEvent(c, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    protected void receiveEntityAdd(Packet packet) {<br/>
+        int entityId = packet.getIntValue(0);<br/>
+        Entity entity = (Entity) packet.getObject(1);<br/>
+<br/>
+        // Add the entity to the game.<br/>
+        game.addEntity(entityId, entity);<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    protected void receiveEntityRemove(Packet packet) {<br/>
+        int entityId = packet.getIntValue(0);<br/>
+        int condition = packet.getIntValue(1);<br/>
+<br/>
+        // Move the unit to its final resting place.<br/>
+        game.removeEntity(entityId, condition);<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    protected void receiveEntityVisibilityIndicator(Packet packet) {<br/>
+        Entity e = game.getEntity(packet.getIntValue(0));<br/>
+        if (e != null) { // we may not have this entity due to double blind<br/>
+            e.setSeenByEnemy(packet.getBooleanValue(1));<br/>
+            e.setVisibleToEnemy(packet.getBooleanValue(2));<br/>
+            //this next call is only needed sometimes, but we'll just<br/>
+            // call it everytime<br/>
+            game.board.processBoardEvent(new BoardEvent(game.board, e.getPosition(), e, BoardEvent.BOARD_CHANGED_ENTITY, 0));<br/>
+        }<br/>
+    }<br/>
+<br/>
+    protected void receiveDeployMinefields(Packet packet) {<br/>
+        Vector minefields = (Vector) packet.getObject(0);<br/>
+<br/>
+        for (int i = 0; i &lt; minefields.size(); i++) {<br/>
+            Minefield mf = (Minefield) minefields.elementAt(i);<br/>
+            game.addMinefield(mf);<br/>
+        }<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveSendingMinefields(Packet packet) {<br/>
+        Vector minefields = (Vector) packet.getObject(0);<br/>
+        game.clearMinefields();<br/>
+<br/>
+        for (int i = 0; i &lt; minefields.size(); i++) {<br/>
+            Minefield mf = (Minefield) minefields.elementAt(i);<br/>
+            game.addMinefield(mf);<br/>
+        }<br/>
+      processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveRevealMinefield(Packet packet) {<br/>
+        Minefield mf = (Minefield) packet.getObject(0);<br/>
+        game.addMinefield(mf);<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveRemoveMinefield(Packet packet) {<br/>
+        Minefield mf = (Minefield) packet.getObject(0);<br/>
+        game.removeMinefield(mf);<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveBuildingUpdateCF(Packet packet) {<br/>
+        Vector bldgs = (Vector) packet.getObject(0);<br/>
+<br/>
+        // Update the board.  The board will notify listeners.<br/>
+        game.board.updateBuildingCF(bldgs);<br/>
+    }<br/>
+<br/>
+    protected void receiveBuildingCollapse(Packet packet) {<br/>
+        Vector bldgs = (Vector) packet.getObject(0);<br/>
+<br/>
+        // Update the board.  The board will notify listeners.<br/>
+        game.board.collapseBuilding(bldgs);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads entity firing data from the data in the net command<br/>
+     */<br/>
+    protected void receiveAttack(Packet c) {<br/>
+        Vector vector = (Vector) c.getObject(0);<br/>
+        boolean charge = c.getBooleanValue(1);<br/>
+        boolean addAction = true;<br/>
+        for (Enumeration i = vector.elements(); i.hasMoreElements();) {<br/>
+            EntityAction ea = (EntityAction) i.nextElement();<br/>
+            int entityId = ea.getEntityId();<br/>
+            if (ea instanceof TorsoTwistAction &amp;&amp; game.hasEntity(entityId)) {<br/>
+                TorsoTwistAction tta = (TorsoTwistAction) ea;<br/>
+                Entity entity = game.getEntity(entityId);<br/>
+                entity.setSecondaryFacing(tta.getFacing());<br/>
+                game.board.processBoardEvent(new BoardEvent(<br/>
+                                       game.board, entity.getPosition(),<br/>
+                                       entity,<br/>
+                                       BoardEvent.BOARD_CHANGED_ENTITY, 0));<br/>
+            } else if (ea instanceof FlipArmsAction &amp;&amp; game.hasEntity(entityId)) {<br/>
+                FlipArmsAction faa = (FlipArmsAction) ea;<br/>
+                Entity entity = game.getEntity(entityId);<br/>
+                entity.setArmsFlipped(faa.getIsFlipped());<br/>
+                game.board.processBoardEvent(new BoardEvent(<br/>
+                                       game.board, entity.getPosition(),<br/>
+                                       entity,<br/>
+                                       BoardEvent.BOARD_CHANGED_ENTITY, 0));<br/>
+            } else if (ea instanceof DodgeAction &amp;&amp; game.hasEntity(entityId)) {<br/>
+                Entity entity = game.getEntity(entityId);<br/>
+                entity.dodging = true;<br/>
+                addAction = false;<br/>
+            } else if (ea instanceof AttackAction) {<br/>
+                if (ea instanceof ClubAttackAction) {<br/>
+                    ClubAttackAction clubAct = (ClubAttackAction) ea;<br/>
+                    Entity entity = game.getEntity(clubAct.getEntityId());<br/>
+                    clubAct.setClub(Compute.clubMechHas(entity));<br/>
+                }<br/>
+                game.board.processBoardEvent(new BoardEvent(<br/>
+                                       ea, null, null,<br/>
+                                       BoardEvent.BOARD_NEW_ATTACK, 0));<br/>
+            }<br/>
+<br/>
+            if (addAction) {<br/>
+                // track in the appropriate list<br/>
+                if (charge) {<br/>
+                    game.addCharge((AttackAction) ea);<br/>
+                } else {<br/>
+                    game.addAction(ea);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Saves server entity status data to a local file<br/>
+     */<br/>
+    private void saveEntityStatus(String sStatus) {<br/>
+        try {<br/>
+            FileWriter fw = new FileWriter("entitystatus.txt");<br/>
+            fw.write(sStatus);<br/>
+            fw.flush();<br/>
+            fw.close();<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Reads a complete net command from the given input stream<br/>
+     */<br/>
+    private Packet readPacket() {<br/>
+        try {<br/>
+            if (in == null) {<br/>
+                in = new ObjectInputStream(socket.getInputStream());<br/>
+            }<br/>
+<br/>
+            Packet packet = (Packet)in.readObject();<br/>
+<br/>
+            /* Packet debug code<br/>
+            if (packet == null) {<br/>
+                System.out.println("c: received null packet");<br/>
+            } else if (packet.getData() == null) {<br/>
+                System.out.println("c: received empty packet");<br/>
+            } else {<br/>
+                System.out.println("c: received command #" + packet.getCommand() + " with " + packet.getData().length + " zipped entries totaling " + packet.byteLength + " bytes in size");<br/>
+            } */<br/>
+<br/>
+            // All went well.  Reset the failure count.<br/>
+            this.connFailures = 0;<br/>
+            return packet;<br/>
+        } catch (SocketException ex) {<br/>
+            // assume client is shutting down<br/>
+            System.err.println("client: Socket error (server closed?)");<br/>
+            if (this.connFailures &gt; MAX_CONN_FAILURES) {<br/>
+                disconnected();<br/>
+            } else {<br/>
+                this.connFailures++;<br/>
+            }<br/>
+            return null;<br/>
+        } catch (IOException ex) {<br/>
+            System.err.println("client: IO error reading command:");<br/>
+            disconnected();<br/>
+            return null;<br/>
+        } catch (ClassNotFoundException ex) {<br/>
+            System.err.println("client: class not found error reading command:");<br/>
+            ex.printStackTrace();<br/>
+            disconnected();<br/>
+            return null;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * send the message to the server<br/>
+     */<br/>
+    protected void send(Packet packet) {<br/>
+        packet.zipData();<br/>
+        try {<br/>
+            if (out == null) {<br/>
+                out = new ObjectOutputStream(socket.getOutputStream());<br/>
+                out.flush();<br/>
+            }<br/>
+            out.reset(); // write each packet fresh; a lot changes<br/>
+            out.writeObject(packet);<br/>
+            out.flush();<br/>
+            //            System.out.println("c: packet #" + packet.getCommand() + " sent");<br/>
+        } catch (IOException ex) {<br/>
+            System.err.println("client: error sending command.");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    //<br/>
+    // Runnable<br/>
+    //<br/>
+    public void run() {<br/>
+        Thread currentThread = Thread.currentThread();<br/>
+        while(pump == currentThread) {<br/>
+            Packet c = readPacket();<br/>
+            if (c == null) {<br/>
+                System.out.println("client: got null packet");<br/>
+                continue;<br/>
+            }<br/>
+            switch (c.getCommand()) {<br/>
+                case Packet.COMMAND_CLOSE_CONNECTION :<br/>
+                    disconnected();<br/>
+                    break;<br/>
+                case Packet.COMMAND_SERVER_GREETING :<br/>
+                    connected = true;<br/>
+                    send(new Packet(Packet.COMMAND_CLIENT_NAME, name));<br/>
+                    break;<br/>
+                case Packet.COMMAND_LOCAL_PN :<br/>
+                    this.local_pn = c.getIntValue(0);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_UPDATE :<br/>
+                    receivePlayerInfo(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_READY :<br/>
+                    getPlayer(c.getIntValue(0)).setDone(c.getBooleanValue(1));<br/>
+                    processGameEvent(<br/>
+                        new GameEvent(this, GameEvent.GAME_PLAYER_STATUSCHANGE, getPlayer(c.getIntValue(0)), ""));<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_ADD :<br/>
+                    receivePlayerInfo(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_REMOVE :<br/>
+                    game.removePlayer(c.getIntValue(0));<br/>
+                    processGameEvent(<br/>
+                        new GameEvent(this, GameEvent.GAME_PLAYER_STATUSCHANGE, getPlayer(c.getIntValue(0)), ""));<br/>
+                    break;<br/>
+                case Packet.COMMAND_CHAT :<br/>
+                    if (null!=serverlog &amp;&amp; Settings.keepServerlog) {<br/>
+                        serverlog.append( (String) c.getObject(0) );<br/>
+                    };<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_PLAYER_CHAT, null, (String) c.getObject(0)));<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_ADD :<br/>
+                    receiveEntityAdd(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_UPDATE :<br/>
+                    receiveEntityUpdate(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_REMOVE :<br/>
+                    receiveEntityRemove(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_VISIBILITY_INDICATOR :<br/>
+                    receiveEntityVisibilityIndicator(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_MINEFIELDS :<br/>
+                    receiveSendingMinefields(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_DEPLOY_MINEFIELDS :<br/>
+                    receiveDeployMinefields(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_REVEAL_MINEFIELD :<br/>
+                    receiveRevealMinefield(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_REMOVE_MINEFIELD :<br/>
+                    receiveRemoveMinefield(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_CHANGE_HEX :<br/>
+                    game.board.setHex((Coords) c.getObject(0), (Hex) c.getObject(1));<br/>
+                    break;<br/>
+                case Packet.COMMAND_BLDG_UPDATE_CF :<br/>
+                    receiveBuildingUpdateCF(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_BLDG_COLLAPSE :<br/>
+                    receiveBuildingCollapse(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PHASE_CHANGE :<br/>
+                    changePhase(c.getIntValue(0));<br/>
+                    break;<br/>
+                case Packet.COMMAND_TURN :<br/>
+                    changeTurnIndex(c.getIntValue(0));<br/>
+                    break;<br/>
+                case Packet.COMMAND_ROUND_UPDATE :<br/>
+                    game.setRoundCount(c.getIntValue(0));<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_TURNS :<br/>
+                    receiveTurns(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_BOARD :<br/>
+                    receiveBoard(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_ENTITIES :<br/>
+                    receiveEntities(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_REPORT :<br/>
+                    if (null!=serverlog &amp;&amp; Settings.keepServerlog) {<br/>
+                        if (null==eotr || ((String) c.getObject(0)).length() &lt; eotr.length() ) {<br/>
+                            // first report packet<br/>
+                            serverlog.append( (String) c.getObject(0) );<br/>
+                        } else {<br/>
+                            // append only the new part, not what's already in eotr<br/>
+                            serverlog.append( ((String) c.getObject(0)).substring(eotr.length()) );<br/>
+                        };<br/>
+                    };<br/>
+                    eotr = (String) c.getObject(0);<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_REPORT, null, ""));<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_ATTACK :<br/>
+                    receiveAttack(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_GAME_SETTINGS :<br/>
+                    game.setOptions((GameOptions) c.getObject(0));<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_SETTINGS, null, null));<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_MAP_SETTINGS :<br/>
+                    mapSettings = (MapSettings) c.getObject(0);<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_SETTINGS, null, null));<br/>
+                    break;<br/>
+                case Packet.COMMAND_QUERY_MAP_SETTINGS :<br/>
+                    processGameEvent(new GameEvent(c.getObject(0), GameEvent.GAME_MAP_QUERY, null, null));<br/>
+                    break;<br/>
+                case Packet.COMMAND_END_OF_GAME :<br/>
+                    String sReport = (String) c.getObject(0);<br/>
+                    game.setVictoryPlayerId(c.getIntValue(1));<br/>
+                    game.setVictoryTeam(c.getIntValue(2));<br/>
+                    // save victory report<br/>
+                    saveEntityStatus(sReport);<br/>
+<br/>
+                    // Clean up the board settings.<br/>
+                    this.game.board.select(null);<br/>
+                    this.game.board.highlight(null);<br/>
+                    this.game.board.cursor(null);<br/>
+                    <br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_END, null, ""));<br/>
+                    break;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Perform a dump of the current memory usage.<br/>
+     * &lt;p/&gt;<br/>
+     * This method is useful in tracking performance issues on various<br/>
+     * player's systems.  You can activate it by changing the "memorydumpon"<br/>
+     * setting to "true" in the MegaMek.cfg file.<br/>
+     *<br/>
+     * @param   where - a &lt;code&gt;String&lt;/code&gt; indicating which part of the<br/>
+     *          game is making this call.<br/>
+     *<br/>
+     * @see     megamek.common.Settings#memoryDumpOn<br/>
+     * @see     megamek.client.Client#changePhase(int)<br/>
+     */<br/>
+    private void memDump(String where) {<br/>
+        if (Settings.memoryDumpOn) {<br/>
+            StringBuffer buf = new StringBuffer();<br/>
+            final long total = Runtime.getRuntime().totalMemory();<br/>
+            final long free = Runtime.getRuntime().freeMemory();<br/>
+            final long used = total - free;<br/>
+            buf.append("Memory dump ").append(where);<br/>
+            for (int loop = where.length(); loop &lt; 25; loop++) {<br/>
+                buf.append(' ');<br/>
+            }<br/>
+            buf.append(": used (").append(used).append(") + free (").append(free).append(") = ").append(total);<br/>
+            System.out.println(buf.toString());<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    public String getName() {<br/>
+        return name;<br/>
+    }<br/>
+<br/>
+    public int getPort() {<br/>
+        return port;<br/>
+    }<br/>
+<br/>
+    public String getHost() {<br/>
+        return host;<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Client_1.151.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek -<br/>
+ * Copyright (C) 2000,2001,2002,2003,2004,2005 Ben Mazur (bmazur@sev.org)<br/>
+ * <br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.client;<br/>
+<br/>
+import java.io.FileWriter;<br/>
+import java.io.IOException;<br/>
+import java.io.ObjectInputStream;<br/>
+import java.io.ObjectOutputStream;<br/>
+import java.net.Socket;<br/>
+import java.net.SocketException;<br/>
+import java.net.UnknownHostException;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Vector;<br/>
+<br/>
+<span class="add">import <span class="add"><span class="add"><span class="add"><span class="add">megamek</span>.<span class="add">client</span></span>.<span class="add">bot</span></span>.<span class="add">BotClient</span></span>;</span><br/>
+import megamek.common.*;<br/>
+import megamek.common.actions.AttackAction;<br/>
+import megamek.common.actions.ClubAttackAction;<br/>
+import megamek.common.actions.DodgeAction;<br/>
+import megamek.common.actions.EntityAction;<br/>
+import megamek.common.actions.FlipArmsAction;<br/>
+import megamek.common.actions.TorsoTwistAction;<br/>
+<br/>
+public class Client implements Runnable {<br/>
+    // we need these to communicate with the server<br/>
+    private String name;<br/>
+    Socket socket;<br/>
+    private ObjectInputStream in = null;<br/>
+    private ObjectOutputStream out = null;<br/>
+<br/>
+    // some info about us and the server<br/>
+    private boolean connected = false;<br/>
+    public int local_pn = -1;<br/>
+    private int connFailures = 0;<br/>
+    private static final int MAX_CONN_FAILURES = 100;<br/>
+    private String host;<br/>
+    private int port;<br/>
+    <br/>
+    // the game state object<br/>
+    public Game game = new Game();<br/>
+<br/>
+    // here's some game phase stuff<br/>
+    private MapSettings mapSettings;<br/>
+    public String eotr;<br/>
+    <br/>
+    private Thread pump;<br/>
+<br/>
+    // I send out game events!<br/>
+    private Vector gameListeners = new Vector();<br/>
+    //And close client events!<br/>
+    private Vector closeClientListeners = new Vector();<br/>
+<br/>
+    // we might want to keep a server log...<br/>
+    private megamek.server.ServerLog serverlog;<br/>
+<br/>
+    /**<br/>
+     * Construct a client which will try to connect.  If the connection<br/>
+     * fails, it will alert the player, free resources and hide the frame.<br/>
+     *<br/>
+     * @param name the player name for this client<br/>
+     * @param host the hostname<br/>
+     * @param port the host port<br/>
+     */<br/>
+    public Client(String name, String host, int port) {<br/>
+        // construct new client<br/>
+        this.name = name;<br/>
+        this.host = host;<br/>
+        this.port = port;<br/>
+<br/>
+        if (<span class="add"><span class="mv">Settings.keepServerlog</span> &amp;&amp; <span class="add">!<span class="add">(<span class="add"><span class="add">this</span> instanceof <span class="add"><span class="add">BotClient</span></span></span>)</span></span></span>) {<br/>
+            // we need to keep a copy of the log<br/>
+            serverlog = new megamek.server.ServerLog(Settings.serverlogFilename, true, (new Integer(Settings.serverlogMaxSize).longValue() * 1024 * 1024) );<br/>
+        };<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Attempt to connect to the specified host<br/>
+     */<br/>
+    public void connect() throws UnknownHostException, IOException {<br/>
+        socket = new Socket(host, port);<br/>
+        pump = new Thread(this, "Client Pump");<br/>
+        pump.start();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Shuts down threads and sockets<br/>
+     */<br/>
+    public void die() {<br/>
+        // If we're still connected, tell the server that we're going down.<br/>
+        if (connected) {<br/>
+            send(new Packet(Packet.COMMAND_CLOSE_CONNECTION));<br/>
+        }<br/>
+        connected = false;<br/>
+        pump = null;<br/>
+<br/>
+        // shut down threads &amp; sockets<br/>
+        try {<br/>
+            socket.close();<br/>
+            in.close();<br/>
+            out.close();<br/>
+        } catch (IOException e) {<br/>
+            e.printStackTrace();<br/>
+        } catch (NullPointerException e) {<br/>
+            // not a big deal, just never connected<br/>
+        }<br/>
+        <br/>
+        for (int i = 0; i &lt; closeClientListeners.size(); i++){<br/>
+            ((CloseClientListener)closeClientListeners.elementAt(i)).clientClosed();<br/>
+        }<br/>
+<br/>
+        if (serverlog != null) {<br/>
+            try {<br/>
+                serverlog.close();<br/>
+            } catch (IOException e) {<br/>
+                System.err.print("Exception closing logfile: ");<br/>
+                e.printStackTrace();<br/>
+            };<br/>
+        }<br/>
+        System.out.println("client: died");<br/>
+        <br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The client has become disconnected from the server<br/>
+     */<br/>
+    protected void disconnected() {<br/>
+        if (connected) {<br/>
+            connected = false;<br/>
+            die();<br/>
+        }<br/>
+        if (!host.equals("localhost")) {<br/>
+            processGameEvent(new GameEvent(this, GameEvent.GAME_PLAYER_DISCONNECTED, getLocalPlayer(), ""));<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Return an enumeration of the players in the game<br/>
+     */<br/>
+    public Enumeration getPlayers() {<br/>
+        return game.getPlayers();<br/>
+    }<br/>
+<br/>
+    public Entity getEntity(int id) {<br/>
+        return game.getEntity(id);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the individual player assigned the index<br/>
+     * parameter.<br/>
+     */<br/>
+    public Player getPlayer(int idx) {<br/>
+        return (Player) game.getPlayer(idx);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Return the local player<br/>
+     */<br/>
+    public Player getLocalPlayer() {<br/>
+        return getPlayer(local_pn);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns an &lt;code&gt;Enumeration&lt;/code&gt; of the entities that match<br/>
+     * the selection criteria.<br/>
+     */<br/>
+    public Enumeration getSelectedEntities(EntitySelector selector) {<br/>
+        return game.getSelectedEntities(selector);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of first selectable entity<br/>
+     */<br/>
+    public int getFirstEntityNum() {<br/>
+        return game.getFirstEntityNum();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of the next selectable entity after the one given<br/>
+     */<br/>
+    public int getNextEntityNum(int entityId) {<br/>
+        return game.getNextEntityNum(entityId);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of the first deployable entity<br/>
+     */<br/>
+    public int getFirstDeployableEntityNum() {<br/>
+        return game.getFirstDeployableEntityNum();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the number of the next deployable entity<br/>
+     */<br/>
+    public int getNextDeployableEntityNum(int entityId) {<br/>
+        return game.getNextDeployableEntityNum(entityId);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Shortcut to game.board<br/>
+     */<br/>
+    public Board getBoard() {<br/>
+        return game.board;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns an emumeration of the entities in game.entities<br/>
+     */<br/>
+    public Enumeration getEntities() {<br/>
+        return game.getEntities();<br/>
+    }<br/>
+<br/>
+    public MapSettings getMapSettings() {<br/>
+        return mapSettings;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Changes the game phase, and the displays that go<br/>
+     * along with it.<br/>
+     */<br/>
+    protected void changePhase(int phase) {<br/>
+        this.game.setPhase(phase);<br/>
+<br/>
+        // Handle phase-specific items.<br/>
+        switch (phase) {<br/>
+            case Game.PHASE_LOUNGE :<br/>
+                game.reset();<br/>
+                break;<br/>
+            case Game.PHASE_STARTING_SCENARIO :<br/>
+                sendDone(true);<br/>
+                break;<br/>
+            case Game.PHASE_EXCHANGE :<br/>
+                sendDone(true);<br/>
+                break;<br/>
+            case Game.PHASE_DEPLOY_MINEFIELDS :<br/>
+                break;<br/>
+            case Game.PHASE_DEPLOYMENT :<br/>
+                memDump("entering deployment phase");<br/>
+                break;<br/>
+            case Game.PHASE_TARGETING :<br/>
+                memDump("entering targeting phase");<br/>
+                break;<br/>
+            case Game.PHASE_MOVEMENT :<br/>
+                memDump("entering movement phase");<br/>
+                break;<br/>
+            case Game.PHASE_OFFBOARD :<br/>
+                memDump("entering offboard phase");<br/>
+                break;<br/>
+            case Game.PHASE_FIRING :<br/>
+                memDump("entering firing phase");<br/>
+                break;<br/>
+            case Game.PHASE_PHYSICAL :<br/>
+                game.resetActions();<br/>
+                memDump("entering physical phase");<br/>
+                break;<br/>
+            case Game.PHASE_INITIATIVE :<br/>
+                game.resetActions();<br/>
+                game.resetCharges();<br/>
+                break;<br/>
+            case Game.PHASE_MOVEMENT_REPORT :<br/>
+            case Game.PHASE_OFFBOARD_REPORT :<br/>
+            case Game.PHASE_FIRING_REPORT :<br/>
+            case Game.PHASE_END :<br/>
+            case Game.PHASE_VICTORY :<br/>
+                break;<br/>
+        }<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_PHASE_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Adds the specified game listener to receive<br/>
+     * board events from this board.<br/>
+     *<br/>
+     * @param l            the game listener.<br/>
+     */<br/>
+    public void addGameListener(GameListener l) {<br/>
+        gameListeners.addElement(l);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds the specified close client listener to receive<br/>
+     * close client events.<br/>
+     * This is used by external programs running megamek<br/>
+     *<br/>
+     * @param l            the game listener.<br/>
+     */<br/>
+    public void addCloseClientListener(CloseClientListener l) {<br/>
+        closeClientListeners.addElement(l);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Removes the specified game listener.<br/>
+     *<br/>
+     * @param l            the game listener.<br/>
+     */<br/>
+    public void removeGameListener(GameListener l) {<br/>
+        gameListeners.removeElement(l);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Processes game events occurring on this<br/>
+     * connection by dispatching them to any registered<br/>
+     * GameListener objects.<br/>
+     *<br/>
+     * @param be        the board event.<br/>
+     */<br/>
+    protected void processGameEvent(GameEvent ge) {<br/>
+        for (Enumeration e = gameListeners.elements(); e.hasMoreElements();) {<br/>
+            GameListener l = (GameListener) e.nextElement();<br/>
+            switch (ge.type) {<br/>
+                case GameEvent.GAME_PLAYER_CHAT :<br/>
+                    l.gamePlayerChat(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_PLAYER_STATUSCHANGE :<br/>
+                    l.gamePlayerStatusChange(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_PHASE_CHANGE :<br/>
+                    l.gamePhaseChange(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_TURN_CHANGE :<br/>
+                    l.gameTurnChange(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_NEW_ENTITIES :<br/>
+                    l.gameNewEntities(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_NEW_SETTINGS :<br/>
+                    l.gameNewSettings(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_PLAYER_DISCONNECTED :<br/>
+                    l.gameDisconnected(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_END:<br/>
+                    l.gameEnd(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_REPORT:<br/>
+                    l.gameReport(ge);<br/>
+                    break;<br/>
+                case GameEvent.GAME_MAP_QUERY:<br/>
+                    l.gameMapQuery(ge);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     *<br/>
+     */<br/>
+    public void retrieveServerInfo() {<br/>
+        int retry = 50;<br/>
+        while (retry-- &gt; 0 &amp;&amp; !connected) {<br/>
+            synchronized (this) {<br/>
+                try {<br/>
+                    wait(100);<br/>
+                } catch (InterruptedException ex) {<br/>
+                    ;<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * is it my turn?<br/>
+     */<br/>
+    public boolean isMyTurn() {<br/>
+        return game.getTurn() != null &amp;&amp; game.getTurn().isValid(local_pn, game);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Can I unload entities stranded on immobile transports?<br/>
+     */<br/>
+    public boolean canUnloadStranded() {<br/>
+        return game.getTurn() instanceof GameTurn.UnloadStrandedTurn &amp;&amp; game.getTurn().isValid(local_pn, game);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send command to unload stranded entities to the server<br/>
+     */<br/>
+    public void sendUnloadStranded(int[] entityIds) {<br/>
+        Object[] data = new Object[1];<br/>
+        data[0] = entityIds;<br/>
+        send(new Packet(Packet.COMMAND_UNLOAD_STRANDED, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Change whose turn it is.<br/>
+     */<br/>
+    protected void changeTurnIndex(int index) {<br/>
+        game.setTurnIndex(index);<br/>
+        Player player = getPlayer(game.getTurn().getPlayerNum());<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_TURN_CHANGE, player, ""));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send mode-change data to the server<br/>
+     */<br/>
+    public void sendModeChange(int nEntity, int nEquip, int nMode) {<br/>
+        Object[] data = { new Integer(nEntity), new Integer(nEquip), new Integer(nMode)};<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_MODECHANGE, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send mode-change data to the server<br/>
+     */<br/>
+    public void sendAmmoChange(int nEntity, int nWeapon, int nAmmo) {<br/>
+        Object[] data = { new Integer(nEntity), new Integer(nWeapon), new Integer(nAmmo)};<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_AMMOCHANGE, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send movement data for the given entity to the server.<br/>
+     */<br/>
+    public void moveEntity(int id, MovePath md) {<br/>
+        Object[] data = new Object[2];<br/>
+<br/>
+        data[0] = new Integer(id);<br/>
+        data[1] = md;<br/>
+<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_MOVE, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Maintain backwards compatability.<br/>
+     *<br/>
+     * @param   id - the &lt;code&gt;int&lt;/code&gt; ID of the deployed entity<br/>
+     * @param   c - the &lt;code&gt;Coords&lt;/code&gt; where the entity should be deployed<br/>
+     * @param   nFacing - the &lt;code&gt;int&lt;/code&gt; direction the entity should face<br/>
+     */<br/>
+    public void deploy(int id, Coords c, int nFacing) {<br/>
+        this.deploy(id, c, nFacing, new Vector());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Deploy an entity at the given coordinates, with the given facing,<br/>
+     * and starting with the given units already loaded.<br/>
+     *<br/>
+     * @param   id - the &lt;code&gt;int&lt;/code&gt; ID of the deployed entity<br/>
+     * @param   c - the &lt;code&gt;Coords&lt;/code&gt; where the entity should be deployed<br/>
+     * @param   nFacing - the &lt;code&gt;int&lt;/code&gt; direction the entity should face<br/>
+     * @param   loadedUnits - a &lt;code&gt;List&lt;/code&gt; of units that start the game<br/>
+     *          being transported byt the deployed entity.<br/>
+     */<br/>
+    public void deploy(int id, Coords c, int nFacing, Vector loadedUnits) {<br/>
+        int packetCount = 4 + loadedUnits.size();<br/>
+        int index = 0;<br/>
+        Object[] data = new Object[packetCount];<br/>
+        data[index++] = new Integer(id);<br/>
+        data[index++] = c;<br/>
+        data[index++] = new Integer(nFacing);<br/>
+        data[index++] = new Integer(loadedUnits.size());<br/>
+<br/>
+        Enumeration iter = loadedUnits.elements();<br/>
+        while (iter.hasMoreElements()) {<br/>
+            data[index++] = new Integer(((Entity) iter.nextElement()).getId());<br/>
+        }<br/>
+<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_DEPLOY, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send a weapon fire command to the server.<br/>
+     */<br/>
+    public void sendAttackData(int aen, Vector attacks) {<br/>
+        Object[] data = new Object[2];<br/>
+<br/>
+        data[0] = new Integer(aen);<br/>
+        data[1] = attacks;<br/>
+<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_ATTACK, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send the game options to the server<br/>
+     */<br/>
+    public void sendGameOptions(String password, Vector options) {<br/>
+        final Object[] data = new Object[2];<br/>
+        data[0] = password;<br/>
+        data[1] = options;<br/>
+        send(new Packet(Packet.COMMAND_SENDING_GAME_SETTINGS, data));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send the game settings to the server<br/>
+     */<br/>
+    public void sendMapSettings(MapSettings settings) {<br/>
+        send(new Packet(Packet.COMMAND_SENDING_MAP_SETTINGS, settings));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Send the game settings to the server<br/>
+     */<br/>
+    public void sendMapQuery(MapSettings query) {<br/>
+        send(new Packet(Packet.COMMAND_QUERY_MAP_SETTINGS, query));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Broadcast a general chat message from the local player<br/>
+     */<br/>
+    public void sendChat(String message) {<br/>
+        send(new Packet(Packet.COMMAND_CHAT, message));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "player done" message to the server.<br/>
+     */<br/>
+    public synchronized void sendDone(boolean done) {<br/>
+        send(new Packet(Packet.COMMAND_PLAYER_READY, new Boolean(done)));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "reroll initiative" message to the server.<br/>
+     */<br/>
+    public void sendRerollInitiativeRequest() {<br/>
+        send(new Packet(Packet.COMMAND_REROLL_INITIATIVE));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends the info associated with the local player.<br/>
+     */<br/>
+    public void sendPlayerInfo() {<br/>
+        Player player = game.getPlayer(local_pn);<br/>
+        Settings.lastPlayerColor = player.getColorIndex();<br/>
+        Settings.lastPlayerCategory = player.getCamoCategory();<br/>
+        Settings.lastPlayerCamoName = player.getCamoFileName();<br/>
+        send(new Packet(Packet.COMMAND_PLAYER_UPDATE, player));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends an "add entity" packet<br/>
+     */<br/>
+    public void sendAddEntity(Entity entity) {<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_ADD, entity));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends an "deploy minefields" packet<br/>
+     */<br/>
+    public void sendDeployMinefields(Vector minefields) {<br/>
+        send(new Packet(Packet.COMMAND_DEPLOY_MINEFIELDS, minefields));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "set Artillery Autohit Hexes" packet<br/>
+     */<br/>
+    public void sendArtyAutoHitHexes(Vector hexes) {<br/>
+        send(new Packet(Packet.COMMAND_SET_ARTYAUTOHITHEXES, hexes));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Sends an "update entity" packet<br/>
+     */<br/>
+    public void sendUpdateEntity(Entity entity) {<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_UPDATE, entity));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sends a "delete entity" packet<br/>
+     */<br/>
+    public void sendDeleteEntity(int id) {<br/>
+        send(new Packet(Packet.COMMAND_ENTITY_REMOVE, new Integer(id)));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Receives player information from the message packet.<br/>
+     */<br/>
+    protected void receivePlayerInfo(Packet c) {<br/>
+        int pindex = c.getIntValue(0);<br/>
+        Player newPlayer = (Player) c.getObject(1);<br/>
+        if (getPlayer(newPlayer.getId()) == null) {<br/>
+            game.addPlayer(pindex, newPlayer);<br/>
+        } else {<br/>
+            game.setPlayer(pindex, newPlayer);<br/>
+        }<br/>
+        Settings.lastPlayerColor = newPlayer.getColorIndex();<br/>
+        Settings.lastPlayerCategory = newPlayer.getCamoCategory();<br/>
+        Settings.lastPlayerCamoName = newPlayer.getCamoFileName();<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_PLAYER_STATUSCHANGE, newPlayer, ""));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads the turn list from the data in the packet<br/>
+     */<br/>
+    protected void receiveTurns(Packet packet) {<br/>
+        game.setTurnVector((Vector) packet.getObject(0));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads the board from the data in the net command.<br/>
+     */<br/>
+    protected void receiveBoard(Packet c) {<br/>
+        Board newBoard = (Board) c.getObject(0);<br/>
+        game.board.newData(newBoard);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads the entities from the data in the net command.<br/>
+     */<br/>
+    protected void receiveEntities(Packet c) {<br/>
+        Vector newEntities = (Vector) c.getObject(0);<br/>
+        Vector newOutOfGame = (Vector) c.getObject(1);<br/>
+<br/>
+        // Replace the entities in the game.<br/>
+        game.setEntitiesVector(newEntities);<br/>
+        if (newOutOfGame != null) {<br/>
+            game.setOutOfGameEntitiesVector(newOutOfGame);<br/>
+        }<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads entity update data from the data in the net command.<br/>
+     */<br/>
+    protected void receiveEntityUpdate(Packet c) {<br/>
+        int eindex = c.getIntValue(0);<br/>
+        Entity entity = (Entity) c.getObject(1);<br/>
+        // Replace this entity in the game.<br/>
+        game.setEntity(eindex, entity);        <br/>
+<br/>
+        processGameEvent(new GameEvent(c, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    protected void receiveEntityAdd(Packet packet) {<br/>
+        int entityId = packet.getIntValue(0);<br/>
+        Entity entity = (Entity) packet.getObject(1);<br/>
+<br/>
+        // Add the entity to the game.<br/>
+        game.addEntity(entityId, entity);<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    protected void receiveEntityRemove(Packet packet) {<br/>
+        int entityId = packet.getIntValue(0);<br/>
+        int condition = packet.getIntValue(1);<br/>
+<br/>
+        // Move the unit to its final resting place.<br/>
+        game.removeEntity(entityId, condition);<br/>
+<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_ENTITIES, null, null));<br/>
+    }<br/>
+<br/>
+    protected void receiveEntityVisibilityIndicator(Packet packet) {<br/>
+        Entity e = game.getEntity(packet.getIntValue(0));<br/>
+        if (e != null) { // we may not have this entity due to double blind<br/>
+            e.setSeenByEnemy(packet.getBooleanValue(1));<br/>
+            e.setVisibleToEnemy(packet.getBooleanValue(2));<br/>
+            //this next call is only needed sometimes, but we'll just<br/>
+            // call it everytime<br/>
+            game.board.processBoardEvent(new BoardEvent(game.board, e.getPosition(), e, BoardEvent.BOARD_CHANGED_ENTITY, 0));<br/>
+        }<br/>
+    }<br/>
+<br/>
+    protected void receiveDeployMinefields(Packet packet) {<br/>
+        Vector minefields = (Vector) packet.getObject(0);<br/>
+<br/>
+        for (int i = 0; i &lt; minefields.size(); i++) {<br/>
+            Minefield mf = (Minefield) minefields.elementAt(i);<br/>
+            game.addMinefield(mf);<br/>
+        }<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveSendingMinefields(Packet packet) {<br/>
+        Vector minefields = (Vector) packet.getObject(0);<br/>
+        game.clearMinefields();<br/>
+<br/>
+        for (int i = 0; i &lt; minefields.size(); i++) {<br/>
+            Minefield mf = (Minefield) minefields.elementAt(i);<br/>
+            game.addMinefield(mf);<br/>
+        }<br/>
+      processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveRevealMinefield(Packet packet) {<br/>
+        Minefield mf = (Minefield) packet.getObject(0);<br/>
+        game.addMinefield(mf);<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveRemoveMinefield(Packet packet) {<br/>
+        Minefield mf = (Minefield) packet.getObject(0);<br/>
+        game.removeMinefield(mf);<br/>
+        processGameEvent(new GameEvent(this, GameEvent.GAME_BOARD_CHANGE, null, ""));<br/>
+    }<br/>
+<br/>
+    protected void receiveBuildingUpdateCF(Packet packet) {<br/>
+        Vector bldgs = (Vector) packet.getObject(0);<br/>
+<br/>
+        // Update the board.  The board will notify listeners.<br/>
+        game.board.updateBuildingCF(bldgs);<br/>
+    }<br/>
+<br/>
+    protected void receiveBuildingCollapse(Packet packet) {<br/>
+        Vector bldgs = (Vector) packet.getObject(0);<br/>
+<br/>
+        // Update the board.  The board will notify listeners.<br/>
+        game.board.collapseBuilding(bldgs);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Loads entity firing data from the data in the net command<br/>
+     */<br/>
+    protected void receiveAttack(Packet c) {<br/>
+        Vector vector = (Vector) c.getObject(0);<br/>
+        boolean charge = c.getBooleanValue(1);<br/>
+        boolean addAction = true;<br/>
+        for (Enumeration i = vector.elements(); i.hasMoreElements();) {<br/>
+            EntityAction ea = (EntityAction) i.nextElement();<br/>
+            int entityId = ea.getEntityId();<br/>
+            if (ea instanceof TorsoTwistAction &amp;&amp; game.hasEntity(entityId)) {<br/>
+                TorsoTwistAction tta = (TorsoTwistAction) ea;<br/>
+                Entity entity = game.getEntity(entityId);<br/>
+                entity.setSecondaryFacing(tta.getFacing());<br/>
+                game.board.processBoardEvent(new BoardEvent(<br/>
+                                       game.board, entity.getPosition(),<br/>
+                                       entity,<br/>
+                                       BoardEvent.BOARD_CHANGED_ENTITY, 0));<br/>
+            } else if (ea instanceof FlipArmsAction &amp;&amp; game.hasEntity(entityId)) {<br/>
+                FlipArmsAction faa = (FlipArmsAction) ea;<br/>
+                Entity entity = game.getEntity(entityId);<br/>
+                entity.setArmsFlipped(faa.getIsFlipped());<br/>
+                game.board.processBoardEvent(new BoardEvent(<br/>
+                                       game.board, entity.getPosition(),<br/>
+                                       entity,<br/>
+                                       BoardEvent.BOARD_CHANGED_ENTITY, 0));<br/>
+            } else if (ea instanceof DodgeAction &amp;&amp; game.hasEntity(entityId)) {<br/>
+                Entity entity = game.getEntity(entityId);<br/>
+                entity.dodging = true;<br/>
+                addAction = false;<br/>
+            } else if (ea instanceof AttackAction) {<br/>
+                if (ea instanceof ClubAttackAction) {<br/>
+                    ClubAttackAction clubAct = (ClubAttackAction) ea;<br/>
+                    Entity entity = game.getEntity(clubAct.getEntityId());<br/>
+                    clubAct.setClub(Compute.clubMechHas(entity));<br/>
+                }<br/>
+                game.board.processBoardEvent(new BoardEvent(<br/>
+                                       ea, null, null,<br/>
+                                       BoardEvent.BOARD_NEW_ATTACK, 0));<br/>
+            }<br/>
+<br/>
+            if (addAction) {<br/>
+                // track in the appropriate list<br/>
+                if (charge) {<br/>
+                    game.addCharge((AttackAction) ea);<br/>
+                } else {<br/>
+                    game.addAction(ea);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Saves server entity status data to a local file<br/>
+     */<br/>
+    private void saveEntityStatus(String sStatus) {<br/>
+        try {<br/>
+            FileWriter fw = new FileWriter("entitystatus.txt");<br/>
+            fw.write(sStatus);<br/>
+            fw.flush();<br/>
+            fw.close();<br/>
+        } catch (Exception e) {<br/>
+            e.printStackTrace();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Reads a complete net command from the given input stream<br/>
+     */<br/>
+    private Packet readPacket() {<br/>
+        try {<br/>
+            if (in == null) {<br/>
+                in = new ObjectInputStream(socket.getInputStream());<br/>
+            }<br/>
+<br/>
+            Packet packet = (Packet)in.readObject();<br/>
+<br/>
+            /* Packet debug code<br/>
+            if (packet == null) {<br/>
+                System.out.println("c: received null packet");<br/>
+            } else if (packet.getData() == null) {<br/>
+                System.out.println("c: received empty packet");<br/>
+            } else {<br/>
+                System.out.println("c: received command #" + packet.getCommand() + " with " + packet.getData().length + " zipped entries totaling " + packet.byteLength + " bytes in size");<br/>
+            } */<br/>
+<br/>
+            // All went well.  Reset the failure count.<br/>
+            this.connFailures = 0;<br/>
+            return packet;<br/>
+        } catch (SocketException ex) {<br/>
+            // assume client is shutting down<br/>
+            System.err.println("client: Socket error (server closed?)");<br/>
+            if (this.connFailures &gt; MAX_CONN_FAILURES) {<br/>
+                disconnected();<br/>
+            } else {<br/>
+                this.connFailures++;<br/>
+            }<br/>
+            return null;<br/>
+        } catch (IOException ex) {<br/>
+            System.err.println("client: IO error reading command:");<br/>
+            disconnected();<br/>
+            return null;<br/>
+        } catch (ClassNotFoundException ex) {<br/>
+            System.err.println("client: class not found error reading command:");<br/>
+            ex.printStackTrace();<br/>
+            disconnected();<br/>
+            return null;<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * send the message to the server<br/>
+     */<br/>
+    protected void send(Packet packet) {<br/>
+        packet.zipData();<br/>
+        try {<br/>
+            if (out == null) {<br/>
+                out = new ObjectOutputStream(socket.getOutputStream());<br/>
+                out.flush();<br/>
+            }<br/>
+            out.reset(); // write each packet fresh; a lot changes<br/>
+            out.writeObject(packet);<br/>
+            out.flush();<br/>
+            //            System.out.println("c: packet #" + packet.getCommand() + " sent");<br/>
+        } catch (IOException ex) {<br/>
+            System.err.println("client: error sending command.");<br/>
+        }<br/>
+    }<br/>
+<br/>
+    //<br/>
+    // Runnable<br/>
+    //<br/>
+    public void run() {<br/>
+        Thread currentThread = Thread.currentThread();<br/>
+        while(pump == currentThread) {<br/>
+            Packet c = readPacket();<br/>
+            if (c == null) {<br/>
+                System.out.println("client: got null packet");<br/>
+                continue;<br/>
+            }<br/>
+            switch (c.getCommand()) {<br/>
+                case Packet.COMMAND_CLOSE_CONNECTION :<br/>
+                    disconnected();<br/>
+                    break;<br/>
+                case Packet.COMMAND_SERVER_GREETING :<br/>
+                    connected = true;<br/>
+                    send(new Packet(Packet.COMMAND_CLIENT_NAME, name));<br/>
+                    break;<br/>
+                case Packet.COMMAND_LOCAL_PN :<br/>
+                    this.local_pn = c.getIntValue(0);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_UPDATE :<br/>
+                    receivePlayerInfo(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_READY :<br/>
+                    getPlayer(c.getIntValue(0)).setDone(c.getBooleanValue(1));<br/>
+                    processGameEvent(<br/>
+                        new GameEvent(this, GameEvent.GAME_PLAYER_STATUSCHANGE, getPlayer(c.getIntValue(0)), ""));<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_ADD :<br/>
+                    receivePlayerInfo(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PLAYER_REMOVE :<br/>
+                    game.removePlayer(c.getIntValue(0));<br/>
+                    processGameEvent(<br/>
+                        new GameEvent(this, GameEvent.GAME_PLAYER_STATUSCHANGE, getPlayer(c.getIntValue(0)), ""));<br/>
+                    break;<br/>
+                case Packet.COMMAND_CHAT :<br/>
+                    if (null!=serverlog &amp;&amp; Settings.keepServerlog) {<br/>
+                        serverlog.append( (String) c.getObject(0) );<br/>
+                    };<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_PLAYER_CHAT, null, (String) c.getObject(0)));<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_ADD :<br/>
+                    receiveEntityAdd(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_UPDATE :<br/>
+                    receiveEntityUpdate(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_REMOVE :<br/>
+                    receiveEntityRemove(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_VISIBILITY_INDICATOR :<br/>
+                    receiveEntityVisibilityIndicator(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_MINEFIELDS :<br/>
+                    receiveSendingMinefields(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_DEPLOY_MINEFIELDS :<br/>
+                    receiveDeployMinefields(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_REVEAL_MINEFIELD :<br/>
+                    receiveRevealMinefield(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_REMOVE_MINEFIELD :<br/>
+                    receiveRemoveMinefield(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_CHANGE_HEX :<br/>
+                    game.board.setHex((Coords) c.getObject(0), (Hex) c.getObject(1));<br/>
+                    break;<br/>
+                case Packet.COMMAND_BLDG_UPDATE_CF :<br/>
+                    receiveBuildingUpdateCF(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_BLDG_COLLAPSE :<br/>
+                    receiveBuildingCollapse(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_PHASE_CHANGE :<br/>
+                    changePhase(c.getIntValue(0));<br/>
+                    break;<br/>
+                case Packet.COMMAND_TURN :<br/>
+                    changeTurnIndex(c.getIntValue(0));<br/>
+                    break;<br/>
+                case Packet.COMMAND_ROUND_UPDATE :<br/>
+                    game.setRoundCount(c.getIntValue(0));<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_TURNS :<br/>
+                    receiveTurns(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_BOARD :<br/>
+                    receiveBoard(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_ENTITIES :<br/>
+                    receiveEntities(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_REPORT :<br/>
+                    if (null!=serverlog &amp;&amp; Settings.keepServerlog) {<br/>
+                        if (null==eotr || ((String) c.getObject(0)).length() &lt; eotr.length() ) {<br/>
+                            // first report packet<br/>
+                            serverlog.append( (String) c.getObject(0) );<br/>
+                        } else {<br/>
+                            // append only the new part, not what's already in eotr<br/>
+                            serverlog.append( ((String) c.getObject(0)).substring(eotr.length()) );<br/>
+                        };<br/>
+                    };<br/>
+                    eotr = (String) c.getObject(0);<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_REPORT, null, ""));<br/>
+                    break;<br/>
+                case Packet.COMMAND_ENTITY_ATTACK :<br/>
+                    receiveAttack(c);<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_GAME_SETTINGS :<br/>
+                    game.setOptions((GameOptions) c.getObject(0));<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_SETTINGS, null, null));<br/>
+                    break;<br/>
+                case Packet.COMMAND_SENDING_MAP_SETTINGS :<br/>
+                    mapSettings = (MapSettings) c.getObject(0);<br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_NEW_SETTINGS, null, null));<br/>
+                    break;<br/>
+                case Packet.COMMAND_QUERY_MAP_SETTINGS :<br/>
+                    processGameEvent(new GameEvent(c.getObject(0), GameEvent.GAME_MAP_QUERY, null, null));<br/>
+                    break;<br/>
+                case Packet.COMMAND_END_OF_GAME :<br/>
+                    String sReport = (String) c.getObject(0);<br/>
+                    game.setVictoryPlayerId(c.getIntValue(1));<br/>
+                    game.setVictoryTeam(c.getIntValue(2));<br/>
+                    // save victory report<br/>
+                    saveEntityStatus(sReport);<br/>
+<br/>
+                    // Clean up the board settings.<br/>
+                    this.game.board.select(null);<br/>
+                    this.game.board.highlight(null);<br/>
+                    this.game.board.cursor(null);<br/>
+                    <br/>
+                    processGameEvent(new GameEvent(this, GameEvent.GAME_END, null, ""));<br/>
+                    break;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Perform a dump of the current memory usage.<br/>
+     * &lt;p/&gt;<br/>
+     * This method is useful in tracking performance issues on various<br/>
+     * player's systems.  You can activate it by changing the "memorydumpon"<br/>
+     * setting to "true" in the MegaMek.cfg file.<br/>
+     *<br/>
+     * @param   where - a &lt;code&gt;String&lt;/code&gt; indicating which part of the<br/>
+     *          game is making this call.<br/>
+     *<br/>
+     * @see     megamek.common.Settings#memoryDumpOn<br/>
+     * @see     megamek.client.Client#changePhase(int)<br/>
+     */<br/>
+    private void memDump(String where) {<br/>
+        if (Settings.memoryDumpOn) {<br/>
+            StringBuffer buf = new StringBuffer();<br/>
+            final long total = Runtime.getRuntime().totalMemory();<br/>
+            final long free = Runtime.getRuntime().freeMemory();<br/>
+            final long used = total - free;<br/>
+            buf.append("Memory dump ").append(where);<br/>
+            for (int loop = where.length(); loop &lt; 25; loop++) {<br/>
+                buf.append(' ');<br/>
+            }<br/>
+            buf.append(": used (").append(used).append(") + free (").append(free).append(") = ").append(total);<br/>
+            System.out.println(buf.toString());<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    public String getName() {<br/>
+        return name;<br/>
+    }<br/>
+<br/>
+    public int getPort() {<br/>
+        return port;<br/>
+    }<br/>
+<br/>
+    public String getHost() {<br/>
+        return host;<br/>
+    }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

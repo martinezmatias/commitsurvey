@@ -1,0 +1,1 @@
+Allow to get a logger object

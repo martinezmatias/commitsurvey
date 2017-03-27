@@ -1,0 +1,1 @@
+fixed default.abbrevs, fixed installer on OS/2

@@ -1,0 +1,1 @@
+[bug]cleanup of checkablelist widget, ui polishing of column config dialog, fixed column folder options plugin bugs

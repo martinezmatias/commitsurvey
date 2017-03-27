@@ -1,0 +1,1478 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_DOMType_1.19.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2001, 2002 International Business Machines Corp. and others.<br/>
+ * All rights reserved. This program and the accompanying materials <br/>
+ * are made available under the terms of the Common Public License v0.5 <br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/cpl-v05.html<br/>
+ * <br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ ******************************************************************************/<br/>
+package org.eclipse.jdt.internal.core.jdom;<br/>
+<br/>
+import java.util.Enumeration;<br/>
+<br/>
+import org.eclipse.jdt.core.ICompilationUnit;<br/>
+import org.eclipse.jdt.core.IJavaElement;<br/>
+import org.eclipse.jdt.core.IType;<br/>
+import org.eclipse.jdt.core.compiler.InvalidInputException;<br/>
+import org.eclipse.jdt.core.jdom.IDOMMethod;<br/>
+import org.eclipse.jdt.core.jdom.IDOMNode;<br/>
+import org.eclipse.jdt.core.jdom.IDOMType;<br/>
+import org.eclipse.jdt.internal.compiler.parser.Scanner;<br/>
+import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;<br/>
+import org.eclipse.jdt.internal.core.Util;<br/>
+import org.eclipse.jdt.internal.core.util.CharArrayBuffer;<br/>
+import org.eclipse.jdt.internal.core.util.CharArrayOps;<br/>
+<br/>
+/**<br/>
+ * DOMType provides an implementation of IDOMType.<br/>
+ *<br/>
+ * @see IDOMType<br/>
+ * @see DOMNode<br/>
+ */<br/>
+ <br/>
+/* package */ class DOMType extends DOMMember implements IDOMType {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The 'class' or 'interface' keyword if altered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * from the documents contents, otherwise &lt;code&gt;null&lt;/code&gt;.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String fTypeKeyword;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive source range of the 'class'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or 'interface' keyword in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]&nbsp;&nbsp;&nbsp;&nbsp; fTypeRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The superclass name for the class declaration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * if altered from the document's contents, otherwise<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;code&gt;null&lt;/code&gt;. Also &lt;code&gt;null&lt;/code&gt; when this<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * type represents an interface.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String fSuperclass;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive source range of the superclass<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * name in the document, or -1's of no superclass was<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * specified in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fSuperclassRange;<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive souce range of the 'extends' keyword<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in the document, including surrounding whitespace, or -1's if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the keyword was not present in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]&nbsp;&nbsp;&nbsp;&nbsp; fExtendsRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive souce range of the 'implements' keyword<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in the document, including surrounding whitespace, or -1's if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the keyword was not present in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]&nbsp;&nbsp;&nbsp;&nbsp; fImplementsRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The comma delimited list of interfaces this type implements<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or extends, if altered from the document's contents, otherwise<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;code&gt;null&lt;/code&gt;. Also &lt;code&gt;null&lt;/code&gt; if this type does<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * not implement or extend any interfaces.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected char[] fInterfaces;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive source range of the list of interfaces this<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * type implements or extends, not including any surrouding whitespace.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If the document did not specify interfaces, this array contains -1's.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fInterfacesRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/** <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original source range of the first character following the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * type name superclass name, or interface list, up to and including<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the first character before the first type member.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fOpenBodyRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/** <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original source range of the first new line or non whitespace<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * character preceding the close brace of the type's body, up to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * and including the first character before the next node (if there are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * no following nodes, the range ends at the position of the last<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * character in the document).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fCloseBodyRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * A list of interfaces this type extends or implements.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;code&gt;null&lt;/code&gt; when this type does not extend<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or implement any interfaces.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String[] fSuperInterfaces= new String[0];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * This position is the position of the end of the last line separator before the closing brace starting<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * position of the receiver.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;protected int fInsertionPosition;<br/>
+<br/>
+/**<br/>
+ * Constructs an empty type node.<br/>
+ */<br/>
+DOMType() {<br/>
+<br/>
+}<br/>
+/**<br/>
+ * Creates a new detailed TYPE document fragment on the given range of the document.<br/>
+ *<br/>
+ * @param document - the document containing this node's original contents<br/>
+ * @param sourceRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node within its document.<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents start on and include the character at the first position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents end on and include the character at the last position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;An array of -1's indicates this node's contents do not exist<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in the document.<br/>
+ * @param name - the identifier portion of the name of this node, or<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;code&gt;null&lt;/code&gt; if this node does not have a name<br/>
+ * @param nameRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node's name within its document,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;including any array qualifiers that might immediately follow the name<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or -1's if this node does not have a name.<br/>
+ * @param commentRange - a two element array describing the comments that precede<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the member declaration. The first matches the start of this node's<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sourceRange, and the second is the new-line or first non-whitespace<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;character following the last comment. If no comments are present,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this array contains two -1's.<br/>
+ * @param flags - an integer representing the modifiers for this member. The<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;integer can be analyzed with org.eclipse.jdt.core.Flags<br/>
+ * @param modifierRange - a two element array describing the location of<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;modifiers for this member within its source range. The first integer<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is the first character of the first modifier for this member, and<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the second integer is the last whitespace character preceeding the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;next part of this member declaration. If there are no modifiers present<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in this node's source code (i.e. default protection), this array<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;contains two -1's.<br/>
+ * @param typeRange - a two element array describing the location of the 'class'<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or 'interface' keyword in the type declaration - first and last character<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;positions.<br/>
+ * @param superclassRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;superclass name in the type declaration - first and last character<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;positions or two -1's if a superclass is not present in the document.<br/>
+ * @param extendsRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'extends' keyword in the type declaration, including any surrounding<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;whitespace, or -1's if the 'extends' keyword is not present in the document.<br/>
+ * @param implementsList - an array of names of the interfaces this type implements<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or extends, or &lt;code&gt;null&lt;/code&gt; if this type does not implement or extend<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;any interfaces.<br/>
+ * @param implementsRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;comment delimited list of interfaces this type implements or extends,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;not including any surrounding whitespace, or -1's if no interface list<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is present in the document.<br/>
+ * @param implementsKeywordRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'implements' keyword, including any surrounding whitespace, or -1's if no<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'implements' keyword is present in the document.<br/>
+ * @param openBodyRange - a two element array describing the location of the<br/>
+ *      open brace of the type's body and whitespace following the type declaration<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and preceeding the first member in the type.<br/>
+ * @param closeBodyRange - a two element array describing the source range of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;first new line or non whitespace character preceeding the close brace of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type's body, up to the close brace<br/>
+ * @param isClass - true is the type is a class, false if it is an interface<br/>
+ */<br/>
+DOMType(char[] document, int[] sourceRange, String name, int[] nameRange, int[] commentRange, int flags, int[] modifierRange, int[] typeRange, int[] superclassRange, int[] extendsRange, String[] implementsList, int[] implementsRange, int[] implementsKeywordRange, int[] openBodyRange, int[] closeBodyRange, boolean isClass) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(document, sourceRange, name, nameRange, commentRange, flags, modifierRange);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeRange= typeRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_IS_CLASS, isClass);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fExtendsRange= extendsRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fImplementsRange= implementsKeywordRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclassRange= superclassRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInterfacesRange= implementsRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange= closeBodyRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_SUPERCLASS, superclassRange[0] &gt; 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_INTERFACES, implementsList != null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= implementsList;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange= openBodyRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange= closeBodyRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_DETAILED_SOURCE_INDEXES, true);<br/>
+<br/>
+}<br/>
+/**<br/>
+ * Creates a new simple TYPE document fragment on the given range of the document.<br/>
+ *<br/>
+ * @param document - the document containing this node's original contents<br/>
+ * @param sourceRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node within its document.<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents start on and include the character at the first position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents end on and include the character at the last position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;An array of -1's indicates this node's contents do not exist<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in the document.<br/>
+ * @param name - the identifier portion of the name of this node, or<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;code&gt;null&lt;/code&gt; if this node does not have a name<br/>
+ * @param nameRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node's name within its document,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;including any array qualifiers that might immediately follow the name<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or -1's if this node does not have a name.<br/>
+ * @param flags - an integer representing the modifiers for this member. The<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;integer can be analyzed with org.eclipse.jdt.core.Flags<br/>
+ * @param implementsList - an array of names of the interfaces this type implements<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or extends, or &lt;code&gt;null&lt;/code&gt; if this type does not implement or extend<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;any interfaces.<br/>
+ * @param isClass - true is the type is a class, false if it is an interface<br/>
+ */<br/>
+DOMType(char[] document, int[] sourceRange, String name, int[] nameRange, int flags, String[] implementsList, boolean isClass) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this(document, sourceRange, name, nameRange, new int[] {-1, -1}, flags,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new int[] {-1, -1}, new int[] {-1, -1}, new int[] {-1, -1}, new int[] {-1, -1},<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;implementsList, new int[] {-1, -1}, new int[] {-1, -1}, new int[] {-1, -1}, new int[] {sourceRange[1], sourceRange[1]}, isClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_DETAILED_SOURCE_INDEXES, false);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#addSuperInterface(String)<br/>
+ */<br/>
+public void addSuperInterface(String name) throws IllegalArgumentException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (name == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("dom.addNullInterface")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperInterfaces == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= new String[1];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces[0]= name;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= appendString(fSuperInterfaces, name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setSuperInterfaces(fSuperInterfaces);<br/>
+}<br/>
+/**<br/>
+ * @see DOMMember#appendMemberBodyContents(CharArrayBuffer)<br/>
+ */<br/>
+protected void appendMemberBodyContents(CharArrayBuffer buffer) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fOpenBodyRange[0], fOpenBodyRange[1] + 1 - fOpenBodyRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;appendContentsOfChildren(buffer);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fCloseBodyRange[0], fCloseBodyRange[1] + 1 - fCloseBodyRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fCloseBodyRange[1] + 1, fSourceRange[1] - fCloseBodyRange[1]);<br/>
+}<br/>
+/**<br/>
+ * @see DOMMember#appendMemberDeclarationContents(CharArrayBuffer )<br/>
+ */<br/>
+protected void appendMemberDeclarationContents(CharArrayBuffer  buffer) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (fTypeKeyword != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fTypeKeyword);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fTypeRange[1], fNameRange[0] - fTypeRange[1] );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fTypeRange[0], fTypeRange[1] + 1 - fTypeRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(getName());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (isClass()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean hasSuperclass = false, hasInterfaces = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_SUPERCLASS)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hasSuperclass = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fExtendsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" extends "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fExtendsRange[0], fExtendsRange[1] + 1 - fExtendsRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperclass != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fSuperclass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fSuperclassRange[0], fSuperclassRange[1] + 1 - fSuperclassRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_INTERFACES)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hasInterfaces = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fImplementsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" implements "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fImplementsRange[0], fImplementsRange[1] + 1 - fImplementsRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fInterfaces != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fInterfaces);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fInterfacesRange[0], fInterfacesRange[1] + 1 - fInterfacesRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (hasInterfaces) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fImplementsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(' ');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fInterfacesRange[1] + 1, fOpenBodyRange[0] - fInterfacesRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (hasSuperclass) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperclassRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(' ');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fSuperclassRange[1] + 1, fOpenBodyRange[0] - fSuperclassRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fNameRange[1] + 1, fOpenBodyRange[0] - fNameRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_INTERFACES)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fExtendsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" extends "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fExtendsRange[0], fExtendsRange[1] + 1 - fExtendsRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fInterfaces != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fInterfaces);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(' ');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fInterfacesRange[0], fInterfacesRange[1] + 1 - fInterfacesRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fNameRange[1] + 1, fOpenBodyRange[0] - fNameRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#appendSimpleContents(CharArrayBuffer)<br/>
+ */<br/>
+protected void appendSimpleContents(CharArrayBuffer buffer) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append eveything before my name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fSourceRange[0], fNameRange[0] - fSourceRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append my name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fName);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append everything after my name and before my first child<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fNameRange[1] + 1, fOpenBodyRange[1] - fNameRange[1]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append my children<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;appendContentsOfChildren(buffer);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append from my last child to my end<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fCloseBodyRange[0], fSourceRange[1] - fCloseBodyRange[0] + 1);<br/>
+<br/>
+<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#canHaveChildren()<br/>
+ */<br/>
+public boolean canHaveChildren() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+/**<br/>
+ * Returns the position of the closing brace for the body of this type.<br/>
+ * This value this method returns is only valid before the type has<br/>
+ * been normalized and is present only for normalization.<br/>
+ */<br/>
+int getCloseBodyPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fCloseBodyRange[0];<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#getDetailedNode()<br/>
+ */<br/>
+protected DOMNode getDetailedNode() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (DOMNode)getFactory().createType(getContents());<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#getInsertionPosition()<br/>
+ */<br/>
+public int getInsertionPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// this should return the position of the end of the last line separator before the closing brace of the type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// See PR 1GELSDQ: ITPJUI:WINNT - JDOM: IType.createMethod does not insert nicely for inner types<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fInsertionPosition;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#getJavaElement<br/>
+ */<br/>
+public IJavaElement getJavaElement(IJavaElement parent) throws IllegalArgumentException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (parent.getElementType() == IJavaElement.TYPE) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ((IType)parent).getType(getName());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (parent.getElementType() == IJavaElement.COMPILATION_UNIT) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ((ICompilationUnit)parent).getType(getName());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("element.illegalParent")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * @see DOMMember#getMemberDeclarationStartPosition()<br/>
+ */<br/>
+protected int getMemberDeclarationStartPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fTypeRange[0];<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#getNodeType()<br/>
+ */<br/>
+public int getNodeType() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return IDOMNode.TYPE;<br/>
+}<br/>
+/**<br/>
+ * Answers the open body range end position.<br/>
+ */<br/>
+int getOpenBodyEnd() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fOpenBodyRange[1];<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#getSuperclass()<br/>
+ */<br/>
+public String getSuperclass() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_SUPERCLASS)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperclass != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fSuperclass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return CharArrayOps.substring(fDocument, fSuperclassRange[0], fSuperclassRange[1] + 1 - fSuperclassRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#getSuperInterfaces()<br/>
+ */<br/>
+public String[] getSuperInterfaces() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fSuperInterfaces;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode<br/>
+ */<br/>
+public boolean isAllowableChild(IDOMNode node) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (node != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int type= node.getNodeType();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return type == IDOMNode.TYPE || type == IDOMNode.FIELD|| type == IDOMNode.METHOD || <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == IDOMNode.INITIALIZER; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#isClass()<br/>
+ */<br/>
+public boolean isClass() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getMask(MASK_TYPE_IS_CLASS);<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode<br/>
+ */<br/>
+protected DOMNode newDOMNode() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new DOMType();<br/>
+}<br/>
+/**<br/>
+ * Normalizes this &lt;code&gt;DOMNode&lt;/code&gt;'s source positions to include whitespace preceeding<br/>
+ * the node on the line on which the node starts, and all whitespace after the node up to<br/>
+ * the next node's start<br/>
+ */<br/>
+void normalize(ILineStartFinder finder) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// perform final changes to the open and close body ranges<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int openBodyEnd, openBodyStart, closeBodyStart, closeBodyEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;DOMNode first = (DOMNode) getFirstChild();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;DOMNode lastNode = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// look for the open body<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Scanner scanner = new Scanner();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;scanner.setSource(fDocument);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;scanner.resetTo(fNameRange[1] + 1, fDocument.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(currentToken != TerminalTokens.TokenNameLBRACE &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken != TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(currentToken == TerminalTokens.TokenNameLBRACE) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = scanner.currentPosition - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyStart = scanner.startPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(InvalidInputException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (first != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = finder.getLineStart(first.getStartPosition());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lineStart &gt; openBodyEnd) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = lineStart - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = first.getStartPosition() - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = (DOMNode) first.getNextNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = first;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode.getNextNode() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = (DOMNode) lastNode.getNextNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scanner.setSource(fDocument);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scanner.resetTo(lastNode.getEndPosition() + 1, fDocument.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(currentToken != TerminalTokens.TokenNameRBRACE &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken != TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(currentToken == TerminalTokens.TokenNameRBRACE) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = scanner.startPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = scanner.currentPosition - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch(InvalidInputException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scanner.resetTo(openBodyEnd, fDocument.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(currentToken != TerminalTokens.TokenNameRBRACE &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken != TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(currentToken == TerminalTokens.TokenNameRBRACE) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = scanner.startPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = scanner.currentPosition - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch(InvalidInputException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = closeBodyEnd - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setOpenBodyRangeEnd(openBodyEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setOpenBodyRangeStart(openBodyStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setCloseBodyRangeStart(closeBodyStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setCloseBodyRangeEnd(closeBodyEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInsertionPosition = finder.getLineStart(closeBodyStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode != null &amp;&amp; fInsertionPosition &lt; lastNode.getEndPosition()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInsertionPosition = getCloseBodyPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (<span class="upd">fInsertionPosition &lt; openBodyEnd</span>) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInsertionPosition = getCloseBodyPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.normalize(finder);<br/>
+}<br/>
+<br/>
+/**<br/>
+ * Normalizes this &lt;code&gt;DOMNode&lt;/code&gt;'s end position.<br/>
+ */<br/>
+void normalizeEndPosition(ILineStartFinder finder, DOMNode next) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (next == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// this node's end position includes all of the characters up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to the end of the enclosing node<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DOMNode parent = (DOMNode) getParent();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parent == null || parent instanceof DOMCompilationUnit) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSourceRangeEnd(fDocument.length - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// parent is a type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSourceRangeEnd(((DOMType)parent).getCloseBodyPosition() - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// this node's end position is just before the start of the next node<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;next.normalizeStartPosition(getEndPosition(), finder);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSourceRangeEnd(next.getStartPosition() - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+/**<br/>
+ * Offsets all the source indexes in this node by the given amount.<br/>
+ */<br/>
+protected void offset(int offset) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.offset(offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fCloseBodyRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fExtendsRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fImplementsRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fInterfacesRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fOpenBodyRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fSuperclassRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fTypeRange, offset);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#setClass(boolean)<br/>
+ */<br/>
+public void setClass(boolean b) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_IS_CLASS, b);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (b) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword= "class"; //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword= "interface"; //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSuperclass(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Sets the end of the close body range <br/>
+ */<br/>
+void setCloseBodyRangeEnd(int end) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange[1] = end;<br/>
+}<br/>
+/**<br/>
+ * Sets the start of the close body range <br/>
+ */<br/>
+void setCloseBodyRangeStart(int start) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange[0] = start;<br/>
+}<br/>
+/**<br/>
+ * Sets the name of this node.<br/>
+ *<br/>
+ * &lt;p&gt;When the name of a type is set, all of its constructors must be marked<br/>
+ * as fragmented, since the names of the constructors must reflect the name<br/>
+ * of this type.<br/>
+ *<br/>
+ * @see IDOMNode#setName(char[])<br/>
+ */<br/>
+public void setName(String name) throws IllegalArgumentException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (name == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("element.nullName")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.setName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration children= getChildren();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (children.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IDOMNode child= (IDOMNode)children.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (child.getNodeType() == IDOMNode.METHOD &amp;&amp; ((IDOMMethod)child).isConstructor()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((DOMNode)child).fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Sets the end of the open body range <br/>
+ */<br/>
+void setOpenBodyRangeEnd(int end) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange[1] = end;<br/>
+}<br/>
+/**<br/>
+ * Sets the start of the open body range <br/>
+ */<br/>
+void setOpenBodyRangeStart(int start) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange[0] = start;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#setSuperclass(char[])<br/>
+ */<br/>
+public void setSuperclass(String superclassName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclass= superclassName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_SUPERCLASS, superclassName != null);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#setSuperInterfaces(String[])<br/>
+ */<br/>
+public void setSuperInterfaces(String[] names) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (names == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("dom.nullInterfaces")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= names;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (names == null || names.length == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInterfaces= null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_INTERFACES, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_INTERFACES, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CharArrayBuffer buffer = new CharArrayBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; names.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (i &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(", "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(names[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInterfaces = buffer.getContents();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Sets the type keyword<br/>
+ */<br/>
+void setTypeKeyword(String keyword) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword = keyword;<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#shareContents(DOMNode)<br/>
+ */<br/>
+protected void shareContents(DOMNode node) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.shareContents(node);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;DOMType type= (DOMType)node;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange= rangeCopy(type.fCloseBodyRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fExtendsRange= type.fExtendsRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fImplementsRange= rangeCopy(type.fImplementsRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInterfaces= type.fInterfaces;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInterfacesRange= rangeCopy(type.fInterfacesRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange= rangeCopy(type.fOpenBodyRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclass= type.fSuperclass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclassRange= rangeCopy(type.fSuperclassRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= type.fSuperInterfaces;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword= type.fTypeKeyword;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeRange= rangeCopy(type.fTypeRange);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#toString()<br/>
+ */<br/>
+public String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "TYPE: " + getName(); //$NON-NLS-1$<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_DOMType_1.20.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2001, 2002 International Business Machines Corp. and others.<br/>
+ * All rights reserved. This program and the accompanying materials <br/>
+ * are made available under the terms of the Common Public License v0.5 <br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/cpl-v05.html<br/>
+ * <br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ ******************************************************************************/<br/>
+package org.eclipse.jdt.internal.core.jdom;<br/>
+<br/>
+import java.util.Enumeration;<br/>
+<br/>
+import org.eclipse.jdt.core.ICompilationUnit;<br/>
+import org.eclipse.jdt.core.IJavaElement;<br/>
+import org.eclipse.jdt.core.IType;<br/>
+import org.eclipse.jdt.core.compiler.InvalidInputException;<br/>
+import org.eclipse.jdt.core.jdom.IDOMMethod;<br/>
+import org.eclipse.jdt.core.jdom.IDOMNode;<br/>
+import org.eclipse.jdt.core.jdom.IDOMType;<br/>
+import org.eclipse.jdt.internal.compiler.parser.Scanner;<br/>
+import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;<br/>
+import org.eclipse.jdt.internal.core.Util;<br/>
+import org.eclipse.jdt.internal.core.util.CharArrayBuffer;<br/>
+import org.eclipse.jdt.internal.core.util.CharArrayOps;<br/>
+<br/>
+/**<br/>
+ * DOMType provides an implementation of IDOMType.<br/>
+ *<br/>
+ * @see IDOMType<br/>
+ * @see DOMNode<br/>
+ */<br/>
+ <br/>
+/* package */ class DOMType extends DOMMember implements IDOMType {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The 'class' or 'interface' keyword if altered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * from the documents contents, otherwise &lt;code&gt;null&lt;/code&gt;.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String fTypeKeyword;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive source range of the 'class'<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or 'interface' keyword in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]&nbsp;&nbsp;&nbsp;&nbsp; fTypeRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The superclass name for the class declaration<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * if altered from the document's contents, otherwise<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;code&gt;null&lt;/code&gt;. Also &lt;code&gt;null&lt;/code&gt; when this<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * type represents an interface.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String fSuperclass;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive source range of the superclass<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * name in the document, or -1's of no superclass was<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * specified in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fSuperclassRange;<br/>
+<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive souce range of the 'extends' keyword<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in the document, including surrounding whitespace, or -1's if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the keyword was not present in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]&nbsp;&nbsp;&nbsp;&nbsp; fExtendsRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive souce range of the 'implements' keyword<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * in the document, including surrounding whitespace, or -1's if<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the keyword was not present in the document.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]&nbsp;&nbsp;&nbsp;&nbsp; fImplementsRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The comma delimited list of interfaces this type implements<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or extends, if altered from the document's contents, otherwise<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;code&gt;null&lt;/code&gt;. Also &lt;code&gt;null&lt;/code&gt; if this type does<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * not implement or extend any interfaces.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected char[] fInterfaces;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original inclusive source range of the list of interfaces this<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * type implements or extends, not including any surrouding whitespace.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * If the document did not specify interfaces, this array contains -1's.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fInterfacesRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/** <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original source range of the first character following the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * type name superclass name, or interface list, up to and including<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the first character before the first type member.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fOpenBodyRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/** <br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * The original source range of the first new line or non whitespace<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * character preceding the close brace of the type's body, up to the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * and including the first character before the next node (if there are<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * no following nodes, the range ends at the position of the last<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * character in the document).<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected int[]  fCloseBodyRange;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * A list of interfaces this type extends or implements.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * &lt;code&gt;null&lt;/code&gt; when this type does not extend<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * or implement any interfaces.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected String[] fSuperInterfaces= new String[0];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * This position is the position of the end of the last line separator before the closing brace starting<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * position of the receiver.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;protected int fInsertionPosition;<br/>
+<br/>
+/**<br/>
+ * Constructs an empty type node.<br/>
+ */<br/>
+DOMType() {<br/>
+<br/>
+}<br/>
+/**<br/>
+ * Creates a new detailed TYPE document fragment on the given range of the document.<br/>
+ *<br/>
+ * @param document - the document containing this node's original contents<br/>
+ * @param sourceRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node within its document.<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents start on and include the character at the first position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents end on and include the character at the last position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;An array of -1's indicates this node's contents do not exist<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in the document.<br/>
+ * @param name - the identifier portion of the name of this node, or<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;code&gt;null&lt;/code&gt; if this node does not have a name<br/>
+ * @param nameRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node's name within its document,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;including any array qualifiers that might immediately follow the name<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or -1's if this node does not have a name.<br/>
+ * @param commentRange - a two element array describing the comments that precede<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the member declaration. The first matches the start of this node's<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sourceRange, and the second is the new-line or first non-whitespace<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;character following the last comment. If no comments are present,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this array contains two -1's.<br/>
+ * @param flags - an integer representing the modifiers for this member. The<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;integer can be analyzed with org.eclipse.jdt.core.Flags<br/>
+ * @param modifierRange - a two element array describing the location of<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;modifiers for this member within its source range. The first integer<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is the first character of the first modifier for this member, and<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the second integer is the last whitespace character preceeding the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;next part of this member declaration. If there are no modifiers present<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in this node's source code (i.e. default protection), this array<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;contains two -1's.<br/>
+ * @param typeRange - a two element array describing the location of the 'class'<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or 'interface' keyword in the type declaration - first and last character<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;positions.<br/>
+ * @param superclassRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;superclass name in the type declaration - first and last character<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;positions or two -1's if a superclass is not present in the document.<br/>
+ * @param extendsRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'extends' keyword in the type declaration, including any surrounding<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;whitespace, or -1's if the 'extends' keyword is not present in the document.<br/>
+ * @param implementsList - an array of names of the interfaces this type implements<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or extends, or &lt;code&gt;null&lt;/code&gt; if this type does not implement or extend<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;any interfaces.<br/>
+ * @param implementsRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;comment delimited list of interfaces this type implements or extends,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;not including any surrounding whitespace, or -1's if no interface list<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;is present in the document.<br/>
+ * @param implementsKeywordRange - a two element array describing the location of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'implements' keyword, including any surrounding whitespace, or -1's if no<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'implements' keyword is present in the document.<br/>
+ * @param openBodyRange - a two element array describing the location of the<br/>
+ *      open brace of the type's body and whitespace following the type declaration<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and preceeding the first member in the type.<br/>
+ * @param closeBodyRange - a two element array describing the source range of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;first new line or non whitespace character preceeding the close brace of the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type's body, up to the close brace<br/>
+ * @param isClass - true is the type is a class, false if it is an interface<br/>
+ */<br/>
+DOMType(char[] document, int[] sourceRange, String name, int[] nameRange, int[] commentRange, int flags, int[] modifierRange, int[] typeRange, int[] superclassRange, int[] extendsRange, String[] implementsList, int[] implementsRange, int[] implementsKeywordRange, int[] openBodyRange, int[] closeBodyRange, boolean isClass) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super(document, sourceRange, name, nameRange, commentRange, flags, modifierRange);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeRange= typeRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_IS_CLASS, isClass);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fExtendsRange= extendsRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fImplementsRange= implementsKeywordRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclassRange= superclassRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInterfacesRange= implementsRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange= closeBodyRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_SUPERCLASS, superclassRange[0] &gt; 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_INTERFACES, implementsList != null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= implementsList;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange= openBodyRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange= closeBodyRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_DETAILED_SOURCE_INDEXES, true);<br/>
+<br/>
+}<br/>
+/**<br/>
+ * Creates a new simple TYPE document fragment on the given range of the document.<br/>
+ *<br/>
+ * @param document - the document containing this node's original contents<br/>
+ * @param sourceRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node within its document.<br/>
+ * &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents start on and include the character at the first position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Contents end on and include the character at the last position.<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;An array of -1's indicates this node's contents do not exist<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in the document.<br/>
+ * @param name - the identifier portion of the name of this node, or<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;code&gt;null&lt;/code&gt; if this node does not have a name<br/>
+ * @param nameRange - a two element array of integers describing the<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entire inclusive source range of this node's name within its document,<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;including any array qualifiers that might immediately follow the name<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or -1's if this node does not have a name.<br/>
+ * @param flags - an integer representing the modifiers for this member. The<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;integer can be analyzed with org.eclipse.jdt.core.Flags<br/>
+ * @param implementsList - an array of names of the interfaces this type implements<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;or extends, or &lt;code&gt;null&lt;/code&gt; if this type does not implement or extend<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;any interfaces.<br/>
+ * @param isClass - true is the type is a class, false if it is an interface<br/>
+ */<br/>
+DOMType(char[] document, int[] sourceRange, String name, int[] nameRange, int flags, String[] implementsList, boolean isClass) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this(document, sourceRange, name, nameRange, new int[] {-1, -1}, flags,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new int[] {-1, -1}, new int[] {-1, -1}, new int[] {-1, -1}, new int[] {-1, -1},<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;implementsList, new int[] {-1, -1}, new int[] {-1, -1}, new int[] {-1, -1}, new int[] {sourceRange[1], sourceRange[1]}, isClass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_DETAILED_SOURCE_INDEXES, false);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#addSuperInterface(String)<br/>
+ */<br/>
+public void addSuperInterface(String name) throws IllegalArgumentException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (name == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("dom.addNullInterface")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperInterfaces == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= new String[1];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces[0]= name;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= appendString(fSuperInterfaces, name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setSuperInterfaces(fSuperInterfaces);<br/>
+}<br/>
+/**<br/>
+ * @see DOMMember#appendMemberBodyContents(CharArrayBuffer)<br/>
+ */<br/>
+protected void appendMemberBodyContents(CharArrayBuffer buffer) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fOpenBodyRange[0], fOpenBodyRange[1] + 1 - fOpenBodyRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;appendContentsOfChildren(buffer);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fCloseBodyRange[0], fCloseBodyRange[1] + 1 - fCloseBodyRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fCloseBodyRange[1] + 1, fSourceRange[1] - fCloseBodyRange[1]);<br/>
+}<br/>
+/**<br/>
+ * @see DOMMember#appendMemberDeclarationContents(CharArrayBuffer )<br/>
+ */<br/>
+protected void appendMemberDeclarationContents(CharArrayBuffer  buffer) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (fTypeKeyword != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fTypeKeyword);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fTypeRange[1], fNameRange[0] - fTypeRange[1] );<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fTypeRange[0], fTypeRange[1] + 1 - fTypeRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(getName());<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (isClass()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;boolean hasSuperclass = false, hasInterfaces = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_SUPERCLASS)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hasSuperclass = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fExtendsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" extends "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fExtendsRange[0], fExtendsRange[1] + 1 - fExtendsRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperclass != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fSuperclass);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fSuperclassRange[0], fSuperclassRange[1] + 1 - fSuperclassRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_INTERFACES)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hasInterfaces = true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fImplementsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" implements "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fImplementsRange[0], fImplementsRange[1] + 1 - fImplementsRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fInterfaces != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fInterfaces);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fInterfacesRange[0], fInterfacesRange[1] + 1 - fInterfacesRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (hasInterfaces) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fImplementsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(' ');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fInterfacesRange[1] + 1, fOpenBodyRange[0] - fInterfacesRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (hasSuperclass) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperclassRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(' ');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fSuperclassRange[1] + 1, fOpenBodyRange[0] - fSuperclassRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fNameRange[1] + 1, fOpenBodyRange[0] - fNameRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_INTERFACES)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fExtendsRange[0] &lt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(" extends "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fExtendsRange[0], fExtendsRange[1] + 1 - fExtendsRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fInterfaces != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fInterfaces);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(' ');<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fInterfacesRange[0], fInterfacesRange[1] + 1 - fInterfacesRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fNameRange[1] + 1, fOpenBodyRange[0] - fNameRange[1] - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#appendSimpleContents(CharArrayBuffer)<br/>
+ */<br/>
+protected void appendSimpleContents(CharArrayBuffer buffer) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append eveything before my name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fSourceRange[0], fNameRange[0] - fSourceRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append my name<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fName);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append everything after my name and before my first child<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fNameRange[1] + 1, fOpenBodyRange[1] - fNameRange[1]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append my children<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;appendContentsOfChildren(buffer);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// append from my last child to my end<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(fDocument, fCloseBodyRange[0], fSourceRange[1] - fCloseBodyRange[0] + 1);<br/>
+<br/>
+<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#canHaveChildren()<br/>
+ */<br/>
+public boolean canHaveChildren() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+}<br/>
+/**<br/>
+ * Returns the position of the closing brace for the body of this type.<br/>
+ * This value this method returns is only valid before the type has<br/>
+ * been normalized and is present only for normalization.<br/>
+ */<br/>
+int getCloseBodyPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fCloseBodyRange[0];<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#getDetailedNode()<br/>
+ */<br/>
+protected DOMNode getDetailedNode() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (DOMNode)getFactory().createType(getContents());<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#getInsertionPosition()<br/>
+ */<br/>
+public int getInsertionPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// this should return the position of the end of the last line separator before the closing brace of the type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// See PR 1GELSDQ: ITPJUI:WINNT - JDOM: IType.createMethod does not insert nicely for inner types<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fInsertionPosition;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#getJavaElement<br/>
+ */<br/>
+public IJavaElement getJavaElement(IJavaElement parent) throws IllegalArgumentException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (parent.getElementType() == IJavaElement.TYPE) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ((IType)parent).getType(getName());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (parent.getElementType() == IJavaElement.COMPILATION_UNIT) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ((ICompilationUnit)parent).getType(getName());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("element.illegalParent")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * @see DOMMember#getMemberDeclarationStartPosition()<br/>
+ */<br/>
+protected int getMemberDeclarationStartPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fTypeRange[0];<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#getNodeType()<br/>
+ */<br/>
+public int getNodeType() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return IDOMNode.TYPE;<br/>
+}<br/>
+/**<br/>
+ * Answers the open body range end position.<br/>
+ */<br/>
+int getOpenBodyEnd() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fOpenBodyRange[1];<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#getSuperclass()<br/>
+ */<br/>
+public String getSuperclass() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (getMask(MASK_TYPE_HAS_SUPERCLASS)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fSuperclass != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return fSuperclass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return CharArrayOps.substring(fDocument, fSuperclassRange[0], fSuperclassRange[1] + 1 - fSuperclassRange[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#getSuperInterfaces()<br/>
+ */<br/>
+public String[] getSuperInterfaces() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return fSuperInterfaces;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode<br/>
+ */<br/>
+public boolean isAllowableChild(IDOMNode node) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (node != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int type= node.getNodeType();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return type == IDOMNode.TYPE || type == IDOMNode.FIELD|| type == IDOMNode.METHOD || <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == IDOMNode.INITIALIZER; <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#isClass()<br/>
+ */<br/>
+public boolean isClass() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return getMask(MASK_TYPE_IS_CLASS);<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode<br/>
+ */<br/>
+protected DOMNode newDOMNode() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return new DOMType();<br/>
+}<br/>
+/**<br/>
+ * Normalizes this &lt;code&gt;DOMNode&lt;/code&gt;'s source positions to include whitespace preceeding<br/>
+ * the node on the line on which the node starts, and all whitespace after the node up to<br/>
+ * the next node's start<br/>
+ */<br/>
+void normalize(ILineStartFinder finder) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// perform final changes to the open and close body ranges<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int openBodyEnd, openBodyStart, closeBodyStart, closeBodyEnd;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;DOMNode first = (DOMNode) getFirstChild();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;DOMNode lastNode = null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// look for the open body<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Scanner scanner = new Scanner();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;scanner.setSource(fDocument);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;scanner.resetTo(fNameRange[1] + 1, fDocument.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(currentToken != TerminalTokens.TokenNameLBRACE &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken != TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(currentToken == TerminalTokens.TokenNameLBRACE) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = scanner.currentPosition - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyStart = scanner.startPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch(InvalidInputException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (first != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int lineStart = finder.getLineStart(first.getStartPosition());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lineStart &gt; openBodyEnd) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = lineStart - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = first.getStartPosition() - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = (DOMNode) first.getNextNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = first;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (lastNode.getNextNode() != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastNode = (DOMNode) lastNode.getNextNode();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scanner.setSource(fDocument);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scanner.resetTo(lastNode.getEndPosition() + 1, fDocument.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(currentToken != TerminalTokens.TokenNameRBRACE &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken != TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(currentToken == TerminalTokens.TokenNameRBRACE) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = scanner.startPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = scanner.currentPosition - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch(InvalidInputException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scanner.resetTo(openBodyEnd, fDocument.length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(currentToken != TerminalTokens.TokenNameRBRACE &amp;&amp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken != TerminalTokens.TokenNameEOF) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentToken = scanner.getNextToken();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(currentToken == TerminalTokens.TokenNameRBRACE) {&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = scanner.startPosition;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = scanner.currentPosition - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} catch(InvalidInputException e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyStart = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;closeBodyEnd = fDocument.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;openBodyEnd = closeBodyEnd - 1;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setOpenBodyRangeEnd(openBodyEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setOpenBodyRangeStart(openBodyStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setCloseBodyRangeStart(closeBodyStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setCloseBodyRangeEnd(closeBodyEnd);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInsertionPosition = finder.getLineStart(closeBodyStart);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (lastNode != null &amp;&amp; fInsertionPosition &lt; lastNode.getEndPosition()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInsertionPosition = getCloseBodyPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (<span class="upd">fInsertionPosition &lt;= openBodyEnd</span>) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInsertionPosition = getCloseBodyPosition();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.normalize(finder);<br/>
+}<br/>
+<br/>
+/**<br/>
+ * Normalizes this &lt;code&gt;DOMNode&lt;/code&gt;'s end position.<br/>
+ */<br/>
+void normalizeEndPosition(ILineStartFinder finder, DOMNode next) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (next == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// this node's end position includes all of the characters up<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to the end of the enclosing node<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DOMNode parent = (DOMNode) getParent();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (parent == null || parent instanceof DOMCompilationUnit) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSourceRangeEnd(fDocument.length - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// parent is a type<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSourceRangeEnd(((DOMType)parent).getCloseBodyPosition() - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// this node's end position is just before the start of the next node<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;next.normalizeStartPosition(getEndPosition(), finder);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSourceRangeEnd(next.getStartPosition() - 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+<br/>
+/**<br/>
+ * Offsets all the source indexes in this node by the given amount.<br/>
+ */<br/>
+protected void offset(int offset) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.offset(offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fCloseBodyRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fExtendsRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fImplementsRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fInterfacesRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fOpenBodyRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fSuperclassRange, offset);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;offsetRange(fTypeRange, offset);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#setClass(boolean)<br/>
+ */<br/>
+public void setClass(boolean b) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_IS_CLASS, b);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (b) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword= "class"; //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword= "interface"; //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setSuperclass(null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Sets the end of the close body range <br/>
+ */<br/>
+void setCloseBodyRangeEnd(int end) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange[1] = end;<br/>
+}<br/>
+/**<br/>
+ * Sets the start of the close body range <br/>
+ */<br/>
+void setCloseBodyRangeStart(int start) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange[0] = start;<br/>
+}<br/>
+/**<br/>
+ * Sets the name of this node.<br/>
+ *<br/>
+ * &lt;p&gt;When the name of a type is set, all of its constructors must be marked<br/>
+ * as fragmented, since the names of the constructors must reflect the name<br/>
+ * of this type.<br/>
+ *<br/>
+ * @see IDOMNode#setName(char[])<br/>
+ */<br/>
+public void setName(String name) throws IllegalArgumentException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (name == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("element.nullName")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.setName(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Enumeration children= getChildren();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while (children.hasMoreElements()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IDOMNode child= (IDOMNode)children.nextElement();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (child.getNodeType() == IDOMNode.METHOD &amp;&amp; ((IDOMMethod)child).isConstructor()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((DOMNode)child).fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Sets the end of the open body range <br/>
+ */<br/>
+void setOpenBodyRangeEnd(int end) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange[1] = end;<br/>
+}<br/>
+/**<br/>
+ * Sets the start of the open body range <br/>
+ */<br/>
+void setOpenBodyRangeStart(int start) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange[0] = start;<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#setSuperclass(char[])<br/>
+ */<br/>
+public void setSuperclass(String superclassName) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclass= superclassName;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_SUPERCLASS, superclassName != null);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMType#setSuperInterfaces(String[])<br/>
+ */<br/>
+public void setSuperInterfaces(String[] names) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;becomeDetailed();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (names == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new IllegalArgumentException(Util.bind("dom.nullInterfaces")); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fragment();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= names;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (names == null || names.length == 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInterfaces= null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_INTERFACES, false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setMask(MASK_TYPE_HAS_INTERFACES, true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CharArrayBuffer buffer = new CharArrayBuffer();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; names.length; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (i &gt; 0) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(", "); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer.append(names[i]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fInterfaces = buffer.getContents();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+/**<br/>
+ * Sets the type keyword<br/>
+ */<br/>
+void setTypeKeyword(String keyword) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword = keyword;<br/>
+}<br/>
+/**<br/>
+ * @see DOMNode#shareContents(DOMNode)<br/>
+ */<br/>
+protected void shareContents(DOMNode node) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;super.shareContents(node);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;DOMType type= (DOMType)node;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fCloseBodyRange= rangeCopy(type.fCloseBodyRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fExtendsRange= type.fExtendsRange;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fImplementsRange= rangeCopy(type.fImplementsRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInterfaces= type.fInterfaces;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fInterfacesRange= rangeCopy(type.fInterfacesRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fOpenBodyRange= rangeCopy(type.fOpenBodyRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclass= type.fSuperclass;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperclassRange= rangeCopy(type.fSuperclassRange);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fSuperInterfaces= type.fSuperInterfaces;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeKeyword= type.fTypeKeyword;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;fTypeRange= rangeCopy(type.fTypeRange);<br/>
+}<br/>
+/**<br/>
+ * @see IDOMNode#toString()<br/>
+ */<br/>
+public String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return "TYPE: " + getName(); //$NON-NLS-1$<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

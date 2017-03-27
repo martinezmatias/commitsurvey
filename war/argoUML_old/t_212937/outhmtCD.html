@@ -1,0 +1,261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ActionSaveProject_1.52.java</h1>
+<div class="code">
+<div class="id">
+// $Id: ActionSaveProject.java,v 1.52 2005-12-13 00:47:29 bobtarling Exp $<br/>
+// Copyright (c) 1996-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.ui;<br/>
+<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.net.URL;<br/>
+<br/>
+import javax.swing.AbstractAction;<br/>
+import javax.swing.Icon;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+import org.argouml.application.helpers.ResourceLoaderWrapper;<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.ui.ProjectBrowser;<br/>
+<br/>
+/**<br/>
+ * Action that saves the project.<br/>
+ *<br/>
+ * @see ActionOpenProject<br/>
+ */<br/>
+public class ActionSaveProject extends AbstractAction {<br/>
+    /**<br/>
+     * Logger.<br/>
+     */<br/>
+    private static final Logger LOG = Logger.getLogger(ActionSaveProject.class);<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // static variables<br/>
+<br/>
+    /**<br/>
+     * The singleton.<br/>
+     */<br/>
+    private static final ActionSaveProject INSTANCE = new ActionSaveProject();<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // constructors<br/>
+<br/>
+    /**<br/>
+     * @return the singleton<br/>
+     */<br/>
+    public static ActionSaveProject getInstance() {<br/>
+        return INSTANCE;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The constructor.<br/>
+     */<br/>
+    protected ActionSaveProject() {<br/>
+        super(Translator.localize("action.save-project"),<br/>
+                ResourceLoaderWrapper.lookupIcon("action.save-project"));<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The constructor.<br/>
+     * @param name the name of the action.<br/>
+     * @param icon the icon to represent this action graphically.<br/>
+     */<br/>
+    protected ActionSaveProject(String name, Icon icon) {<br/>
+        super(name, icon);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)<br/>
+     */<br/>
+    public void actionPerformed(ActionEvent e) {<br/>
+        LOG.info("Performing save action");<br/>
+        URL url =<br/>
+            ProjectManager.getManager().getCurrentProject() != null<br/>
+            ? ProjectManager.getManager().getCurrentProject().getURL() : null;<br/>
+        if (url == null) {<br/>
+            ActionSaveProjectAs.SINGLETON.actionPerformed(e);<br/>
+        } else {<br/>
+            ProjectBrowser.getInstance().trySave(true);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * When we become enabled inform the user by highlighting the title bar<br/>
+     * with an asterisk.<br/>
+     */<br/>
+    public void <span class="mv">setEnabled</span>(boolean enabled) {<br/>
+        if (enabled == this.enabled) {<br/>
+            return;<br/>
+        }<br/>
+        super.<span class="mv">setEnabled</span>(enabled);<br/>
+        ProjectBrowser.getInstance().showSaveIndicator();<br/>
+    }<br/>
+<br/>
+} /* end class ActionSaveProject */<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ActionSaveProject_1.53.java</h1>
+<div class="code">
+<div class="id">
+// $Id: ActionSaveProject.java,v 1.53 2005-12-13 12:49:14 bobtarling Exp $<br/>
+// Copyright (c) 1996-2005 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.ui;<br/>
+<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.net.URL;<br/>
+<br/>
+import javax.swing.AbstractAction;<br/>
+import javax.swing.Icon;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+import org.argouml.application.helpers.ResourceLoaderWrapper;<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.ui.ProjectBrowser;<br/>
+<br/>
+/**<br/>
+ * Action that saves the project.<br/>
+ *<br/>
+ * @see ActionOpenProject<br/>
+ */<br/>
+public class ActionSaveProject extends AbstractAction {<br/>
+    /**<br/>
+     * Logger.<br/>
+     */<br/>
+    private static final Logger LOG = Logger.getLogger(ActionSaveProject.class);<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // static variables<br/>
+<br/>
+    /**<br/>
+     * The singleton.<br/>
+     */<br/>
+    private static final ActionSaveProject INSTANCE = new ActionSaveProject();<br/>
+<br/>
+    ////////////////////////////////////////////////////////////////<br/>
+    // constructors<br/>
+<br/>
+    /**<br/>
+     * @return the singleton<br/>
+     */<br/>
+    public static ActionSaveProject getInstance() {<br/>
+        return INSTANCE;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The constructor.<br/>
+     */<br/>
+    protected ActionSaveProject() {<br/>
+        super(Translator.localize("action.save-project"),<br/>
+                ResourceLoaderWrapper.lookupIcon("action.save-project"));<br/>
+        <span class="add"><span class="add">super.<span class="mv">setEnabled</span>(<span class="add">false</span>)</span>;</span><br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * The constructor.<br/>
+     * @param name the name of the action.<br/>
+     * @param icon the icon to represent this action graphically.<br/>
+     */<br/>
+    protected ActionSaveProject(String name, Icon icon) {<br/>
+        super(name, icon);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)<br/>
+     */<br/>
+    public void actionPerformed(ActionEvent e) {<br/>
+        LOG.info("Performing save action");<br/>
+        URL url =<br/>
+            ProjectManager.getManager().getCurrentProject() != null<br/>
+            ? ProjectManager.getManager().getCurrentProject().getURL() : null;<br/>
+        if (url == null) {<br/>
+            ActionSaveProjectAs.SINGLETON.actionPerformed(e);<br/>
+        } else {<br/>
+            ProjectBrowser.getInstance().trySave(true);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * When we become enabled inform the user by highlighting the title bar<br/>
+     * with an asterisk.<br/>
+     */<br/>
+    public void <span class="mv">setEnabled</span>(boolean enabled) {<br/>
+        if (enabled == this.enabled) {<br/>
+            return;<br/>
+        }<br/>
+        super.<span class="add">setEnabled</span>(enabled);<br/>
+        ProjectBrowser.getInstance().showSaveIndicator();<br/>
+    }<br/>
+<br/>
+} /* end class ActionSaveProject */<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

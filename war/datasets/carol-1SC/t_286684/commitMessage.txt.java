@@ -1,0 +1,1 @@
+use unwrap implementation in parent class to correctly unwrap References

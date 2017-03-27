@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_NullFigure_1.1.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)LineConnection.java<br/>
+ *<br/>
+ * Project:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JHotdraw - a GUI framework for technical drawings<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.jhotdraw.org<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://jhotdraw.sourceforge.net<br/>
+ * Copyright:&nbsp;&nbsp;&nbsp;&nbsp;? by the original author(s) and all contributors<br/>
+ * License:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lesser GNU Public License (LGPL)<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.opensource.org/licenses/lgpl-license.html<br/>
+ */<br/>
+<br/>
+package CH.ifa.draw.figures;<br/>
+<br/>
+import CH.ifa.draw.framework.*;<br/>
+import CH.ifa.draw.standard.FigureEnumerator;<br/>
+import CH.ifa.draw.standard.SingleFigureEnumerator;<br/>
+import CH.ifa.draw.standard.AbstractFigure;<br/>
+import CH.ifa.draw.standard.HandleEnumerator;<br/>
+<br/>
+import java.awt.*;<br/>
+<br/>
+/**<br/>
+ * @author Wolfram Kaiser<br/>
+ * @version &lt;$CURRENT_VERSION$&gt;<br/>
+ */<br/>
+public class NullFigure extends AbstractFigure {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Rectangle myDisplayBox;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Moves the figure. This is the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * method that subclassers override. Clients usually<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * call displayBox.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #moveBy<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void basicMoveBy(int dx, int dy) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDisplayBox.translate(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Changes the display box of a figure. This method is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * always implemented in figure subclasses.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * It only changes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the displaybox and does not announce any changes. It<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * is usually not called by the client. Clients typically call<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * displayBox to change the display box.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param origin the new origin<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param corner the new corner<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #displayBox<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void basicDisplayBox(Point origin, Point corner) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDisplayBox = new Rectangle(origin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDisplayBox.add(corner);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="mv">/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the display box of a figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #basicDisplayBox<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">public</span> <span class="mv">Rectangle</span> <span class="mv">displayBox</span>() <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">return <span class="mv">myDisplayBox</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the figure.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param g the Graphics to draw into<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void draw(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure cannot be drawn: it has no graphical representation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the handles used to manipulate<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the figure. Handles is a Factory Method for<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * creating handle objects.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return an type-safe iterator of handles<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Handle<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public HandleEnumeration handles() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return HandleEnumerator.getEmptyEnumeration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Checks if the Figure should be considered as empty.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isEmpty() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns an Enumeration of the figures contained in this figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration figures() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FigureEnumerator.getEmptyEnumeration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the figure that contains the given point.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Figure findFigureInside(int x, int y) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not contain other figures<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a Clone of this figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Object clone() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return super.clone();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Checks whether the given figure is contained in this figure.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean includes(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not contain another figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Decomposes a figure into its parts. A figure is considered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * as a part of itself.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration decompose() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new SingleFigureEnumerator(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Releases a figure's resources. Release is called when<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * a figure is removed from a drawing. Informs the listeners that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the figure is removed by calling figureRemoved.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void release() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not occupy any resources<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Invalidates the figure. This method informs its listeners<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * that its current display box is invalid and should be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * refreshed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void invalidate() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have a display box<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the named attribute or null if a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * a figure doesn't have an attribute.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * All figures support the attribute names<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * FillColor and FrameColor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @deprecated use getAttribute(FigureAttributeConstant) instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Object getAttribute(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the named attribute or null if a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * a figure doesn't have an attribute.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * All figures support the attribute names<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * FillColor and FrameColor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Object getAttribute(FigureAttributeConstant attributeConstant) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the named attribute to the new value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @deprecated use setAttribute(FigureAttributeConstant, Object) instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setAttribute(String name, Object value) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the named attribute to the new value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setAttribute(FigureAttributeConstant attributeConstant, Object value) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_NullFigure_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)LineConnection.java<br/>
+ *<br/>
+ * Project:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JHotdraw - a GUI framework for technical drawings<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.jhotdraw.org<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://jhotdraw.sourceforge.net<br/>
+ * Copyright:&nbsp;&nbsp;&nbsp;&nbsp;? by the original author(s) and all contributors<br/>
+ * License:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lesser GNU Public License (LGPL)<br/>
+ *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;http://www.opensource.org/licenses/lgpl-license.html<br/>
+ */<br/>
+<br/>
+package CH.ifa.draw.figures;<br/>
+<br/>
+import CH.ifa.draw.framework.*;<br/>
+import CH.ifa.draw.standard.FigureEnumerator;<br/>
+import CH.ifa.draw.standard.SingleFigureEnumerator;<br/>
+import CH.ifa.draw.standard.AbstractFigure;<br/>
+import CH.ifa.draw.standard.HandleEnumerator;<br/>
+<br/>
+import java.awt.*;<br/>
+<br/>
+/**<br/>
+ * @author Wolfram Kaiser<br/>
+ * @version &lt;$CURRENT_VERSION$&gt;<br/>
+ */<br/>
+public class NullFigure extends AbstractFigure {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Rectangle myDisplayBox;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Moves the figure. This is the<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * method that subclassers override. Clients usually<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * call displayBox.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #moveBy<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;protected void basicMoveBy(int dx, int dy) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDisplayBox.translate(dx, dy);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Changes the display box of a figure. This method is<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * always implemented in figure subclasses.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * It only changes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the displaybox and does not announce any changes. It<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * is usually not called by the client. Clients typically call<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * displayBox to change the display box.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param origin the new origin<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param corner the new corner<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #displayBox<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void basicDisplayBox(Point origin, Point corner) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDisplayBox = new Rectangle(origin);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myDisplayBox.add(corner);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="mv">/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Gets the display box of a figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see #basicDisplayBox<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">public</span> <span class="mv">Rectangle</span> <span class="mv">displayBox</span>() <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="add">new <span class="add"><span class="add">Rectangle</span></span>(<span class="mv">myDisplayBox</span>)</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Draws the figure.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param g the Graphics to draw into<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void draw(Graphics g) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure cannot be drawn: it has no graphical representation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the handles used to manipulate<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the figure. Handles is a Factory Method for<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * creating handle objects.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return an type-safe iterator of handles<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see Handle<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public HandleEnumeration handles() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return HandleEnumerator.getEmptyEnumeration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Checks if the Figure should be considered as empty.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean isEmpty() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns an Enumeration of the figures contained in this figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration figures() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FigureEnumerator.getEmptyEnumeration();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the figure that contains the given point.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Figure findFigureInside(int x, int y) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not contain other figures<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns a Clone of this figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Object clone() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return super.clone();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Checks whether the given figure is contained in this figure.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public boolean includes(Figure figure) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not contain another figure<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Decomposes a figure into its parts. A figure is considered<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * as a part of itself.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public FigureEnumeration decompose() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new SingleFigureEnumerator(this);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Releases a figure's resources. Release is called when<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * a figure is removed from a drawing. Informs the listeners that<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * the figure is removed by calling figureRemoved.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void release() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not occupy any resources<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Invalidates the figure. This method informs its listeners<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * that its current display box is invalid and should be<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * refreshed.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void invalidate() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have a display box<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the named attribute or null if a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * a figure doesn't have an attribute.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * All figures support the attribute names<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * FillColor and FrameColor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @deprecated use getAttribute(FigureAttributeConstant) instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Object getAttribute(String name) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the named attribute or null if a<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * a figure doesn't have an attribute.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * All figures support the attribute names<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * FillColor and FrameColor<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Object getAttribute(FigureAttributeConstant attributeConstant) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the named attribute to the new value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @deprecated use setAttribute(FigureAttributeConstant, Object) instead<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setAttribute(String name, Object value) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Sets the named attribute to the new value<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public void setAttribute(FigureAttributeConstant attributeConstant, Object value) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// A NullFigure does not have attributes: it cannot do anything with them<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_SimpleLookupTable_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2006 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.compiler.util;<br/>
+<br/>
+/**<br/>
+ * A simple lookup table is a non-synchronized Hashtable, whose keys<br/>
+ * and values are Objects. It also uses linear probing to resolve collisions<br/>
+ * rather than a linked list of hash table entries.<br/>
+ */<br/>
+public final class SimpleLookupTable implements Cloneable {<br/>
+<br/>
+// to avoid using Enumerations, walk the individual tables skipping nulls<br/>
+public Object[] keyTable;<br/>
+public Object[] valueTable;<br/>
+public int elementSize; // number of elements in the table<br/>
+public int threshold;<br/>
+<br/>
+public SimpleLookupTable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this(13);<br/>
+}<br/>
+<br/>
+public SimpleLookupTable(int size) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.elementSize = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.threshold = size; // size represents the expected number of elements<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int extraRoom = (int) (size * 1.5f);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.threshold == extraRoom)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extraRoom++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.keyTable = new Object[extraRoom];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.valueTable = new Object[extraRoom];<br/>
+}<br/>
+<br/>
+public Object clone() throws CloneNotSupportedException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SimpleLookupTable result = (SimpleLookupTable) super.clone();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.elementSize = this.elementSize;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.threshold = this.threshold;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = this.keyTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.keyTable = new Object[length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.keyTable, 0, result.keyTable, 0, length);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;length = this.valueTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.valueTable = new Object[length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.valueTable, 0, result.valueTable, 0, length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return result;<br/>
+}<br/>
+<br/>
+public boolean containsKey(Object key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = keyTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int index = (key.hashCode() &amp; 0x7FFFFFFF) % length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object currentKey;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while ((currentKey = keyTable[index]) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentKey.equals(key)) return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (++index == length) index = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+}<br/>
+<br/>
+public Object get(Object key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = keyTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int index = (key.hashCode() &amp; 0x7FFFFFFF) % length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object currentKey;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while ((currentKey = keyTable[index]) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentKey.equals(key)) return valueTable[index];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (++index == length) index = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+}<br/>
+<br/>
+<span class="del"><span class="mv">public</span> <span class="mv">Object</span> <span class="mv">keyForValue</span>(<span class="mv">Object <span class="mv">valueToMatch</span></span>) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">if (<span class="mv">valueToMatch != <span class="mv">null</span></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">for (<span class="del"><span class="mv">int</span> <span class="mv">i = <span class="mv">0</span></span>, <span class="mv"><span class="mv">l</span> = keyTable.<span class="mv">length</span></span></span>; <span class="mv">i &lt; l</span>; <span class="mv">i++</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">if (<span class="del"><span class="del"><span class="mv">keyTable[<span class="mv">i</span>]</span> != <span class="mv">null</span></span> &amp;&amp; <span class="mv">valueToMatch.<span class="mv">equals</span>(valueTable[i])</span></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">return <span class="mv">keyTable</span>[i];</span></span></span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">return <span class="mv">null</span>;</span><br/>
+}</span></span><br/>
+<br/>
+<span class="del"><span class="mv">public</span> <span class="mv">Object</span> <span class="mv">put</span>(<span class="del"><span class="mv">Object</span> <span class="mv">key</span></span>, <span class="mv">Object <span class="mv">value</span></span>) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="mv">int</span> <span class="del"><span class="mv">length</span> = <span class="del"><span class="mv">keyTable</span>.<span class="mv">length</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv"><span class="mv">int</span> index = (key.hashCode() &amp; 0x7FFFFFFF) % <span class="mv">length</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv"><span class="mv">Object</span> currentKey;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">while (<span class="mv">(currentKey = <span class="del"><span class="mv">keyTable</span>[<span class="mv">index</span>]</span>) != <span class="mv">null</span></span>) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">if (<span class="mv">currentKey.<span class="mv">equals</span>(key)</span>) <span class="mv">return valueTable[<span class="mv">index</span>] = value;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">if (<span class="del"><span class="del">++<span class="mv">index</span></span> == <span class="mv">length</span></span>) <span class="del"><span class="del"><span class="mv">index</span> = <span class="mv">0</span></span>;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="mv"><span class="mv">keyTable</span>[index] = <span class="mv">key</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">valueTable[<span class="mv">index</span>] = value;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// assumes the threshold is never equal to the size of the table<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">if (++elementSize &gt; threshold) rehash();</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">return value;</span><br/>
+}</span></span><br/>
+<br/>
+<span class="del"><span class="mv">public</span> <span class="mv">Object</span> <span class="mv">removeKey</span>(<span class="mv">Object <span class="mv">key</span></span>) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">int length = <span class="mv">keyTable</span>.length;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">int <span class="mv">index</span> = (key.hashCode() &amp; 0x7FFFFFFF) % length;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">Object <span class="del"><span class="mv">currentKey</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">while (<span class="del"><span class="del">(<span class="mv"><span class="mv">currentKey</span> = keyTable[<span class="mv">index</span>]</span>)</span> != <span class="mv">null</span></span>) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">if (<span class="mv"><span class="mv">currentKey</span>.equals(key)</span>) <span class="del">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">elementSize--;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv"><span class="mv">Object</span> oldValue = valueTable[<span class="mv">index</span>];</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="del"><span class="mv">keyTable</span>[<span class="mv">index</span>]</span> = <span class="mv">null</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">valueTable[<span class="mv">index</span>] = <span class="mv">null</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">if (<span class="del"><span class="del"><span class="mv">keyTable</span>[<span class="del"><span class="mv"><span class="mv">index</span> + 1 == <span class="mv">length</span></span> ? <span class="mv">0</span> : <span class="mv"><span class="mv">index</span> + 1</span></span>]</span> != <span class="mv">null</span></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">rehash();</span></span> // only needed if a possible collision existed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">return oldValue;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">if (<span class="del"><span class="del">++<span class="mv">index</span></span> == <span class="mv">length</span></span>) <span class="del"><span class="del"><span class="mv">index</span> = <span class="mv">0</span></span>;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del">return <span class="mv">null</span>;</span><br/>
+}</span></span><br/>
+<br/>
+<span class="mv">public</span> void removeValue(<span class="mv">Object <span class="mv">valueToRemove</span></span>) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean rehash = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (<span class="del"><span class="mv">int</span> <span class="mv">i = <span class="mv">0</span></span>, <span class="mv"><span class="mv">l</span> = <span class="upd"><span class="mv">valueTable</span>.length</span></span></span>; i &lt; l; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">Object</span> value = valueTable[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (value != <span class="mv">null</span> &amp;&amp; value.<span class="mv">equals</span>(valueToRemove)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elementSize--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">keyTable[<span class="mv">i</span>] = <span class="mv">null</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;valueTable[i] = <span class="mv">null</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!rehash &amp;&amp; <span class="mv">keyTable</span>[i + 1 == l ? <span class="mv">0</span> : i + 1] != <span class="mv">null</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rehash = true; // only needed if a possible collision existed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rehash) rehash();<br/>
+}<br/>
+<br/>
+private void rehash() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SimpleLookupTable newLookupTable = new SimpleLookupTable(elementSize * 2); // double the number of expected elements<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="mv">Object</span> <span class="del"><span class="mv">currentKey</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (<span class="del"><span class="mv">int</span> <span class="del"><span class="mv">i</span> = <span class="del"><span class="mv">keyTable</span>.<span class="mv">length</span></span></span></span>; --i &gt;= <span class="mv">0</span>;)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((<span class="mv">currentKey</span> = <span class="mv">keyTable</span>[i]) != <span class="mv">null</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;newLookupTable.put(<span class="mv">currentKey</span>, valueTable[i]);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.<span class="mv">keyTable</span> = newLookupTable.<span class="mv">keyTable</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.valueTable = newLookupTable.valueTable;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.elementSize = newLookupTable.elementSize;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.threshold = newLookupTable.threshold;<br/>
+}<br/>
+<br/>
+<span class="mv">public</span> String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = ""; //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">Object</span> object;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (<span class="mv">int</span> i = <span class="mv">0</span>, l = valueTable.<span class="mv">length</span>; i &lt; l; i++)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((object = valueTable[i]) != <span class="mv">null</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s += <span class="mv">keyTable</span>[i].toString() + " -&gt; " + object.toString() + "\n"; &nbsp;&nbsp;&nbsp;&nbsp;//$NON-NLS-2$ //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return s;<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_SimpleLookupTable_1.6.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2000, 2007 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+package org.eclipse.jdt.internal.compiler.util;<br/>
+<br/>
+/**<br/>
+ * A simple lookup table is a non-synchronized Hashtable, whose keys<br/>
+ * and values are Objects. It also uses linear probing to resolve collisions<br/>
+ * rather than a linked list of hash table entries.<br/>
+ */<br/>
+public final class SimpleLookupTable implements Cloneable {<br/>
+<br/>
+// to avoid using Enumerations, walk the individual tables skipping nulls<br/>
+public Object[] keyTable;<br/>
+public Object[] valueTable;<br/>
+public int elementSize; // number of elements in the table<br/>
+public int threshold;<br/>
+<br/>
+public SimpleLookupTable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this(13);<br/>
+}<br/>
+<br/>
+public SimpleLookupTable(int size) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.elementSize = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.threshold = size; // size represents the expected number of elements<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int extraRoom = (int) (size * 1.5f);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (this.threshold == extraRoom)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extraRoom++;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.keyTable = new Object[extraRoom];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.valueTable = new Object[extraRoom];<br/>
+}<br/>
+<br/>
+public Object clone() throws CloneNotSupportedException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SimpleLookupTable result = (SimpleLookupTable) super.clone();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.elementSize = this.elementSize;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.threshold = this.threshold;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = this.keyTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.keyTable = new Object[length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.keyTable, 0, result.keyTable, 0, length);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;length = this.valueTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;result.valueTable = new Object[length];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;System.arraycopy(this.valueTable, 0, result.valueTable, 0, length);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return result;<br/>
+}<br/>
+<br/>
+public boolean containsKey(Object key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = keyTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int index = (key.hashCode() &amp; 0x7FFFFFFF) % length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object currentKey;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while ((currentKey = keyTable[index]) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentKey.equals(key)) return true;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (++index == length) index = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return false;<br/>
+}<br/>
+<br/>
+public Object get(Object key) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int length = keyTable.length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;int index = (key.hashCode() &amp; 0x7FFFFFFF) % length;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Object currentKey;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;while ((currentKey = keyTable[index]) != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (currentKey.equals(key)) return valueTable[index];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (++index == length) index = 0;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return null;<br/>
+}<br/>
+<br/>
+<span class="add"><span class="mv">public</span> <span class="mv">Object</span> <span class="add">getKey</span>(<span class="mv">Object <span class="mv">key</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="mv">int</span> <span class="mv"><span class="mv">length</span> = keyTable.<span class="mv">length</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv"><span class="mv">int</span> index = (key.hashCode() &amp; 0x7FFFFFFF) % <span class="mv">length</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv"><span class="mv">Object</span> currentKey;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">while (<span class="mv">(currentKey = <span class="mv">keyTable[<span class="mv">index</span>]</span>) != <span class="mv">null</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="mv">currentKey.<span class="mv">equals</span>(key)</span>) <span class="add">return <span class="mv">currentKey</span>;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add">++<span class="mv">index</span></span> == <span class="mv">length</span></span>) <span class="add"><span class="add"><span class="mv">index</span> = <span class="mv">0</span></span>;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="mv">key</span>;</span><br/>
+}</span></span><br/>
+<br/>
+<span class="add"><span class="mv">public</span> <span class="mv">Object</span> <span class="mv">keyForValue</span>(<span class="mv">Object <span class="mv">valueToMatch</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="mv">valueToMatch != <span class="mv">null</span></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">for (<span class="add"><span class="mv">int</span> <span class="mv">i = <span class="mv">0</span></span>, <span class="add"><span class="mv">l</span> = <span class="add"><span class="mv">keyTable</span>.<span class="mv">length</span></span></span></span>; <span class="mv">i &lt; l</span>; <span class="mv">i++</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add"><span class="add"><span class="mv">keyTable</span>[<span class="mv">i</span>]</span> != <span class="mv">null</span></span> &amp;&amp; <span class="mv">valueToMatch.<span class="mv">equals</span>(valueTable[i])</span></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">return <span class="mv">keyTable</span>[i];</span></span></span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="mv">null</span>;</span><br/>
+}</span></span><br/>
+<br/>
+<span class="add"><span class="mv">public</span> <span class="mv">Object</span> <span class="mv">put</span>(<span class="add"><span class="mv">Object</span> <span class="mv">key</span></span>, <span class="mv">Object <span class="mv">value</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">int length = <span class="mv">keyTable</span>.length;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">int <span class="mv">index</span> = (key.hashCode() &amp; 0x7FFFFFFF) % length;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">Object <span class="add"><span class="mv">currentKey</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">while (<span class="add"><span class="add">(<span class="mv"><span class="mv">currentKey</span> = <span class="mv">keyTable</span>[index]</span>)</span> != <span class="mv">null</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="mv"><span class="mv">currentKey</span>.equals(key)</span>) <span class="mv">return valueTable[<span class="mv">index</span>] = value;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add">++<span class="mv">index</span></span> == <span class="mv">length</span></span>) <span class="add"><span class="add"><span class="mv">index</span> = <span class="mv">0</span></span>;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="mv">keyTable[<span class="mv">index</span>] = <span class="add">key</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">valueTable[<span class="mv">index</span>] = value;</span><br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// assumes the threshold is never equal to the size of the table<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">if (++elementSize &gt; threshold) rehash();</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">return value;</span><br/>
+}</span></span><br/>
+<br/>
+<span class="add"><span class="mv">public</span> <span class="mv">Object</span> <span class="mv">removeKey</span>(<span class="mv">Object <span class="add">key</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="mv">int</span> <span class="mv"><span class="mv">length</span> = <span class="upd"><span class="mv">keyTable</span>.length</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="mv">int</span> <span class="add"><span class="mv">index</span> = <span class="add"><span class="add">(<span class="add"><span class="add"><span class="add">key</span>.<span class="add">hashCode</span>()</span> &amp; <span class="add">0x7FFFFFFF</span></span>)</span> % <span class="mv">length</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="mv">Object</span> <span class="add"><span class="mv">currentKey</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">while (<span class="add"><span class="add">(<span class="add"><span class="mv">currentKey</span> = <span class="add"><span class="mv">keyTable</span>[<span class="mv">index</span>]</span></span>)</span> != <span class="mv">null</span></span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add">currentKey</span>.<span class="mv">equals</span>(<span class="add">key</span>)</span>) <span class="add">{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">elementSize--;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv"><span class="mv">Object</span> oldValue = valueTable[<span class="mv">index</span>];</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">keyTable[<span class="mv">index</span>] = <span class="mv">null</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">valueTable[<span class="mv">index</span>] = <span class="mv">null</span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add"><span class="mv">keyTable</span>[<span class="add"><span class="mv"><span class="add">index</span> + 1 == <span class="mv">length</span></span> ? <span class="mv">0</span> : <span class="mv"><span class="add">index</span> + 1</span></span>]</span> != <span class="mv">null</span></span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">rehash();</span></span> // only needed if a possible collision existed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="mv">return oldValue;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">if (<span class="add"><span class="add">++<span class="add">index</span></span> == <span class="add">length</span></span>) <span class="add"><span class="add"><span class="add">index</span> = <span class="mv">0</span></span>;</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}</span></span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add">return <span class="mv">null</span>;</span><br/>
+}</span></span><br/>
+<br/>
+<span class="mv">public</span> void removeValue(<span class="add"><span class="mv">Object</span> <span class="mv">valueToRemove</span></span>) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;boolean rehash = false;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (<span class="add"><span class="mv">int</span> <span class="mv">i = <span class="mv">0</span></span>, <span class="add"><span class="mv">l</span> = <span class="add"><span class="mv">valueTable</span>.<span class="add">length</span></span></span></span>; i &lt; l; i++) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">Object</span></span> value = valueTable[i];<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (value != <span class="mv">null</span> &amp;&amp; value.<span class="add">equals</span>(valueToRemove)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elementSize--;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add"><span class="mv">keyTable</span>[<span class="mv">i</span>]</span> = <span class="mv">null</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;valueTable[i] = <span class="mv">null</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!rehash &amp;&amp; <span class="mv">keyTable</span>[i + 1 == l ? <span class="mv">0</span> : i + 1] != <span class="mv">null</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rehash = true; // only needed if a possible collision existed<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (rehash) rehash();<br/>
+}<br/>
+<br/>
+private void rehash() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;SimpleLookupTable newLookupTable = new SimpleLookupTable(elementSize * 2); // double the number of expected elements<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="add">Object</span></span> <span class="add"><span class="add">currentKey</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (<span class="add"><span class="add">int</span> <span class="add"><span class="mv">i</span> = <span class="add"><span class="mv">keyTable</span>.<span class="add">length</span></span></span></span>; --i &gt;= <span class="mv">0</span>;)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((<span class="add">currentKey</span> = <span class="mv">keyTable</span>[i]) != <span class="mv">null</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;newLookupTable.put(<span class="add">currentKey</span>, valueTable[i]);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.<span class="mv">keyTable</span> = newLookupTable.<span class="add">keyTable</span>;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.valueTable = newLookupTable.valueTable;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.elementSize = newLookupTable.elementSize;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;this.threshold = newLookupTable.threshold;<br/>
+}<br/>
+<br/>
+<span class="add">public</span> String toString() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;String s = ""; //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add">Object</span></span> object;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;for (<span class="add">int</span> i = <span class="add">0</span>, l = valueTable.<span class="add">length</span>; i &lt; l; i++)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((object = valueTable[i]) != <span class="add">null</span>)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s += <span class="add">keyTable</span>[i].toString() + " -&gt; " + object.toString() + "\n"; &nbsp;&nbsp;&nbsp;&nbsp;//$NON-NLS-2$ //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return s;<br/>
+}<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

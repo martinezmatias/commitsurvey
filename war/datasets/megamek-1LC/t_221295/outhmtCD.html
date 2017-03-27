@@ -1,0 +1,1348 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Board_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2000-2002 Ben Mazur (bmazur@sev.org)<br/>
+ *<br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.common;<br/>
+<br/>
+import java.util.*;<br/>
+import java.io.*;<br/>
+<br/>
+public class Board<br/>
+implements Serializable {<br/>
+    public static final int     BOARD_HEX_CLICK         = 1;<br/>
+    public static final int     BOARD_HEX_DOUBLECLICK   = 2;<br/>
+    public static final int     BOARD_HEX_DRAG          = 3;<br/>
+    <br/>
+    public int                  width;<br/>
+    public int                  height;<br/>
+    <br/>
+    public transient Coords     lastCursor;<br/>
+    public transient Coords     highlighted;<br/>
+    public transient Coords     selected;<br/>
+    <br/>
+    public Hex[]                data;<br/>
+    <br/>
+    protected transient Vector boardListeners;<br/>
+    <br/>
+    /**<br/>
+     * Creates a new board with zero as its width and<br/>
+     * height parameters.<br/>
+     */<br/>
+    public Board() {<br/>
+        this(0, 0);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Creates a new board of the specified dimensions.<br/>
+     * All hexes in the board will be null until otherwise<br/>
+     * set.<br/>
+     *<br/>
+     * @param width        the width dimension.<br/>
+     * @param height    the height dimension.<br/>
+     */<br/>
+    public Board(int width, int height) {<br/>
+        this.width = width;<br/>
+        this.height = height;<br/>
+        data = new Hex[width * height];<br/>
+        lastCursor = null;<br/>
+        highlighted = null;<br/>
+        selected = null;<br/>
+        <br/>
+        boardListeners = new Vector();<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Creates a new data set for the board, with the<br/>
+     * specified dimensions and data; notifies listeners<br/>
+     * that a new data set has been created.<br/>
+     *<br/>
+     * @param width        the width dimension.<br/>
+     * @param height    the height dimension.<br/>
+     * @param data        new hex data appropriate for the board.<br/>
+     */<br/>
+    public void newData(int width, int height, Hex[] data) {<br/>
+        this.width = width;<br/>
+        this.height = height;<br/>
+        this.data = data;<br/>
+        lastCursor = null;<br/>
+        highlighted = null;<br/>
+        selected = null;<br/>
+        <br/>
+        initializeAll();<br/>
+        <br/>
+        processBoardEvent(new BoardEvent(this, new Coords(), null, BoardEvent.BOARD_NEW_BOARD, 0));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Creates a new data set for the board, with the<br/>
+     * specified dimensions; notifies listeners that a<br/>
+     * new data set has been created.<br/>
+     *<br/>
+     * @param width        the width dimension.<br/>
+     * @param height    the height dimension.<br/>
+     */<br/>
+    public void newData(int width, int height) {<br/>
+        newData(width, height, new Hex[width * height]);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Combines one or more boards into one huge megaboard!<br/>
+     *<br/>
+     * @param width the width of each individual board, before the combine<br/>
+     * @param height the height of each individual board, before the combine<br/>
+     * @param sheetWidth how many sheets wide the combined map is<br/>
+     * @param sheetHeight how many sheets tall the combined map is<br/>
+     * @param boards an array of the boards to be combined<br/>
+     */<br/>
+    public void combine(int width, int height, int sheetWidth, int sheetHeight, Board[] boards) {<br/>
+        int totalWidth = width * sheetWidth;<br/>
+        int totalHeight = height * sheetHeight;<br/>
+        <br/>
+        newData(totalWidth, totalHeight);<br/>
+        <br/>
+        for (int i = 0; i &lt; sheetHeight; i++) {<br/>
+            for (int j = 0; j &lt; sheetWidth; j++) {<br/>
+                copyBoardInto(j * width, i * height, boards[i * sheetWidth + j]);<br/>
+            }<br/>
+        }<br/>
+        <br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Copies the data of another board into this one, offset by the specified<br/>
+     * x and y.<br/>
+     *<br/>
+     * Currently just shallowly copies the boards.<br/>
+     *<br/>
+     */<br/>
+    private void copyBoardInto(int x, int y, Board copied) {<br/>
+        for (int i = 0; i &lt; copied.height; i++) {<br/>
+            for (int j = 0; j &lt; copied.width; j++) {<br/>
+                this.data[(i + y) * this.width + (j + x)] = copied.data[i * copied.width + j];<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the (x, y) Coords,<br/>
+     * and if so, returns the Hex at that position.<br/>
+     *<br/>
+     * @return the Hex, if this Board contains the (x, y)<br/>
+     * location; null otherwise.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public Hex getHex(int x, int y) {<br/>
+        if(contains(x, y)) {<br/>
+            return data[y * width + x];<br/>
+        } else {<br/>
+            return null;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Gets the hex in the specified direction from the specified starting<br/>
+     * coordinates.<br/>
+     */<br/>
+    public Hex getHexInDir(Coords c, int dir) {<br/>
+        return getHexInDir(c.x, c.y, dir);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Gets the hex in the specified direction from the specified starting<br/>
+     * coordinates.<br/>
+     *<br/>
+     * Avoids calls to Coords.translated, and thus, object construction.<br/>
+     */<br/>
+    public Hex getHexInDir(int x, int y, int dir) {<br/>
+        return getHex(Coords.xInDir(x, y, dir), Coords.yInDir(x, y, dir));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initializes a hex in its surroundings.<br/>
+     */<br/>
+    private void initializeHex(Coords pos) {<br/>
+        initializeHex(pos.x, pos.y);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initialize all hexes<br/>
+     */<br/>
+    private void initializeAll() {<br/>
+        for (int y = 0; y &lt; height; y++) {<br/>
+            for (int x = 0; x &lt; width; x++) {<br/>
+                initializeHex(x, y);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initialize a hex and the hexes around it<br/>
+     */<br/>
+    public void initializeAround(int x, int y) {<br/>
+        initializeHex(x, y);<br/>
+        for (int i = 0; i &lt; 6; i++) {<br/>
+            initializeInDir(x, y, i);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initializes a hex in a specific direction from an origin hex<br/>
+     */<br/>
+    private void initializeInDir(int x, int y, int dir) {<br/>
+        initializeHex(Coords.xInDir(x, y, dir), Coords.yInDir(x, y, dir));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initializes a hex in its surroundings.  Currently sets the connects<br/>
+     * parameter appropriately to the surrounding hexes.<br/>
+     *<br/>
+     * If a surrounding hex is off the board, it checks the hex opposite the<br/>
+     * missing hex.<br/>
+     */<br/>
+    public void initializeHex(int x, int y) {<br/>
+        Hex hex = getHex(x, y);<br/>
+        <br/>
+        if (hex == null) {<br/>
+            return;<br/>
+        }<br/>
+        <br/>
+        hex.clearExits();<br/>
+        for (int i = 0; i &lt; 6; i++) {<br/>
+            Hex other = getHexInDir(x, y, i);<br/>
+            hex.setExits(other, i);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines whether this Board "contains" the specified<br/>
+     * Coords.<br/>
+     *<br/>
+     * @param x the x Coords.<br/>
+     * @param y the y Coords.<br/>
+     */<br/>
+    public boolean contains(int x, int y) {<br/>
+        return x &gt;= 0 &amp;&amp; y &gt;= 0 &amp;&amp; x &lt; width &amp;&amp; y &lt; height;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines whether this Board "contains" the specified<br/>
+     * Coords.<br/>
+     *<br/>
+     * @param c the Coords.<br/>
+     */<br/>
+    public boolean contains(Coords c) {<br/>
+        return contains(c.x, c.y);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Returns the Hex at the specified Coords.<br/>
+     *<br/>
+     * @param c the Coords.<br/>
+     */<br/>
+    public Hex getHex(Coords c) {<br/>
+        return getHex(c.x, c.y);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the (x, y) Coords,<br/>
+     * and if so, sets the specified Hex into that position<br/>
+     * and initializes it.<br/>
+     *<br/>
+     * @param x the x Coords.<br/>
+     * @param y the y Coords.<br/>
+     * @param hex the hex to be set into position.<br/>
+     */<br/>
+    public void setHex(int x, int y, Hex hex) {<br/>
+        data[y * width + x] = hex;<br/>
+        initializeAround(x, y);<br/>
+        processBoardEvent(new BoardEvent(this, new Coords(x, y), null, BoardEvent.BOARD_CHANGED_HEX, 0));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Sets the hex into the location specified by the<br/>
+     * Coords.<br/>
+     *<br/>
+     * @param c the Coords.<br/>
+     * @param hex the hex to be set into position.<br/>
+     */<br/>
+    public void setHex(Coords c, Hex hex) {<br/>
+        setHex(c.x, c.y, hex);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the Coords,<br/>
+     * and if so, "selects" that Coords.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void select(Coords c) {<br/>
+        if(c == null || contains(c)) {<br/>
+            selected = c;<br/>
+            processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_SELECTED,0));<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * "Selects" the specified Coords.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public void select(int x, int y) {<br/>
+        select(new Coords(x, y));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the Coords,<br/>
+     * and if so, highlights that Coords.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void highlight(Coords c) {<br/>
+        if(c == null || contains(c)) {<br/>
+            highlighted = c;<br/>
+            processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_HIGHLIGHTED, 0));<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Highlights the specified Coords.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public void highlight(int x, int y) {<br/>
+        highlight(new Coords(x, y));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the Coords,<br/>
+     * and if so, "cursors" that Coords.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void cursor(Coords c) {<br/>
+        if(c == null || contains(c)) {<br/>
+            if(lastCursor == null || c == null || !c.equals(lastCursor)) {<br/>
+                lastCursor = c;<br/>
+                processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_CURSOR, 0));<br/>
+            } else {<br/>
+                lastCursor = c;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * "Cursors" the specified Coords.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public void cursor(int x, int y) {<br/>
+        cursor(new Coords(x, y));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the (x, y) Coords,<br/>
+     * and if so, notifies listeners about the specified mouse<br/>
+     * action.<br/>
+     */<br/>
+    public void mouseAction(int x, int y, int mtype, int modifiers) {<br/>
+        if(contains(x, y)) {<br/>
+            Coords c = new Coords(x, y);<br/>
+            switch(mtype) {<br/>
+                case BOARD_HEX_CLICK :<br/>
+                    processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_CLICKED, modifiers));<br/>
+                    break;<br/>
+                case BOARD_HEX_DOUBLECLICK :<br/>
+                    processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_DOUBLECLICKED, modifiers));<br/>
+                    break;<br/>
+                case BOARD_HEX_DRAG :<br/>
+                    processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_DRAGGED, modifiers));<br/>
+                    break;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Notifies listeners about the specified mouse action.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void mouseAction(Coords c, int mtype, int modifiers) {<br/>
+        mouseAction(c.x, c.y, mtype, modifiers);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds the specified board listener to receive<br/>
+     * board events from this board.<br/>
+     *<br/>
+     * @param l            the board listener.<br/>
+     */<br/>
+    public void addBoardListener(BoardListener l) {<br/>
+        boardListeners.addElement(l);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Removes the specified board listener.<br/>
+     *<br/>
+     * @param l            the board listener.<br/>
+     */<br/>
+    public void removeBoardListener(BoardListener l) {<br/>
+        boardListeners.removeElement(l);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Notifies attached board listeners of the event.<br/>
+     *<br/>
+     * @param be        the board event.<br/>
+     */<br/>
+    public void processBoardEvent(BoardEvent be) {<br/>
+        for(Enumeration e = boardListeners.elements(); e.hasMoreElements();) {<br/>
+            BoardListener l = (BoardListener)e.nextElement();<br/>
+            switch(be.getType()) {<br/>
+                case BoardEvent.BOARD_HEX_CLICKED :<br/>
+                case BoardEvent.BOARD_HEX_DOUBLECLICKED :<br/>
+                case BoardEvent.BOARD_HEX_DRAGGED :<br/>
+                    l.boardHexMoused(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_HEX_CURSOR :<br/>
+                    l.boardHexCursor(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_HEX_HIGHLIGHTED :<br/>
+                    l.boardHexHighlighted(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_HEX_SELECTED :<br/>
+                    l.boardHexSelected(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_CHANGED_HEX :<br/>
+                    l.boardChangedHex(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_NEW_BOARD :<br/>
+                    l.boardNewBoard(be);<br/>
+                    break;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Checks if a file in data/boards is the specified size<br/>
+     */<br/>
+    public static boolean boardIsSize(String filename, int x, int y) {<br/>
+        int boardx = 0;<br/>
+        int boardy = 0;<br/>
+        try {<br/>
+            // make inpustream for board<br/>
+            Reader r = new BufferedReader(new FileReader("data/boards" + File.separator + filename));<br/>
+            // read board, looking for "size"<br/>
+            StreamTokenizer st = new StreamTokenizer(r);<br/>
+            st.eolIsSignificant(true);<br/>
+            st.commentChar('#');<br/>
+            st.quoteChar('"');<br/>
+            st.wordChars('_', '_');<br/>
+            while(st.nextToken() != StreamTokenizer.TT_EOF) {<br/>
+                if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("size")) {<br/>
+                    st.nextToken();<br/>
+                    boardx = (int)st.nval;<br/>
+                    st.nextToken();<br/>
+                    boardy = (int)st.nval;<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+            r.close();<br/>
+        } catch (IOException ex) {<br/>
+            return false;<br/>
+        }<br/>
+        <br/>
+        // check and return<br/>
+        return boardx == x &amp;&amp; boardy == y;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Can the player deploy an entity here?<br/>
+     * There are no canon rules for the deployment phase (?!).  I'm using<br/>
+     * 3 hexes from map edge.<br/>
+     */<br/>
+    public boolean isLegalDeployment(Coords c, Player p)<br/>
+    {<br/>
+        if (c == null || p == null) return false;<br/>
+        <br/>
+        int nLimit = 3;<br/>
+        int nDir = p.getStartingPos();<br/>
+        switch (nDir) {<br/>
+            case 0 : // Any<br/>
+                return true;<br/>
+            case 1 : // NW<br/>
+                return (c.x &lt; nLimit &amp;&amp; c.y &lt; height / 2) || <br/>
+                        (c.y &lt; nLimit &amp;&amp; c.x &lt; width / 2);<br/>
+            case 2 : // N<br/>
+                return c.y &lt; nLimit;<br/>
+            case 3 : // NE<br/>
+                return (c.x &gt; (width - nLimit) &amp;&amp; c.y &lt; height / 2) ||<br/>
+                        (c.y &lt; nLimit &amp;&amp; c.x &gt; width / 2);<br/>
+            case 4 : // E<br/>
+                return c.x &gt;= (width - nLimit);<br/>
+            case 5 : // SE<br/>
+                return (c.x &gt;= (width - nLimit) &amp;&amp; c.y &gt; height / 2) ||<br/>
+                        (c.y &gt;= (height - nLimit) &amp;&amp; c.x &gt; width / 2);<br/>
+            case 6 : // S<br/>
+                return <span class="upd">c.y &gt; (height - nLimit)</span>;<br/>
+            case 7 : // SW<br/>
+                return (c.x &lt; nLimit &amp;&amp; c.y &gt; height / 2) ||<br/>
+                        (c.y &gt;= (height - nLimit) &amp;&amp; c.x &lt; width / 2);<br/>
+            case 8 : // W<br/>
+                return c.x &lt; nLimit;<br/>
+            default : // ummm. . <br/>
+                return false;<br/>
+        }<br/>
+        <br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Loads this board from a filename in data/boards<br/>
+     */<br/>
+    public void load(String filename) {<br/>
+        // load a board<br/>
+        try {<br/>
+            java.io.InputStream is = new java.io.FileInputStream(new java.io.File("data/boards", filename));<br/>
+            // tell the board to load!<br/>
+            load(is);<br/>
+            // okay, done!<br/>
+            is.close();<br/>
+        } catch(java.io.IOException ex) {<br/>
+            System.err.println("error opening file to load board!");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Loads this board from an InputStream<br/>
+     */<br/>
+    public void load(InputStream is) {<br/>
+        int nw = 0, nh = 0, di = 0;<br/>
+        Hex[] nd = new Hex[0];<br/>
+        <br/>
+        try {<br/>
+            Reader r = new BufferedReader(new InputStreamReader(is));<br/>
+            StreamTokenizer st = new StreamTokenizer(r);<br/>
+            st.eolIsSignificant(true);<br/>
+            st.commentChar('#');<br/>
+            st.quoteChar('"');<br/>
+            st.wordChars('_', '_');<br/>
+            while(st.nextToken() != StreamTokenizer.TT_EOF) {<br/>
+                if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("size")) {<br/>
+                    // read rest of line<br/>
+                    String[] args = {"0", "0"};<br/>
+                    int i = 0;<br/>
+                    while(st.nextToken() == StreamTokenizer.TT_WORD || st.ttype == '"' || st.ttype == StreamTokenizer.TT_NUMBER) {<br/>
+                        args[i++] = st.ttype == StreamTokenizer.TT_NUMBER ? (int)st.nval + "" : st.sval;<br/>
+                    }<br/>
+                    nw = Integer.parseInt(args[0]);<br/>
+                    nh = Integer.parseInt(args[1]);<br/>
+                    nd = new Hex[nw * nh];<br/>
+                    di = 0;<br/>
+                } else if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("hex")) {<br/>
+                    // read rest of line<br/>
+                    String[] args = {"", "0", "", ""};<br/>
+                    int i = 0;<br/>
+                    while(st.nextToken() == StreamTokenizer.TT_WORD || st.ttype == '"' || st.ttype == StreamTokenizer.TT_NUMBER) {<br/>
+                        args[i++] = st.ttype == StreamTokenizer.TT_NUMBER ? (int)st.nval + "" : st.sval;<br/>
+                    }<br/>
+                    int elevation = Integer.parseInt(args[1]);<br/>
+                    nd[indexFor(args[0], nw)] = new Hex(elevation, args[2], args[3]);<br/>
+                    <br/>
+                } else if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("end")) {<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+        } catch(IOException ex) {<br/>
+            System.err.println("i/o error reading board");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+        <br/>
+        // fill nulls with blank hexes<br/>
+        for (int i = 0; i &lt; nd.length; i++) {<br/>
+            if (nd[i] == null) {<br/>
+                nd[i] = new Hex();<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        // check data integrity<br/>
+        if(nw &gt; 1 || nh &gt; 1 || di == nw * nh) {<br/>
+            newData(nw, nh, nd);<br/>
+        } else {<br/>
+            System.err.println("board data invalid");<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    private int indexFor(String hexNum, int width) {<br/>
+        int x = Integer.parseInt(hexNum.substring(0, hexNum.length() - 2)) - 1;<br/>
+        int y = Integer.parseInt(hexNum.substring(hexNum.length() - 2)) - 1;<br/>
+        return y * width + x;<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Writes data for the board, as text to the OutputStream<br/>
+     */<br/>
+    public void save(OutputStream os) {<br/>
+        try {<br/>
+            Writer w = new OutputStreamWriter(os);<br/>
+            // write<br/>
+            w.write("size " + width + " " + height + "\r\n");<br/>
+            for (int i = 0; i &lt; data.length; i++) {<br/>
+                Hex hex = data[i];<br/>
+                boolean firstTerrain = true;<br/>
+                <br/>
+                StringBuffer hexBuff = new StringBuffer("hex ");<br/>
+                hexBuff.append(new Coords(i % width, i / width).getBoardNum());<br/>
+                hexBuff.append(" ");<br/>
+                hexBuff.append(hex.getElevation());<br/>
+                hexBuff.append(" \"");<br/>
+                for (int j = 0; j &lt; Terrain.SIZE; j++) {<br/>
+                    Terrain terrain = hex.getTerrain(j);<br/>
+                    if (terrain != null) {<br/>
+                        if (!firstTerrain) {<br/>
+                            hexBuff.append(";");<br/>
+                        }<br/>
+                        hexBuff.append(terrain.toString());<br/>
+                        firstTerrain = false;<br/>
+                    }<br/>
+                }<br/>
+                hexBuff.append("\" \"");<br/>
+                if (hex.getTheme() != null) {<br/>
+                    hexBuff.append(hex.getTheme());<br/>
+                }<br/>
+                hexBuff.append("\"\r\n");<br/>
+                <br/>
+                w.write(hexBuff.toString());<br/>
+//                w.write("hex \"" + hex.getTerrain().name + "\" " + Terrain.TERRAIN_NAMES[hex.getTerrainType()] + " \"" + hex.getTerrain().picfile + "\" " + hex.getElevation() + "\r\n");<br/>
+            }<br/>
+            w.write("end\r\n");<br/>
+            // make sure it's written<br/>
+            w.flush();<br/>
+        } catch(IOException ex) {<br/>
+            System.err.println("i/o error writing board");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Writes data for the board, as serialization, to the OutputStream<br/>
+     */<br/>
+    public void save2(OutputStream os) {<br/>
+        try {<br/>
+            ObjectOutputStream oos = new ObjectOutputStream(os);<br/>
+            oos.writeObject(this);<br/>
+            oos.flush();<br/>
+        } catch(IOException ex) {<br/>
+            System.err.println("i/o error writing board");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Board_1.6.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * MegaMek - Copyright (C) 2000-2002 Ben Mazur (bmazur@sev.org)<br/>
+ *<br/>
+ *  This program is free software; you can redistribute it and/or modify it<br/>
+ *  under the terms of the GNU General Public License as published by the Free<br/>
+ *  Software Foundation; either version 2 of the License, or (at your option)<br/>
+ *  any later version.<br/>
+ *<br/>
+ *  This program is distributed in the hope that it will be useful, but<br/>
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY<br/>
+ *  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License<br/>
+ *  for more details.<br/>
+ */<br/>
+<br/>
+package megamek.common;<br/>
+<br/>
+import java.util.*;<br/>
+import java.io.*;<br/>
+<br/>
+public class Board<br/>
+implements Serializable {<br/>
+    public static final int     BOARD_HEX_CLICK         = 1;<br/>
+    public static final int     BOARD_HEX_DOUBLECLICK   = 2;<br/>
+    public static final int     BOARD_HEX_DRAG          = 3;<br/>
+    <br/>
+    public int                  width;<br/>
+    public int                  height;<br/>
+    <br/>
+    public transient Coords     lastCursor;<br/>
+    public transient Coords     highlighted;<br/>
+    public transient Coords     selected;<br/>
+    <br/>
+    public Hex[]                data;<br/>
+    <br/>
+    protected transient Vector boardListeners;<br/>
+    <br/>
+    /**<br/>
+     * Creates a new board with zero as its width and<br/>
+     * height parameters.<br/>
+     */<br/>
+    public Board() {<br/>
+        this(0, 0);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Creates a new board of the specified dimensions.<br/>
+     * All hexes in the board will be null until otherwise<br/>
+     * set.<br/>
+     *<br/>
+     * @param width        the width dimension.<br/>
+     * @param height    the height dimension.<br/>
+     */<br/>
+    public Board(int width, int height) {<br/>
+        this.width = width;<br/>
+        this.height = height;<br/>
+        data = new Hex[width * height];<br/>
+        lastCursor = null;<br/>
+        highlighted = null;<br/>
+        selected = null;<br/>
+        <br/>
+        boardListeners = new Vector();<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Creates a new data set for the board, with the<br/>
+     * specified dimensions and data; notifies listeners<br/>
+     * that a new data set has been created.<br/>
+     *<br/>
+     * @param width        the width dimension.<br/>
+     * @param height    the height dimension.<br/>
+     * @param data        new hex data appropriate for the board.<br/>
+     */<br/>
+    public void newData(int width, int height, Hex[] data) {<br/>
+        this.width = width;<br/>
+        this.height = height;<br/>
+        this.data = data;<br/>
+        lastCursor = null;<br/>
+        highlighted = null;<br/>
+        selected = null;<br/>
+        <br/>
+        initializeAll();<br/>
+        <br/>
+        processBoardEvent(new BoardEvent(this, new Coords(), null, BoardEvent.BOARD_NEW_BOARD, 0));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Creates a new data set for the board, with the<br/>
+     * specified dimensions; notifies listeners that a<br/>
+     * new data set has been created.<br/>
+     *<br/>
+     * @param width        the width dimension.<br/>
+     * @param height    the height dimension.<br/>
+     */<br/>
+    public void newData(int width, int height) {<br/>
+        newData(width, height, new Hex[width * height]);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Combines one or more boards into one huge megaboard!<br/>
+     *<br/>
+     * @param width the width of each individual board, before the combine<br/>
+     * @param height the height of each individual board, before the combine<br/>
+     * @param sheetWidth how many sheets wide the combined map is<br/>
+     * @param sheetHeight how many sheets tall the combined map is<br/>
+     * @param boards an array of the boards to be combined<br/>
+     */<br/>
+    public void combine(int width, int height, int sheetWidth, int sheetHeight, Board[] boards) {<br/>
+        int totalWidth = width * sheetWidth;<br/>
+        int totalHeight = height * sheetHeight;<br/>
+        <br/>
+        newData(totalWidth, totalHeight);<br/>
+        <br/>
+        for (int i = 0; i &lt; sheetHeight; i++) {<br/>
+            for (int j = 0; j &lt; sheetWidth; j++) {<br/>
+                copyBoardInto(j * width, i * height, boards[i * sheetWidth + j]);<br/>
+            }<br/>
+        }<br/>
+        <br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Copies the data of another board into this one, offset by the specified<br/>
+     * x and y.<br/>
+     *<br/>
+     * Currently just shallowly copies the boards.<br/>
+     *<br/>
+     */<br/>
+    private void copyBoardInto(int x, int y, Board copied) {<br/>
+        for (int i = 0; i &lt; copied.height; i++) {<br/>
+            for (int j = 0; j &lt; copied.width; j++) {<br/>
+                this.data[(i + y) * this.width + (j + x)] = copied.data[i * copied.width + j];<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the (x, y) Coords,<br/>
+     * and if so, returns the Hex at that position.<br/>
+     *<br/>
+     * @return the Hex, if this Board contains the (x, y)<br/>
+     * location; null otherwise.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public Hex getHex(int x, int y) {<br/>
+        if(contains(x, y)) {<br/>
+            return data[y * width + x];<br/>
+        } else {<br/>
+            return null;<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Gets the hex in the specified direction from the specified starting<br/>
+     * coordinates.<br/>
+     */<br/>
+    public Hex getHexInDir(Coords c, int dir) {<br/>
+        return getHexInDir(c.x, c.y, dir);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Gets the hex in the specified direction from the specified starting<br/>
+     * coordinates.<br/>
+     *<br/>
+     * Avoids calls to Coords.translated, and thus, object construction.<br/>
+     */<br/>
+    public Hex getHexInDir(int x, int y, int dir) {<br/>
+        return getHex(Coords.xInDir(x, y, dir), Coords.yInDir(x, y, dir));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initializes a hex in its surroundings.<br/>
+     */<br/>
+    private void initializeHex(Coords pos) {<br/>
+        initializeHex(pos.x, pos.y);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initialize all hexes<br/>
+     */<br/>
+    private void initializeAll() {<br/>
+        for (int y = 0; y &lt; height; y++) {<br/>
+            for (int x = 0; x &lt; width; x++) {<br/>
+                initializeHex(x, y);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initialize a hex and the hexes around it<br/>
+     */<br/>
+    public void initializeAround(int x, int y) {<br/>
+        initializeHex(x, y);<br/>
+        for (int i = 0; i &lt; 6; i++) {<br/>
+            initializeInDir(x, y, i);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initializes a hex in a specific direction from an origin hex<br/>
+     */<br/>
+    private void initializeInDir(int x, int y, int dir) {<br/>
+        initializeHex(Coords.xInDir(x, y, dir), Coords.yInDir(x, y, dir));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Initializes a hex in its surroundings.  Currently sets the connects<br/>
+     * parameter appropriately to the surrounding hexes.<br/>
+     *<br/>
+     * If a surrounding hex is off the board, it checks the hex opposite the<br/>
+     * missing hex.<br/>
+     */<br/>
+    public void initializeHex(int x, int y) {<br/>
+        Hex hex = getHex(x, y);<br/>
+        <br/>
+        if (hex == null) {<br/>
+            return;<br/>
+        }<br/>
+        <br/>
+        hex.clearExits();<br/>
+        for (int i = 0; i &lt; 6; i++) {<br/>
+            Hex other = getHexInDir(x, y, i);<br/>
+            hex.setExits(other, i);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines whether this Board "contains" the specified<br/>
+     * Coords.<br/>
+     *<br/>
+     * @param x the x Coords.<br/>
+     * @param y the y Coords.<br/>
+     */<br/>
+    public boolean contains(int x, int y) {<br/>
+        return x &gt;= 0 &amp;&amp; y &gt;= 0 &amp;&amp; x &lt; width &amp;&amp; y &lt; height;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines whether this Board "contains" the specified<br/>
+     * Coords.<br/>
+     *<br/>
+     * @param c the Coords.<br/>
+     */<br/>
+    public boolean contains(Coords c) {<br/>
+        return contains(c.x, c.y);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Returns the Hex at the specified Coords.<br/>
+     *<br/>
+     * @param c the Coords.<br/>
+     */<br/>
+    public Hex getHex(Coords c) {<br/>
+        return getHex(c.x, c.y);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the (x, y) Coords,<br/>
+     * and if so, sets the specified Hex into that position<br/>
+     * and initializes it.<br/>
+     *<br/>
+     * @param x the x Coords.<br/>
+     * @param y the y Coords.<br/>
+     * @param hex the hex to be set into position.<br/>
+     */<br/>
+    public void setHex(int x, int y, Hex hex) {<br/>
+        data[y * width + x] = hex;<br/>
+        initializeAround(x, y);<br/>
+        processBoardEvent(new BoardEvent(this, new Coords(x, y), null, BoardEvent.BOARD_CHANGED_HEX, 0));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Sets the hex into the location specified by the<br/>
+     * Coords.<br/>
+     *<br/>
+     * @param c the Coords.<br/>
+     * @param hex the hex to be set into position.<br/>
+     */<br/>
+    public void setHex(Coords c, Hex hex) {<br/>
+        setHex(c.x, c.y, hex);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the Coords,<br/>
+     * and if so, "selects" that Coords.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void select(Coords c) {<br/>
+        if(c == null || contains(c)) {<br/>
+            selected = c;<br/>
+            processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_SELECTED,0));<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * "Selects" the specified Coords.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public void select(int x, int y) {<br/>
+        select(new Coords(x, y));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the Coords,<br/>
+     * and if so, highlights that Coords.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void highlight(Coords c) {<br/>
+        if(c == null || contains(c)) {<br/>
+            highlighted = c;<br/>
+            processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_HIGHLIGHTED, 0));<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Highlights the specified Coords.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public void highlight(int x, int y) {<br/>
+        highlight(new Coords(x, y));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the Coords,<br/>
+     * and if so, "cursors" that Coords.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void cursor(Coords c) {<br/>
+        if(c == null || contains(c)) {<br/>
+            if(lastCursor == null || c == null || !c.equals(lastCursor)) {<br/>
+                lastCursor = c;<br/>
+                processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_CURSOR, 0));<br/>
+            } else {<br/>
+                lastCursor = c;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * "Cursors" the specified Coords.<br/>
+     *<br/>
+     * @param x            the x Coords.<br/>
+     * @param y            the y Coords.<br/>
+     */<br/>
+    public void cursor(int x, int y) {<br/>
+        cursor(new Coords(x, y));<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Determines if this Board contains the (x, y) Coords,<br/>
+     * and if so, notifies listeners about the specified mouse<br/>
+     * action.<br/>
+     */<br/>
+    public void mouseAction(int x, int y, int mtype, int modifiers) {<br/>
+        if(contains(x, y)) {<br/>
+            Coords c = new Coords(x, y);<br/>
+            switch(mtype) {<br/>
+                case BOARD_HEX_CLICK :<br/>
+                    processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_CLICKED, modifiers));<br/>
+                    break;<br/>
+                case BOARD_HEX_DOUBLECLICK :<br/>
+                    processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_DOUBLECLICKED, modifiers));<br/>
+                    break;<br/>
+                case BOARD_HEX_DRAG :<br/>
+                    processBoardEvent(new BoardEvent(this, c, null, BoardEvent.BOARD_HEX_DRAGGED, modifiers));<br/>
+                    break;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Notifies listeners about the specified mouse action.<br/>
+     *<br/>
+     * @param c            the Coords.<br/>
+     */<br/>
+    public void mouseAction(Coords c, int mtype, int modifiers) {<br/>
+        mouseAction(c.x, c.y, mtype, modifiers);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Adds the specified board listener to receive<br/>
+     * board events from this board.<br/>
+     *<br/>
+     * @param l            the board listener.<br/>
+     */<br/>
+    public void addBoardListener(BoardListener l) {<br/>
+        boardListeners.addElement(l);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Removes the specified board listener.<br/>
+     *<br/>
+     * @param l            the board listener.<br/>
+     */<br/>
+    public void removeBoardListener(BoardListener l) {<br/>
+        boardListeners.removeElement(l);<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Notifies attached board listeners of the event.<br/>
+     *<br/>
+     * @param be        the board event.<br/>
+     */<br/>
+    public void processBoardEvent(BoardEvent be) {<br/>
+        for(Enumeration e = boardListeners.elements(); e.hasMoreElements();) {<br/>
+            BoardListener l = (BoardListener)e.nextElement();<br/>
+            switch(be.getType()) {<br/>
+                case BoardEvent.BOARD_HEX_CLICKED :<br/>
+                case BoardEvent.BOARD_HEX_DOUBLECLICKED :<br/>
+                case BoardEvent.BOARD_HEX_DRAGGED :<br/>
+                    l.boardHexMoused(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_HEX_CURSOR :<br/>
+                    l.boardHexCursor(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_HEX_HIGHLIGHTED :<br/>
+                    l.boardHexHighlighted(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_HEX_SELECTED :<br/>
+                    l.boardHexSelected(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_CHANGED_HEX :<br/>
+                    l.boardChangedHex(be);<br/>
+                    break;<br/>
+                case BoardEvent.BOARD_NEW_BOARD :<br/>
+                    l.boardNewBoard(be);<br/>
+                    break;<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Checks if a file in data/boards is the specified size<br/>
+     */<br/>
+    public static boolean boardIsSize(String filename, int x, int y) {<br/>
+        int boardx = 0;<br/>
+        int boardy = 0;<br/>
+        try {<br/>
+            // make inpustream for board<br/>
+            Reader r = new BufferedReader(new FileReader("data/boards" + File.separator + filename));<br/>
+            // read board, looking for "size"<br/>
+            StreamTokenizer st = new StreamTokenizer(r);<br/>
+            st.eolIsSignificant(true);<br/>
+            st.commentChar('#');<br/>
+            st.quoteChar('"');<br/>
+            st.wordChars('_', '_');<br/>
+            while(st.nextToken() != StreamTokenizer.TT_EOF) {<br/>
+                if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("size")) {<br/>
+                    st.nextToken();<br/>
+                    boardx = (int)st.nval;<br/>
+                    st.nextToken();<br/>
+                    boardy = (int)st.nval;<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+            r.close();<br/>
+        } catch (IOException ex) {<br/>
+            return false;<br/>
+        }<br/>
+        <br/>
+        // check and return<br/>
+        return boardx == x &amp;&amp; boardy == y;<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Can the player deploy an entity here?<br/>
+     * There are no canon rules for the deployment phase (?!).  I'm using<br/>
+     * 3 hexes from map edge.<br/>
+     */<br/>
+    public boolean isLegalDeployment(Coords c, Player p)<br/>
+    {<br/>
+        if (c == null || p == null) return false;<br/>
+        <br/>
+        int nLimit = 3;<br/>
+        int nDir = p.getStartingPos();<br/>
+        switch (nDir) {<br/>
+            case 0 : // Any<br/>
+                return true;<br/>
+            case 1 : // NW<br/>
+                return (c.x &lt; nLimit &amp;&amp; c.y &lt; height / 2) || <br/>
+                        (c.y &lt; nLimit &amp;&amp; c.x &lt; width / 2);<br/>
+            case 2 : // N<br/>
+                return c.y &lt; nLimit;<br/>
+            case 3 : // NE<br/>
+                return (c.x &gt; (width - nLimit) &amp;&amp; c.y &lt; height / 2) ||<br/>
+                        (c.y &lt; nLimit &amp;&amp; c.x &gt; width / 2);<br/>
+            case 4 : // E<br/>
+                return c.x &gt;= (width - nLimit);<br/>
+            case 5 : // SE<br/>
+                return (c.x &gt;= (width - nLimit) &amp;&amp; c.y &gt; height / 2) ||<br/>
+                        (c.y &gt;= (height - nLimit) &amp;&amp; c.x &gt; width / 2);<br/>
+            case 6 : // S<br/>
+                return <span class="upd">c.y &gt;= (height - nLimit)</span>;<br/>
+            case 7 : // SW<br/>
+                return (c.x &lt; nLimit &amp;&amp; c.y &gt; height / 2) ||<br/>
+                        (c.y &gt;= (height - nLimit) &amp;&amp; c.x &lt; width / 2);<br/>
+            case 8 : // W<br/>
+                return c.x &lt; nLimit;<br/>
+            default : // ummm. . <br/>
+                return false;<br/>
+        }<br/>
+        <br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Loads this board from a filename in data/boards<br/>
+     */<br/>
+    public void load(String filename) {<br/>
+        // load a board<br/>
+        try {<br/>
+            java.io.InputStream is = new java.io.FileInputStream(new java.io.File("data/boards", filename));<br/>
+            // tell the board to load!<br/>
+            load(is);<br/>
+            // okay, done!<br/>
+            is.close();<br/>
+        } catch(java.io.IOException ex) {<br/>
+            System.err.println("error opening file to load board!");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Loads this board from an InputStream<br/>
+     */<br/>
+    public void load(InputStream is) {<br/>
+        int nw = 0, nh = 0, di = 0;<br/>
+        Hex[] nd = new Hex[0];<br/>
+        <br/>
+        try {<br/>
+            Reader r = new BufferedReader(new InputStreamReader(is));<br/>
+            StreamTokenizer st = new StreamTokenizer(r);<br/>
+            st.eolIsSignificant(true);<br/>
+            st.commentChar('#');<br/>
+            st.quoteChar('"');<br/>
+            st.wordChars('_', '_');<br/>
+            while(st.nextToken() != StreamTokenizer.TT_EOF) {<br/>
+                if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("size")) {<br/>
+                    // read rest of line<br/>
+                    String[] args = {"0", "0"};<br/>
+                    int i = 0;<br/>
+                    while(st.nextToken() == StreamTokenizer.TT_WORD || st.ttype == '"' || st.ttype == StreamTokenizer.TT_NUMBER) {<br/>
+                        args[i++] = st.ttype == StreamTokenizer.TT_NUMBER ? (int)st.nval + "" : st.sval;<br/>
+                    }<br/>
+                    nw = Integer.parseInt(args[0]);<br/>
+                    nh = Integer.parseInt(args[1]);<br/>
+                    nd = new Hex[nw * nh];<br/>
+                    di = 0;<br/>
+                } else if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("hex")) {<br/>
+                    // read rest of line<br/>
+                    String[] args = {"", "0", "", ""};<br/>
+                    int i = 0;<br/>
+                    while(st.nextToken() == StreamTokenizer.TT_WORD || st.ttype == '"' || st.ttype == StreamTokenizer.TT_NUMBER) {<br/>
+                        args[i++] = st.ttype == StreamTokenizer.TT_NUMBER ? (int)st.nval + "" : st.sval;<br/>
+                    }<br/>
+                    int elevation = Integer.parseInt(args[1]);<br/>
+                    nd[indexFor(args[0], nw)] = new Hex(elevation, args[2], args[3]);<br/>
+                    <br/>
+                } else if(st.ttype == StreamTokenizer.TT_WORD &amp;&amp; st.sval.equalsIgnoreCase("end")) {<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+        } catch(IOException ex) {<br/>
+            System.err.println("i/o error reading board");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+        <br/>
+        // fill nulls with blank hexes<br/>
+        for (int i = 0; i &lt; nd.length; i++) {<br/>
+            if (nd[i] == null) {<br/>
+                nd[i] = new Hex();<br/>
+            }<br/>
+        }<br/>
+        <br/>
+        // check data integrity<br/>
+        if(nw &gt; 1 || nh &gt; 1 || di == nw * nh) {<br/>
+            newData(nw, nh, nd);<br/>
+        } else {<br/>
+            System.err.println("board data invalid");<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    private int indexFor(String hexNum, int width) {<br/>
+        int x = Integer.parseInt(hexNum.substring(0, hexNum.length() - 2)) - 1;<br/>
+        int y = Integer.parseInt(hexNum.substring(hexNum.length() - 2)) - 1;<br/>
+        return y * width + x;<br/>
+    }<br/>
+    <br/>
+    <br/>
+    /**<br/>
+     * Writes data for the board, as text to the OutputStream<br/>
+     */<br/>
+    public void save(OutputStream os) {<br/>
+        try {<br/>
+            Writer w = new OutputStreamWriter(os);<br/>
+            // write<br/>
+            w.write("size " + width + " " + height + "\r\n");<br/>
+            for (int i = 0; i &lt; data.length; i++) {<br/>
+                Hex hex = data[i];<br/>
+                boolean firstTerrain = true;<br/>
+                <br/>
+                StringBuffer hexBuff = new StringBuffer("hex ");<br/>
+                hexBuff.append(new Coords(i % width, i / width).getBoardNum());<br/>
+                hexBuff.append(" ");<br/>
+                hexBuff.append(hex.getElevation());<br/>
+                hexBuff.append(" \"");<br/>
+                for (int j = 0; j &lt; Terrain.SIZE; j++) {<br/>
+                    Terrain terrain = hex.getTerrain(j);<br/>
+                    if (terrain != null) {<br/>
+                        if (!firstTerrain) {<br/>
+                            hexBuff.append(";");<br/>
+                        }<br/>
+                        hexBuff.append(terrain.toString());<br/>
+                        firstTerrain = false;<br/>
+                    }<br/>
+                }<br/>
+                hexBuff.append("\" \"");<br/>
+                if (hex.getTheme() != null) {<br/>
+                    hexBuff.append(hex.getTheme());<br/>
+                }<br/>
+                hexBuff.append("\"\r\n");<br/>
+                <br/>
+                w.write(hexBuff.toString());<br/>
+//                w.write("hex \"" + hex.getTerrain().name + "\" " + Terrain.TERRAIN_NAMES[hex.getTerrainType()] + " \"" + hex.getTerrain().picfile + "\" " + hex.getElevation() + "\r\n");<br/>
+            }<br/>
+            w.write("end\r\n");<br/>
+            // make sure it's written<br/>
+            w.flush();<br/>
+        } catch(IOException ex) {<br/>
+            System.err.println("i/o error writing board");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    /**<br/>
+     * Writes data for the board, as serialization, to the OutputStream<br/>
+     */<br/>
+    public void save2(OutputStream os) {<br/>
+        try {<br/>
+            ObjectOutputStream oos = new ObjectOutputStream(os);<br/>
+            oos.writeObject(this);<br/>
+            oos.flush();<br/>
+        } catch(IOException ex) {<br/>
+            System.err.println("i/o error writing board");<br/>
+            System.err.println(ex);<br/>
+        }<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

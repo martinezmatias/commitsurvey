@@ -1,0 +1,1 @@
+Fix for Bug 171434 [Presentations] Add icons to the background tabs

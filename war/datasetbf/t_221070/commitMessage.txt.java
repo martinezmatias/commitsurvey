@@ -1,0 +1,1 @@
++ fixed a bug that would stop wakeup rolls under certain circumstances

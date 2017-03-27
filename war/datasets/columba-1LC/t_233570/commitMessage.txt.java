@@ -1,0 +1,1 @@
+[bug]Locale should be displayed in its own language

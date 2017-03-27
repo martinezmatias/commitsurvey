@@ -1,0 +1,1 @@
+[intern] use URIs instead of InputStreams in order to enable resolving DTD references

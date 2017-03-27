@@ -1,0 +1,2834 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_CoreHelper_1.47.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-2003 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+package org.argouml.model.uml.foundation.core;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.HashSet;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+import java.util.Set;<br/>
+import java.util.Vector;<br/>
+import org.apache.log4j.Category;<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.model.ModelFacade;<br/>
+import org.argouml.model.uml.UmlModelEventPump;<br/>
+import org<br/>
+    .argouml<br/>
+    .model<br/>
+    .uml<br/>
+    .foundation<br/>
+    .extensionmechanisms<br/>
+    .ExtensionMechanismsFactory;<br/>
+import org.argouml.model.uml.modelmanagement.ModelManagementHelper;<br/>
+import ru.novosoft.uml.MElementListener;<br/>
+import ru.novosoft.uml.behavior.collaborations.MAssociationRole;<br/>
+import ru.novosoft.uml.behavior.collaborations.MClassifierRole;<br/>
+import ru.novosoft.uml.behavior.collaborations.MCollaboration;<br/>
+import ru.novosoft.uml.behavior.state_machines.MStateMachine;<br/>
+import ru.novosoft.uml.behavior.use_cases.MActor;<br/>
+import ru.novosoft.uml.behavior.use_cases.MExtend;<br/>
+import ru.novosoft.uml.behavior.use_cases.MInclude;<br/>
+import ru.novosoft.uml.behavior.use_cases.MUseCase;<br/>
+import ru.novosoft.uml.foundation.core.MAbstraction;<br/>
+import ru.novosoft.uml.foundation.core.MAbstractionImpl;<br/>
+import ru.novosoft.uml.foundation.core.MAssociation;<br/>
+import ru.novosoft.uml.foundation.core.MAssociationEnd;<br/>
+import ru.novosoft.uml.foundation.core.MAttribute;<br/>
+import ru.novosoft.uml.foundation.core.MClass;<br/>
+import ru.novosoft.uml.foundation.core.MClassifier;<br/>
+import ru.novosoft.uml.foundation.core.MComponent;<br/>
+import ru.novosoft.uml.foundation.core.MConstraint;<br/>
+import ru.novosoft.uml.foundation.core.MDataType;<br/>
+import ru.novosoft.uml.foundation.core.MDependency;<br/>
+import ru.novosoft.uml.foundation.core.MFeature;<br/>
+import ru.novosoft.uml.foundation.core.MFlow;<br/>
+import ru.novosoft.uml.foundation.core.MGeneralizableElement;<br/>
+import ru.novosoft.uml.foundation.core.MGeneralization;<br/>
+import ru.novosoft.uml.foundation.core.MInterface;<br/>
+import ru.novosoft.uml.foundation.core.MMethod;<br/>
+import ru.novosoft.uml.foundation.core.MModelElement;<br/>
+import ru.novosoft.uml.foundation.core.MNamespace;<br/>
+import ru.novosoft.uml.foundation.core.MNode;<br/>
+import ru.novosoft.uml.foundation.core.MOperation;<br/>
+import ru.novosoft.uml.foundation.core.MParameter;<br/>
+import ru.novosoft.uml.foundation.core.MRelationship;<br/>
+import ru.novosoft.uml.foundation.core.MStructuralFeature;<br/>
+import ru.novosoft.uml.foundation.data_types.MParameterDirectionKind;<br/>
+import ru.novosoft.uml.foundation.data_types.MVisibilityKind;<br/>
+import ru.novosoft.uml.foundation.extension_mechanisms.MStereotype;<br/>
+import ru.novosoft.uml.model_management.MPackage;<br/>
+/**<br/>
+ * Helper class for UML Foundation::Core Package.<br/>
+ *<br/>
+ * Current implementation is a placeholder.<br/>
+ *<br/>
+ * @since ARGO0.11.2<br/>
+ * @author Thierry Lach<br/>
+ * @author Jaap Branderhorst<br/>
+ * @stereotype singleton<br/>
+ */<br/>
+public class CoreHelper {<br/>
+<br/>
+    protected static Category cat = Category.getInstance(CoreHelper.class);<br/>
+    /** Don't allow instantiation.<br/>
+     */<br/>
+<br/>
+    private CoreHelper() {<br/>
+    }<br/>
+    /** Singleton instance.<br/>
+    */<br/>
+<br/>
+    private static CoreHelper SINGLETON = new CoreHelper();<br/>
+    /** Singleton instance access method.<br/>
+     */<br/>
+<br/>
+    public static CoreHelper getHelper() {<br/>
+        return SINGLETON;<br/>
+    }<br/>
+<br/>
+    /** This method returns all Classifiers of which this class is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;direct or indirect subtype.<br/>
+     *<br/>
+     * @param cls  the class you want to have the parents for<br/>
+     * @return a collection of the parents, each of which is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{@link MGeneralizableElement MGeneralizableElement}<br/>
+     */<br/>
+    public Collection getAllSupertypes(MClassifier cls) {<br/>
+        Collection result = new HashSet();<br/>
+        Collection add = getSupertypes(cls);<br/>
+        do {<br/>
+            Collection newAdd = new HashSet();<br/>
+            Iterator addIter = add.iterator();<br/>
+            while (addIter.hasNext()) {<br/>
+                MGeneralizableElement next =<br/>
+                    (MGeneralizableElement)addIter.next();<br/>
+                if (next instanceof MClassifier) {<br/>
+                    newAdd.addAll(getSupertypes((MClassifier)next));<br/>
+                }<br/>
+            }<br/>
+            result.addAll(add);<br/>
+            add = newAdd;<br/>
+            add.removeAll(result);<br/>
+        }<br/>
+        while (!add.isEmpty());<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all Classifiers of which this class is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;direct subtype.<br/>
+     *<br/>
+     * @param cls  the class you want to have the parents for<br/>
+     * @return a collection of the parents, each of which is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{@link MGeneralizableElement MGeneralizableElement}<br/>
+     */<br/>
+    public Collection getSupertypes(Object ogeneralizableelement) {<br/>
+        Collection result = new HashSet();<br/>
+        if (ModelFacade.isAGeneralizableElement(ogeneralizableelement)) {<br/>
+            MGeneralizableElement cls =<br/>
+                (MGeneralizableElement)ogeneralizableelement;<br/>
+            Collection gens = cls.getGeneralizations();<br/>
+            Iterator genIterator = gens.iterator();<br/>
+            while (genIterator.hasNext()) {<br/>
+                MGeneralization next = (MGeneralization)genIterator.next();<br/>
+                result.add(next.getParent());<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all opposite AssociationEnds of a given Classifier<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the opposite association ends for<br/>
+     * @return a collection of the opposite associationends<br/>
+     */<br/>
+    public Collection getAssociateEnds(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        Iterator ascends = classifier.getAssociationEnds().iterator();<br/>
+        while (ascends.hasNext()) {<br/>
+            MAssociationEnd ascend = (MAssociationEnd)ascends.next();<br/>
+            if ((ascend.getOppositeEnd() != null))<br/>
+                result.add(ascend.getOppositeEnd());<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all opposite AssociationEnds of a given Classifier, including inherited<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the opposite association ends for<br/>
+     * @return a collection of the opposite associationends<br/>
+     */<br/>
+    public Collection getAssociateEndsInh(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        result.addAll(getAssociateEnds(classifier));<br/>
+        Iterator parents = classifier.getParents().iterator();<br/>
+        while (parents.hasNext()) {<br/>
+            result.addAll(getAssociateEndsInh((MClassifier)parents.next()));<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method removes a feature from a classifier.<br/>
+     *<br/>
+     * @param classifier<br/>
+     * @param feature<br/>
+     */<br/>
+    public void removeFeature(Object cls, Object feature) {<br/>
+        if (cls != null<br/>
+            &amp;&amp; feature != null<br/>
+            &amp;&amp; cls instanceof MClassifier<br/>
+            &amp;&amp; feature instanceof MFeature) {<br/>
+            ((MClassifier)cls).removeFeature((MFeature)feature);<br/>
+        }<br/>
+    }<br/>
+    /** This method returns the name of a feature.<br/>
+     *<br/>
+     * @param feature<br/>
+     * @return name<br/>
+     */<br/>
+    public String getFeatureName(Object o) {<br/>
+        if (o != null &amp;&amp; o instanceof MFeature)<br/>
+            return ((MFeature)o).getName();<br/>
+        return null;<br/>
+    }<br/>
+    /** This method returns if the object is a method.<br/>
+     *<br/>
+     * @param object<br/>
+     * @return true if it's a method, false if not<br/>
+     */<br/>
+    public boolean isMethod(Object o) {<br/>
+        return (o instanceof MMethod);<br/>
+    }<br/>
+    /** This method returns if the object is an operation.<br/>
+     *<br/>
+     * @param object<br/>
+     * @return true if it's an operation, false if not<br/>
+     */<br/>
+    public boolean isOperation(Object o) {<br/>
+        return (o instanceof MOperation);<br/>
+    }<br/>
+    /** This method returns all operations of a given Classifier<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the operations for<br/>
+     * @return a collection of the operations<br/>
+     */<br/>
+    public Collection getOperations(Object classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        if (ModelFacade.isAClassifier(classifier)) {<br/>
+            MClassifier mclassifier = (MClassifier)classifier;<br/>
+            Iterator features = mclassifier.getFeatures().iterator();<br/>
+            while (features.hasNext()) {<br/>
+                MFeature feature = (MFeature)features.next();<br/>
+                if (ModelFacade.isAOperation(feature))<br/>
+                    result.add(feature);<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all attributes of a given Classifier.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param classifier the classifier you want to have the attributes for<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return a collection of the attributes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Collection getAttributes(MClassifier classifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Collection result = new ArrayList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator features = classifier.getFeatures().iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (features.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MFeature feature = (MFeature)features.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (feature instanceof MAttribute)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result.add(feature);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return result;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}  <br/>
+<br/>
+    /** This method returns all attributes of a given Classifier, including inherited<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the attributes for<br/>
+     * @return a collection of the attributes<br/>
+     */<br/>
+    public Collection getAttributesInh(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        result.addAll(ModelFacade.getStructuralFeatures(classifier));<br/>
+        Iterator parents = classifier.getParents().iterator();<br/>
+        while (parents.hasNext()) {<br/>
+            MClassifier parent = (MClassifier)parents.next();<br/>
+            cat.debug("Adding attributes for: " + parent);<br/>
+            result.addAll(getAttributesInh(parent));<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /** This method returns all operations of a given Classifier, including inherited<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the operations for<br/>
+     * @return a collection of the operations<br/>
+     */<br/>
+    public Collection getOperationsInh(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        result.addAll(ModelFacade.getOperations(classifier));<br/>
+        Iterator parents = classifier.getParents().iterator();<br/>
+        while (parents.hasNext()) {<br/>
+            result.addAll(getOperationsInh((MClassifier)parents.next()));<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /** this method finds all paramters of the given operation which have<br/>
+     * the MParamterDirectionType RETURN. If it is only one, it is returned.<br/>
+     * In case there are no return parameters, null is returned. If there<br/>
+     * is more than one return paramter, first of them is returned, but a<br/>
+     * message is logged.<br/>
+     *<br/>
+     * @param operation the operation you want to find the return parameter for<br/>
+     * @return If this operation has only one paramter with Kind: RETURN, this is it, otherwise null<br/>
+     */<br/>
+    public MParameter getReturnParameter(MOperation operation) {<br/>
+        Vector returnParams = new Vector();<br/>
+        MParameter firstReturnParameter = null;<br/>
+        Iterator params = operation.getParameters().iterator();<br/>
+        while (params.hasNext()) {<br/>
+            MParameter parameter = (MParameter)params.next();<br/>
+            if ((parameter.getKind()).equals(MParameterDirectionKind.RETURN)) {<br/>
+                returnParams.add(parameter);<br/>
+            }<br/>
+        }<br/>
+        switch (returnParams.size()) {<br/>
+            case 1 :<br/>
+                return (MParameter)returnParams.elementAt(0);<br/>
+            case 0 :<br/>
+                cat.debug("No ReturnParameter found!");<br/>
+                return null;<br/>
+            default :<br/>
+                cat.debug(<br/>
+                    "More than one ReturnParameter found, returning first!");<br/>
+                return (MParameter)returnParams.elementAt(0);<br/>
+        }<br/>
+    }<br/>
+    /**<br/>
+     * Returns all return parameters for an operation.<br/>
+     * @param operation<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getReturnParameters(MOperation operation) {<br/>
+        Vector returnParams = new Vector();<br/>
+        MParameter firstReturnParameter = null;<br/>
+        Iterator params = operation.getParameters().iterator();<br/>
+        while (params.hasNext()) {<br/>
+            MParameter parameter = (MParameter)params.next();<br/>
+            if ((parameter.getKind()).equals(MParameterDirectionKind.RETURN)) {<br/>
+                returnParams.add(parameter);<br/>
+            }<br/>
+        }<br/>
+        return (Collection)returnParams;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the operation that some method realized. Returns null if<br/>
+     * object isn't a method or, possibly, if the method isn't properly<br/>
+     * defined.<br/>
+     *<br/>
+     * @param object  the method you want the realized operation of.<br/>
+     * @return an operation, or null.<br/>
+     */<br/>
+    public MOperation getSpecification(Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!(object instanceof MMethod))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((MMethod)object).getSpecification();<br/>
+    }<br/>
+    /**<br/>
+     * Returns all Interfaces of which this class is a realization.<br/>
+     * @param cls  the class you want to have the interfaces for<br/>
+     * @return a collection of the Interfaces<br/>
+     */<br/>
+    public Collection getSpecifications(MClassifier cls) {<br/>
+        Collection result = new Vector();<br/>
+        Collection deps = cls.getClientDependencies();<br/>
+        Iterator depIterator = deps.iterator();<br/>
+        while (depIterator.hasNext()) {<br/>
+            MDependency dep = (MDependency)depIterator.next();<br/>
+            if ((dep instanceof MAbstraction)<br/>
+                &amp;&amp; dep.getStereotype() != null<br/>
+                &amp;&amp; dep.getStereotype().getName() != null<br/>
+                &amp;&amp; dep.getStereotype().getName().equals("realize")) {<br/>
+                MInterface i = (MInterface)dep.getSuppliers().toArray()[0];<br/>
+                result.add(i);<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /** This method returns all Classifiers of which this class is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;direct supertype.<br/>
+     *<br/>
+     * @param cls  the class you want to have the children for<br/>
+     * @return a collection of the children, each of which is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{@link MGeneralizableElement MGeneralizableElement}<br/>
+     */<br/>
+    public Collection getSubtypes(MClassifier cls) {<br/>
+        Collection result = new Vector();<br/>
+        Collection gens = cls.getSpecializations();<br/>
+        Iterator genIterator = gens.iterator();<br/>
+        while (genIterator.hasNext()) {<br/>
+            MGeneralization next = (MGeneralization)genIterator.next();<br/>
+            result.add(next.getChild());<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /**<br/>
+     * Build a returnparameter. Removes all current return parameters from the<br/>
+     * operation and adds the supplied parameter. The directionkind of the<br/>
+     * parameter will be return. The name will be equal to the name of the last<br/>
+     * found return parameter or the default value "return" if no return<br/>
+     * parameter was present in the operation.<br/>
+     * @param operation<br/>
+     * @param newReturnParameter<br/>
+     */<br/>
+    public void setReturnParameter(<br/>
+        MOperation operation,<br/>
+        MParameter newReturnParameter) {<br/>
+        Iterator params = operation.getParameters().iterator();<br/>
+        String name = "return";<br/>
+        while (params.hasNext()) {<br/>
+            MParameter parameter = (MParameter)params.next();<br/>
+            if ((parameter.getKind()).equals(MParameterDirectionKind.RETURN)) {<br/>
+                operation.removeParameter(parameter);<br/>
+                if (parameter.getName() != null || parameter.getName() == "") {<br/>
+                    name = parameter.getName();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        newReturnParameter.setName(name);<br/>
+        newReturnParameter.setKind(MParameterDirectionKind.RETURN);<br/>
+        operation.addParameter(0, newReturnParameter);<br/>
+        // we set the listeners to the figs here too<br/>
+        // it would be better to do that in the figs themselves<br/>
+        Project p = ProjectManager.getManager().getCurrentProject();<br/>
+        Iterator it = p.findFigsForMember(operation).iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MElementListener listener = (MElementListener)it.next();<br/>
+            // UmlModelEventPump.getPump().removeModelEventListener(listener, newReturnParameter);<br/>
+            UmlModelEventPump.getPump().addModelEventListener(<br/>
+                listener,<br/>
+                newReturnParameter);<br/>
+        }<br/>
+    }<br/>
+    /**<br/>
+     * Builds a dependency with stereotype support<br/>
+     */<br/>
+    public MDependency buildSupportDependency(<br/>
+        MModelElement from,<br/>
+        MModelElement to) {<br/>
+        MDependency dep = CoreFactory.getFactory().buildDependency(from, to);<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        MStereotype stereo =<br/>
+            ExtensionMechanismsFactory.getFactory().buildStereotype(<br/>
+                dep,<br/>
+                "support",<br/>
+                ProjectManager.getManager().getCurrentProject().getModel());<br/>
+        return dep;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all behavioralfeatures found in this element and its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllBehavioralFeatures(MModelElement element) {<br/>
+        Iterator it = element.getModelElementContents().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MClassifier) {<br/>
+                list.addAll(getAllBehavioralFeatures((MClassifier)o));<br/>
+            } else {<br/>
+                list.addAll(getAllBehavioralFeatures((MModelElement)it.next()));<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all behavioralfeatures found in this classifier and its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllBehavioralFeatures(MClassifier clazz) {<br/>
+        List features = new ArrayList();<br/>
+        if (!(clazz instanceof MDataType)) {<br/>
+            Iterator it = clazz.getFeatures().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                Object o = it.next();<br/>
+                if (!(o instanceof MStructuralFeature)) {<br/>
+                    features.add(o);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return features;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all behavioralfeatures found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllBehavioralFeatures() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllBehavioralFeatures(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all interfaces found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllInterfaces() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllInterfaces(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all interfaces found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllInterfaces(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllInterfaces((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MInterface) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classes found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClasses() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllClasses(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classes found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClasses(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllClasses((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MClass) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Return all interfaces the given class realizes.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getRealizedInterfaces(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getClientDependencies().iterator();<br/>
+        List list = new ArrayList();<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MAbstraction) {<br/>
+                MAbstraction abstraction = (MAbstraction)o;<br/>
+                MStereotype stereo = abstraction.getStereotype();<br/>
+                if (stereo != null<br/>
+                    &amp;&amp; stereo.getBaseClass() != null<br/>
+                    &amp;&amp; stereo.getName() != null<br/>
+                    &amp;&amp; stereo.getBaseClass().equals("Abstraction")<br/>
+                    &amp;&amp; stereo.getName().equals("realize")) {<br/>
+                    Iterator it2 = abstraction.getSuppliers().iterator();<br/>
+                    while (it2.hasNext()) {<br/>
+                        Object o2 = it2.next();<br/>
+                        if (o2 instanceof MInterface) {<br/>
+                            list.add(o2);<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the realization (abstraction) between some class and some interface<br/>
+     *<br/>
+     * @param source<br/>
+     * @param clazz<br/>
+     * @return MAbstraction<br/>
+     */<br/>
+    public MAbstraction getRealization(MInterface source, MClassifier clazz) {<br/>
+        if (source == null || clazz == null)<br/>
+            return null;<br/>
+        Iterator it = clazz.getClientDependencies().iterator();<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        MStereotype stereo =<br/>
+            ExtensionMechanismsFactory.getFactory().buildStereotype(<br/>
+                new MAbstractionImpl(),<br/>
+                "realize",<br/>
+                model);<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MAbstraction<br/>
+                &amp;&amp; ((MAbstraction)o).getStereotype().equals(stereo)) {<br/>
+                Iterator it2 = ((MAbstraction)o).getSuppliers().iterator();<br/>
+                while (it2.hasNext()) {<br/>
+                    Object o2 = it2.next();<br/>
+                    if (o2.equals(source)) {<br/>
+                        return (MAbstraction)o;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classes some generalizable element clazz extends.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getExtendedClassifiers(MGeneralizableElement clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getGeneralizations().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            MGeneralizableElement parent = gen.getParent();<br/>
+            if (parent != null) {<br/>
+                list.add(parent);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Gets the generalization between two generalizable elements. Returns null<br/>
+     * if there is none.<br/>
+     * @param child<br/>
+     * @param parent<br/>
+     * @return MGeneralization<br/>
+     */<br/>
+    public MGeneralization getGeneralization(<br/>
+        MGeneralizableElement child,<br/>
+        MGeneralizableElement parent) {<br/>
+        if (child == null || parent == null)<br/>
+            return null;<br/>
+        Iterator it = child.getGeneralizations().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            if (gen.getParent() == parent) {<br/>
+                return gen;<br/>
+            }<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all flows from some source modelelement to a target modelelement.<br/>
+     * @param source<br/>
+     * @param target<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getFlows(MModelElement source, MModelElement target) {<br/>
+        if (source == null || target == null)<br/>
+            return null;<br/>
+        List ret = new ArrayList();<br/>
+        Collection targetFlows = target.getTargetFlows();<br/>
+        Iterator it = source.getSourceFlows().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MFlow flow = (MFlow)it.next();<br/>
+            if (targetFlows.contains(flow)) {<br/>
+                ret.add(flow);<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all elements that extend some class clazz.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getExtendingElements(MGeneralizableElement clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getSpecializations().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            MGeneralizableElement client = gen.getChild();<br/>
+            if (client != null) {<br/>
+                list.add(client);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classifiers that extend some classifier clazz.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getExtendingClassifiers(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getSpecializations().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            MGeneralizableElement client = gen.getChild();<br/>
+            if (client instanceof MClassifier) {<br/>
+                list.add(client);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllComponents() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllComponents(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllComponents(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllComponents((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MComponent) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all datatypes found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllDataTypes() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllDataTypes(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllDataTypes(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllDataTypes((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MDataType) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all nodes found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllNodes() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllNodes(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllNodes(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllNodes((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MNode) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Gets all classifiers that are associated to the given classifier (have<br/>
+     * an association relationship with the classifier).<br/>
+     * @param classifier<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAssociatedClassifiers(MClassifier classifier) {<br/>
+        if (classifier == null)<br/>
+            return new ArrayList();<br/>
+        List list = new ArrayList();<br/>
+        Iterator it = classifier.getAssociationEnds().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            MAssociation assoc = end.getAssociation();<br/>
+            Iterator it2 = assoc.getConnections().iterator();<br/>
+            while (it2.hasNext()) {<br/>
+                MAssociationEnd end2 = (MAssociationEnd)it2.next();<br/>
+                if (end2 != end) {<br/>
+                    list.add(end2.getType());<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Gets the associations between the classifiers from and to. Returns null<br/>
+     * if from or to is null or if there is no association between them.<br/>
+     * @param from<br/>
+     * @param to<br/>
+     * @return MAssociation<br/>
+     */<br/>
+    public Collection getAssociations(MClassifier from, MClassifier to) {<br/>
+        Set ret = new HashSet();<br/>
+        if (from == null || to == null)<br/>
+            return ret;<br/>
+        Iterator it = from.getAssociationEnds().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            MAssociation assoc = end.getAssociation();<br/>
+            Iterator it2 = assoc.getConnections().iterator();<br/>
+            while (it2.hasNext()) {<br/>
+                MAssociationEnd end2 = (MAssociationEnd)it2.next();<br/>
+                if (end2.getType() == to) {<br/>
+                    ret.add(assoc);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classifiers found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClassifiers() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllClassifiers(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classifiers found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClassifiers(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(<span class="upd">getAllClasses</span>((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MClassifier) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all associations for some classifier<br/>
+     * @param classifier<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAssociations(Object oclassifier) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (ModelFacade.isAClassifier(oclassifier)) {<br/>
+            MClassifier classifier = (MClassifier)oclassifier;<br/>
+            Iterator it = classifier.getAssociationEnds().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                col.add(((MAssociationEnd)it.next()).getAssociation());<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the associationend between some classifier type and some associaton assoc.<br/>
+     * @param type<br/>
+     * @param assoc<br/>
+     * @return MAssociationEnd<br/>
+     */<br/>
+    public MAssociationEnd getAssociationEnd(<br/>
+        MClassifier type,<br/>
+        MAssociation assoc) {<br/>
+        if (type == null || assoc == null)<br/>
+            return null;<br/>
+        Iterator it = type.getAssociationEnds().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            if (assoc.getConnections().contains(end))<br/>
+                return end;<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the contents (owned elements) of this classifier and all its parents<br/>
+     * as specified in section 2.5.3.8 of the UML 1.3 spec<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllContents(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        List list = new ArrayList();<br/>
+        Iterator it = clazz.getOwnedElements().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MModelElement element = (MModelElement)it.next();<br/>
+            if (element.getVisibility().equals(MVisibilityKind.PUBLIC)<br/>
+                || element.getVisibility().equals(MVisibilityKind.PROTECTED)) {<br/>
+                list.add(element);<br/>
+            }<br/>
+        }<br/>
+        it = clazz.getGeneralizations().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            list.addAll(getAllContents((MClassifier)it.next()));<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all attributes of some classifier clazz and of its parents<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllAttributes(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        List list = new ArrayList();<br/>
+        Iterator it = clazz.getFeatures().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MFeature element = (MFeature)it.next();<br/>
+            if (element instanceof MAttribute) {<br/>
+                list.add(element);<br/>
+            }<br/>
+        }<br/>
+        it = clazz.getGeneralizations().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            list.addAll(getAllAttributes((MClassifier)it.next()));<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the source of a relation. The source of a relation is defined as<br/>
+     * the modelelement that propagates this relation. If there are more then 1<br/>
+     * sources, only the first is returned. If there is no source, null is<br/>
+     * returned. Examples of sources include classifiers that are types to<br/>
+     * associationends, usecases that are bases to extend and include relations<br/>
+     * and so on.<br/>
+     * @param relation<br/>
+     * @return MModelElement<br/>
+     */<br/>
+    public MModelElement getSource(MRelationship relation) {<br/>
+        if (relation instanceof MAssociation) {<br/>
+            MAssociation assoc = (MAssociation)relation;<br/>
+            List conns = assoc.getConnections();<br/>
+            if (conns.isEmpty())<br/>
+                return null;<br/>
+            return ((MAssociationEnd)conns.get(0)).getType();<br/>
+        }<br/>
+        if (relation instanceof MGeneralization) {<br/>
+            MGeneralization gen = (MGeneralization)relation;<br/>
+            return gen.getParent();<br/>
+        }<br/>
+        if (relation instanceof MDependency) {<br/>
+            MDependency dep = (MDependency)relation;<br/>
+            Collection col = dep.getSuppliers();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MFlow) {<br/>
+            MFlow flow = (MFlow)relation;<br/>
+            Collection col = flow.getSources();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MExtend) {<br/>
+            MExtend extend = (MExtend)relation;<br/>
+            return extend.getExtension(); // we have to follow the arrows..<br/>
+        }<br/>
+        if (relation instanceof MInclude) {<br/>
+            MInclude include = (MInclude)relation;<br/>
+            return include.getBase();<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the destination of a relation. The destination of a relation is<br/>
+     * defined as the modelelement that receives this relation. If there are<br/>
+     * more then 1 destinations, only the first is returned. If there is no<br/>
+     * destination, null is returned. Examples of sources include classifiers that<br/>
+     * are types to associationends, usecases that are bases to extend and<br/>
+     * include relations and so on. In the case of an association, the destination<br/>
+     * is defined as the type of the second element in the connections list.<br/>
+     * @param relation<br/>
+     * @return MModelElement<br/>
+     */<br/>
+    public MModelElement getDestination(MRelationship relation) {<br/>
+        if (relation instanceof MAssociation) {<br/>
+            MAssociation assoc = (MAssociation)relation;<br/>
+            List conns = assoc.getConnections();<br/>
+            if (conns.size() &lt;= 1)<br/>
+                return null;<br/>
+            return ((MAssociationEnd)conns.get(1)).getType();<br/>
+        }<br/>
+        if (relation instanceof MGeneralization) {<br/>
+            MGeneralization gen = (MGeneralization)relation;<br/>
+            return gen.getChild();<br/>
+        }<br/>
+        if (relation instanceof MDependency) {<br/>
+            MDependency dep = (MDependency)relation;<br/>
+            Collection col = dep.getClients();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MFlow) {<br/>
+            MFlow flow = (MFlow)relation;<br/>
+            Collection col = flow.getTargets();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MExtend) {<br/>
+            MExtend extend = (MExtend)relation;<br/>
+            return extend.getBase();<br/>
+        }<br/>
+        if (relation instanceof MInclude) {<br/>
+            MInclude include = (MInclude)relation;<br/>
+            return include.getAddition();<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the dependencies between some supplier modelelement and some client<br/>
+     * modelelement. Does not return the vica versa relationship (dependency 'from<br/>
+     * client to supplier'.<br/>
+     * @param supplier<br/>
+     * @param client<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getDependencies(<br/>
+        MModelElement supplier,<br/>
+        MModelElement client) {<br/>
+        if (supplier == null || client == null)<br/>
+            return null;<br/>
+        List ret = new ArrayList();<br/>
+        Collection clientDependencies = client.getClientDependencies();<br/>
+        Iterator it = supplier.getSupplierDependencies().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MDependency dep = (MDependency)it.next();<br/>
+            if (clientDependencies.contains(dep)) {<br/>
+                ret.add(dep);<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all relationships between the source and dest modelelement and<br/>
+     * vica versa.<br/>
+     * @param source<br/>
+     * @param dest<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getRelationships(<br/>
+        MModelElement source,<br/>
+        MModelElement dest) {<br/>
+        Set ret = new HashSet();<br/>
+        if (source == null || dest == null)<br/>
+            return ret;<br/>
+        ret.addAll(getFlows(source, dest));<br/>
+        ret.addAll(getFlows(dest, source));<br/>
+        ret.addAll(getDependencies(source, dest));<br/>
+        ret.addAll(getDependencies(dest, source));<br/>
+        if (source instanceof MGeneralizableElement<br/>
+            &amp;&amp; dest instanceof MGeneralizableElement) {<br/>
+            ret.add(<br/>
+                getGeneralization(<br/>
+                    (MGeneralizableElement)source,<br/>
+                    (MGeneralizableElement)dest));<br/>
+            ret.add(<br/>
+                getGeneralization(<br/>
+                    (MGeneralizableElement)dest,<br/>
+                    (MGeneralizableElement)source));<br/>
+            if (source instanceof MClassifier &amp;&amp; dest instanceof MClassifier) {<br/>
+                ret.addAll(<br/>
+                    getAssociations((MClassifier)source, (MClassifier)dest));<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns true if some modelelement may be owned by the given namespace<br/>
+     * @param m<br/>
+     * @param ns<br/>
+     * @return boolean<br/>
+     */<br/>
+    public boolean isValidNamespace(MModelElement m, MNamespace ns) {<br/>
+        if (m == null || ns == null)<br/>
+            return false;<br/>
+        if (ns.getModel() != m.getModel())<br/>
+            return false;<br/>
+        if (m == ns)<br/>
+            return false;<br/>
+        if (m instanceof MNamespace<br/>
+            &amp;&amp; m == getFirstSharedNamespace((MNamespace)m, ns))<br/>
+            return false;<br/>
+        if (ns instanceof MInterface<br/>
+            || ns instanceof MActor<br/>
+            || ns instanceof MUseCase)<br/>
+            return false;<br/>
+        else if (ns instanceof MComponent)<br/>
+            return (m instanceof MComponent &amp;&amp; m != ns);<br/>
+        else if (ns instanceof MCollaboration) {<br/>
+            if (!(m instanceof MClassifierRole<br/>
+                || m instanceof MAssociationRole<br/>
+                || m instanceof MGeneralization<br/>
+                || m instanceof MConstraint))<br/>
+                return false;<br/>
+        } else if (ns instanceof MPackage) {<br/>
+            if (!(m instanceof MPackage<br/>
+                || m instanceof MClassifier<br/>
+                || m instanceof MAssociation<br/>
+                || m instanceof MGeneralization<br/>
+                || m instanceof MDependency<br/>
+                || m instanceof MConstraint<br/>
+                || m instanceof MCollaboration<br/>
+                || m instanceof MStateMachine<br/>
+                || m instanceof MStereotype))<br/>
+                return false;<br/>
+        } else if (ns instanceof MClass) {<br/>
+            if (!(m instanceof MClass<br/>
+                || m instanceof MAssociation<br/>
+                || m instanceof MGeneralization<br/>
+                || m instanceof MUseCase<br/>
+                || m instanceof MConstraint<br/>
+                || m instanceof MDependency<br/>
+                || m instanceof MCollaboration<br/>
+                || m instanceof MDataType<br/>
+                || m instanceof MInterface))<br/>
+                return false;<br/>
+        } else if (ns instanceof MClassifierRole) {<br/>
+            if (!(((MClassifierRole)ns).getAvailableContentses().contains(m)<br/>
+                || ((MClassifierRole)ns).getAvailableFeatures().contains(m)))<br/>
+                return false;<br/>
+        }<br/>
+        if (m instanceof MStructuralFeature) {<br/>
+            if (!isValidNamespace((MStructuralFeature)m, ns))<br/>
+                return false;<br/>
+        } else if (m instanceof MGeneralizableElement) {<br/>
+            if (!isValidNamespace((MGeneralizableElement)m, ns))<br/>
+                return false;<br/>
+        } else if (m instanceof MGeneralization) {<br/>
+            if (!isValidNamespace((MGeneralization)m, ns))<br/>
+                return false;<br/>
+        }<br/>
+        if (m instanceof MAssociation) {<br/>
+            if (!isValidNamespace((MAssociation)m, ns))<br/>
+                return false;<br/>
+        } else if (m instanceof MCollaboration) {<br/>
+            if (!isValidNamespace((MCollaboration)m, ns))<br/>
+                return false;<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+    private boolean isValidNamespace(MCollaboration collab, MNamespace ns) {<br/>
+        Iterator it = collab.getOwnedElements().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MModelElement m = (MModelElement)it.next();<br/>
+            if (m instanceof MClassifierRole) {<br/>
+                MClassifierRole role = (MClassifierRole)m;<br/>
+                Iterator it2 = role.getBases().iterator();<br/>
+                while (it2.hasNext()) {<br/>
+                    if (!ns.getOwnedElements().contains(it2.next()))<br/>
+                        return false;<br/>
+                }<br/>
+            } else if (m instanceof MAssociationRole) {<br/>
+                if (!ns<br/>
+                    .getOwnedElements()<br/>
+                    .contains(((MAssociationRole)m).getBase()))<br/>
+                    return false;<br/>
+            }<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+    private boolean isValidNamespace(MGeneralization gen, MNamespace ns) {<br/>
+        if (gen.getParent() == null || gen.getChild() == null)<br/>
+            return true;<br/>
+        MNamespace ns1 = gen.getParent().getNamespace();<br/>
+        MNamespace ns2 = gen.getChild().getNamespace();<br/>
+        if (ns == getFirstSharedNamespace(ns1, ns2))<br/>
+            return true;<br/>
+        return false;<br/>
+    }<br/>
+    private boolean isValidNamespace(MStructuralFeature struc, MNamespace ns) {<br/>
+        if (struc.getType() == null || struc.getOwner() == null)<br/>
+            return true;<br/>
+        return struc.getOwner().getNamespace().getOwnedElements().contains(<br/>
+            struc.getType());<br/>
+    }<br/>
+    <br/>
+    private boolean isValidNamespace(MAssociation assoc, MNamespace ns) {<br/>
+        Iterator it = assoc.getConnections().iterator();<br/>
+        List namespaces = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            namespaces.add(end.getType().getNamespace());<br/>
+        }<br/>
+        it = namespaces.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MNamespace ns1 = (MNamespace)it.next();<br/>
+            if (it.hasNext()) {<br/>
+                MNamespace ns2 = (MNamespace)it.next();<br/>
+                // TODO: this contains a small error (ns can be part of hierarchy<br/>
+                // of namespaces, that's not taken into account)<br/>
+                if (ns == getFirstSharedNamespace(ns1, ns2))<br/>
+                    return true;<br/>
+            }<br/>
+        }<br/>
+        return false;<br/>
+    }<br/>
+    <br/>
+    private boolean isValidNamespace(<br/>
+        MGeneralizableElement gen,<br/>
+        MNamespace ns) {<br/>
+        Iterator it = gen.getParents().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralizableElement gen2 = (MGeneralizableElement)it.next();<br/>
+            if (!ns.getOwnedElements().contains(gen2)) {<br/>
+                return false;<br/>
+            }<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+    /**<br/>
+     * Gets the first namespace two namespaces share. That is: it returns the<br/>
+     * first namespace that owns the given namespaces itself or some owner of<br/>
+     * the given namespaces.<br/>
+     * @param ns1<br/>
+     * @param ns2<br/>
+     * @return MNamespace<br/>
+     */<br/>
+    public MNamespace getFirstSharedNamespace(MNamespace ns1, MNamespace ns2) {<br/>
+        if (ns1 == null || ns2 == null)<br/>
+            return null;<br/>
+        if (ns1 == ns2)<br/>
+            return ns1;<br/>
+        boolean ns1Owner =<br/>
+            ModelManagementHelper.getHelper().getAllNamespaces(ns1).contains(<br/>
+                ns2);<br/>
+        boolean ns2Owner =<br/>
+            ModelManagementHelper.getHelper().getAllNamespaces(ns2).contains(<br/>
+                ns1);<br/>
+        if (ns1Owner)<br/>
+            return ns1;<br/>
+        if (ns2Owner)<br/>
+            return ns2;<br/>
+        return getFirstSharedNamespace(ns1.getNamespace(), ns2.getNamespace());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all possible namespaces that may be selected by some given<br/>
+     * modelelement m. Which namespaces are allowed, is decided in the method<br/>
+     * isValidNamespace.<br/>
+     * @param m<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllPossibleNamespaces(MModelElement m) {<br/>
+        List ret = new ArrayList();<br/>
+        if (m == null)<br/>
+            return ret;<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        if (isValidNamespace(m, model))<br/>
+            ret.add(model);<br/>
+        Iterator it =<br/>
+            ModelManagementHelper<br/>
+                .getHelper()<br/>
+                .getAllModelElementsOfKind(model, MNamespace.class)<br/>
+                .iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MNamespace ns = (MNamespace)it.next();<br/>
+            if (isValidNamespace(m, ns))<br/>
+                ret.add(ns);<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the base classes (that are the classes that do not have any<br/>
+     * generalizations) for some given namespace. Personally, this seems a<br/>
+     * pointless operation to me but in GoModelToBaseElements this is done like<br/>
+     * this for some reason.<br/>
+     * TODO: find out if someone uses this.<br/>
+     * @param o<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getBaseClasses(Object o) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (ModelFacade.isANamespace(o)) {<br/>
+            Iterator it =<br/>
+                ModelManagementHelper<br/>
+                    .getHelper()<br/>
+                    .getAllModelElementsOfKind(o, MGeneralizableElement.class)<br/>
+                    .iterator();<br/>
+            while (it.hasNext()) {<br/>
+                MGeneralizableElement gen = (MGeneralizableElement)it.next();<br/>
+                if (gen.getGeneralizations().isEmpty()) {<br/>
+                    col.add(gen);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all children from some given generalizableelement on all levels<br/>
+     * (the complete tree excluding the generalizable element itself). Throws<br/>
+     * an IllegalStateException if there is a circular reference.<br/>
+     * @param o<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getChildren(Object o) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (ModelFacade.isAGeneralizableElement(o)) {<br/>
+            Iterator it =<br/>
+                ((MGeneralizableElement)o).getSpecializations().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                col.addAll(getChildren(col, it.next()));<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+    private Collection getChildren(Collection currentChildren, Object o) {<br/>
+        if (ModelFacade.isAGeneralization(o)) {<br/>
+            MGeneralization gen = (MGeneralization)o;<br/>
+            MGeneralizableElement child = gen.getChild();<br/>
+            if (currentChildren.contains(child))<br/>
+                throw new IllegalStateException("Circular inheritance occured.");<br/>
+            currentChildren.add(child);<br/>
+            Iterator it = child.getSpecializations().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                currentChildren = getChildren(currentChildren, it.next());<br/>
+            }<br/>
+            return currentChildren;<br/>
+        }<br/>
+        throw new IllegalArgumentException("getChildren not called with generalization as argument");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all interfaces that are realized by the given class or by its<br/>
+     * superclasses. It's possible that interfaces occur twice in the collection<br/>
+     * returned. In that case there is a double reference to that interface.<br/>
+     * @param o<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllRealizedInterfaces(Object o) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (o != null) {<br/>
+            if (ModelFacade.isAClass(o)) {<br/>
+                MClass clazz = (MClass)o;<br/>
+                Collection supDependencies = clazz.getClientDependencies();<br/>
+                Iterator it = supDependencies.iterator();<br/>
+                while (it.hasNext()) {<br/>
+                    MDependency dependency = (MDependency)it.next();<br/>
+                    MStereotype stereo = dependency.getStereotype();<br/>
+                    if (dependency instanceof MAbstraction<br/>
+                        &amp;&amp; stereo != null &amp;&amp; stereo.getName().equals("realize") &amp;&amp; stereo.getBaseClass().equals("Abstraction")) {<br/>
+                        col.addAll(dependency.getSuppliers());<br/>
+                    }<br/>
+                }<br/>
+                Collection superTypes = getSupertypes(o);<br/>
+                it = superTypes.iterator();<br/>
+                while (it.hasNext()) {<br/>
+                    col.addAll(getAllRealizedInterfaces(it.next()));<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_CoreHelper_1.48.java</h1>
+<div class="code">
+<div class="id">
+// Copyright (c) 1996-2003 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+package org.argouml.model.uml.foundation.core;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Collection;<br/>
+import java.util.HashSet;<br/>
+import java.util.Iterator;<br/>
+import java.util.List;<br/>
+import java.util.Set;<br/>
+import java.util.Vector;<br/>
+import org.apache.log4j.Category;<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.model.ModelFacade;<br/>
+import org.argouml.model.uml.UmlModelEventPump;<br/>
+import org.argouml.model.uml.foundation.extensionmechanisms.ExtensionMechanismsFactory;<br/>
+import org.argouml.model.uml.modelmanagement.ModelManagementHelper;<br/>
+import ru.novosoft.uml.MElementListener;<br/>
+import ru.novosoft.uml.behavior.collaborations.MAssociationRole;<br/>
+import ru.novosoft.uml.behavior.collaborations.MClassifierRole;<br/>
+import ru.novosoft.uml.behavior.collaborations.MCollaboration;<br/>
+import ru.novosoft.uml.behavior.state_machines.MStateMachine;<br/>
+import ru.novosoft.uml.behavior.use_cases.MActor;<br/>
+import ru.novosoft.uml.behavior.use_cases.MExtend;<br/>
+import ru.novosoft.uml.behavior.use_cases.MInclude;<br/>
+import ru.novosoft.uml.behavior.use_cases.MUseCase;<br/>
+import ru.novosoft.uml.foundation.core.MAbstraction;<br/>
+import ru.novosoft.uml.foundation.core.MAbstractionImpl;<br/>
+import ru.novosoft.uml.foundation.core.MAssociation;<br/>
+import ru.novosoft.uml.foundation.core.MAssociationEnd;<br/>
+import ru.novosoft.uml.foundation.core.MAttribute;<br/>
+import ru.novosoft.uml.foundation.core.MClass;<br/>
+import ru.novosoft.uml.foundation.core.MClassifier;<br/>
+import ru.novosoft.uml.foundation.core.MComponent;<br/>
+import ru.novosoft.uml.foundation.core.MConstraint;<br/>
+import ru.novosoft.uml.foundation.core.MDataType;<br/>
+import ru.novosoft.uml.foundation.core.MDependency;<br/>
+import ru.novosoft.uml.foundation.core.MFeature;<br/>
+import ru.novosoft.uml.foundation.core.MFlow;<br/>
+import ru.novosoft.uml.foundation.core.MGeneralizableElement;<br/>
+import ru.novosoft.uml.foundation.core.MGeneralization;<br/>
+import ru.novosoft.uml.foundation.core.MInterface;<br/>
+import ru.novosoft.uml.foundation.core.MMethod;<br/>
+import ru.novosoft.uml.foundation.core.MModelElement;<br/>
+import ru.novosoft.uml.foundation.core.MNamespace;<br/>
+import ru.novosoft.uml.foundation.core.MNode;<br/>
+import ru.novosoft.uml.foundation.core.MOperation;<br/>
+import ru.novosoft.uml.foundation.core.MParameter;<br/>
+import ru.novosoft.uml.foundation.core.MRelationship;<br/>
+import ru.novosoft.uml.foundation.core.MStructuralFeature;<br/>
+import ru.novosoft.uml.foundation.data_types.MParameterDirectionKind;<br/>
+import ru.novosoft.uml.foundation.data_types.MVisibilityKind;<br/>
+import ru.novosoft.uml.foundation.extension_mechanisms.MStereotype;<br/>
+import ru.novosoft.uml.model_management.MPackage;<br/>
+/**<br/>
+ * Helper class for UML Foundation::Core Package.<br/>
+ *<br/>
+ * Current implementation is a placeholder.<br/>
+ *<br/>
+ * @since ARGO0.11.2<br/>
+ * @author Thierry Lach<br/>
+ * @author Jaap Branderhorst<br/>
+ * @stereotype singleton<br/>
+ */<br/>
+public class CoreHelper {<br/>
+<br/>
+    protected static Category cat = Category.getInstance(CoreHelper.class);<br/>
+    /** Don't allow instantiation.<br/>
+     */<br/>
+<br/>
+    private CoreHelper() {<br/>
+    }<br/>
+    /** Singleton instance.<br/>
+    */<br/>
+<br/>
+    private static CoreHelper SINGLETON = new CoreHelper();<br/>
+    /** Singleton instance access method.<br/>
+     */<br/>
+<br/>
+    public static CoreHelper getHelper() {<br/>
+        return SINGLETON;<br/>
+    }<br/>
+<br/>
+    /** This method returns all Classifiers of which this class is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;direct or indirect subtype.<br/>
+     *<br/>
+     * @param cls  the class you want to have the parents for<br/>
+     * @return a collection of the parents, each of which is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{@link MGeneralizableElement MGeneralizableElement}<br/>
+     */<br/>
+    public Collection getAllSupertypes(MClassifier cls) {<br/>
+        Collection result = new HashSet();<br/>
+        Collection add = getSupertypes(cls);<br/>
+        do {<br/>
+            Collection newAdd = new HashSet();<br/>
+            Iterator addIter = add.iterator();<br/>
+            while (addIter.hasNext()) {<br/>
+                MGeneralizableElement next =<br/>
+                    (MGeneralizableElement)addIter.next();<br/>
+                if (next instanceof MClassifier) {<br/>
+                    newAdd.addAll(getSupertypes((MClassifier)next));<br/>
+                }<br/>
+            }<br/>
+            result.addAll(add);<br/>
+            add = newAdd;<br/>
+            add.removeAll(result);<br/>
+        }<br/>
+        while (!add.isEmpty());<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all Classifiers of which this class is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;direct subtype.<br/>
+     *<br/>
+     * @param cls  the class you want to have the parents for<br/>
+     * @return a collection of the parents, each of which is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{@link MGeneralizableElement MGeneralizableElement}<br/>
+     */<br/>
+    public Collection getSupertypes(Object ogeneralizableelement) {<br/>
+        Collection result = new HashSet();<br/>
+        if (ModelFacade.isAGeneralizableElement(ogeneralizableelement)) {<br/>
+            MGeneralizableElement cls =<br/>
+                (MGeneralizableElement)ogeneralizableelement;<br/>
+            Collection gens = cls.getGeneralizations();<br/>
+            Iterator genIterator = gens.iterator();<br/>
+            while (genIterator.hasNext()) {<br/>
+                MGeneralization next = (MGeneralization)genIterator.next();<br/>
+                result.add(next.getParent());<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all opposite AssociationEnds of a given Classifier<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the opposite association ends for<br/>
+     * @return a collection of the opposite associationends<br/>
+     */<br/>
+    public Collection getAssociateEnds(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        Iterator ascends = classifier.getAssociationEnds().iterator();<br/>
+        while (ascends.hasNext()) {<br/>
+            MAssociationEnd ascend = (MAssociationEnd)ascends.next();<br/>
+            if ((ascend.getOppositeEnd() != null))<br/>
+                result.add(ascend.getOppositeEnd());<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all opposite AssociationEnds of a given Classifier, including inherited<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the opposite association ends for<br/>
+     * @return a collection of the opposite associationends<br/>
+     */<br/>
+    public Collection getAssociateEndsInh(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        result.addAll(getAssociateEnds(classifier));<br/>
+        Iterator parents = classifier.getParents().iterator();<br/>
+        while (parents.hasNext()) {<br/>
+            result.addAll(getAssociateEndsInh((MClassifier)parents.next()));<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method removes a feature from a classifier.<br/>
+     *<br/>
+     * @param classifier<br/>
+     * @param feature<br/>
+     */<br/>
+    public void removeFeature(Object cls, Object feature) {<br/>
+        if (cls != null<br/>
+            &amp;&amp; feature != null<br/>
+            &amp;&amp; cls instanceof MClassifier<br/>
+            &amp;&amp; feature instanceof MFeature) {<br/>
+            ((MClassifier)cls).removeFeature((MFeature)feature);<br/>
+        }<br/>
+    }<br/>
+    /** This method returns the name of a feature.<br/>
+     *<br/>
+     * @param feature<br/>
+     * @return name<br/>
+     */<br/>
+    public String getFeatureName(Object o) {<br/>
+        if (o != null &amp;&amp; o instanceof MFeature)<br/>
+            return ((MFeature)o).getName();<br/>
+        return null;<br/>
+    }<br/>
+    /** This method returns if the object is a method.<br/>
+     *<br/>
+     * @param object<br/>
+     * @return true if it's a method, false if not<br/>
+     */<br/>
+    public boolean isMethod(Object o) {<br/>
+        return (o instanceof MMethod);<br/>
+    }<br/>
+    /** This method returns if the object is an operation.<br/>
+     *<br/>
+     * @param object<br/>
+     * @return true if it's an operation, false if not<br/>
+     */<br/>
+    public boolean isOperation(Object o) {<br/>
+        return (o instanceof MOperation);<br/>
+    }<br/>
+    /** This method returns all operations of a given Classifier<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the operations for<br/>
+     * @return a collection of the operations<br/>
+     */<br/>
+    public Collection getOperations(Object classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        if (ModelFacade.isAClassifier(classifier)) {<br/>
+            MClassifier mclassifier = (MClassifier)classifier;<br/>
+            Iterator features = mclassifier.getFeatures().iterator();<br/>
+            while (features.hasNext()) {<br/>
+                MFeature feature = (MFeature)features.next();<br/>
+                if (ModelFacade.isAOperation(feature))<br/>
+                    result.add(feature);<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /** This method returns all attributes of a given Classifier.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; *<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @param classifier the classifier you want to have the attributes for<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @return a collection of the attributes<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Collection getAttributes(MClassifier classifier) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    Collection result = new ArrayList();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Iterator features = classifier.getFeatures().iterator();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (features.hasNext()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MFeature feature = (MFeature)features.next();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (feature instanceof MAttribute)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result.add(feature);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return result;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}  <br/>
+<br/>
+    /** This method returns all attributes of a given Classifier, including inherited<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the attributes for<br/>
+     * @return a collection of the attributes<br/>
+     */<br/>
+    public Collection getAttributesInh(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        result.addAll(ModelFacade.getStructuralFeatures(classifier));<br/>
+        Iterator parents = classifier.getParents().iterator();<br/>
+        while (parents.hasNext()) {<br/>
+            MClassifier parent = (MClassifier)parents.next();<br/>
+            cat.debug("Adding attributes for: " + parent);<br/>
+            result.addAll(getAttributesInh(parent));<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /** This method returns all operations of a given Classifier, including inherited<br/>
+     *<br/>
+     * @param classifier the classifier you want to have the operations for<br/>
+     * @return a collection of the operations<br/>
+     */<br/>
+    public Collection getOperationsInh(MClassifier classifier) {<br/>
+        Collection result = new ArrayList();<br/>
+        result.addAll(ModelFacade.getOperations(classifier));<br/>
+        Iterator parents = classifier.getParents().iterator();<br/>
+        while (parents.hasNext()) {<br/>
+            result.addAll(getOperationsInh((MClassifier)parents.next()));<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /** this method finds all paramters of the given operation which have<br/>
+     * the MParamterDirectionType RETURN. If it is only one, it is returned.<br/>
+     * In case there are no return parameters, null is returned. If there<br/>
+     * is more than one return paramter, first of them is returned, but a<br/>
+     * message is logged.<br/>
+     *<br/>
+     * @param operation the operation you want to find the return parameter for<br/>
+     * @return If this operation has only one paramter with Kind: RETURN, this is it, otherwise null<br/>
+     */<br/>
+    public MParameter getReturnParameter(MOperation operation) {<br/>
+        Vector returnParams = new Vector();<br/>
+        MParameter firstReturnParameter = null;<br/>
+        Iterator params = operation.getParameters().iterator();<br/>
+        while (params.hasNext()) {<br/>
+            MParameter parameter = (MParameter)params.next();<br/>
+            if ((parameter.getKind()).equals(MParameterDirectionKind.RETURN)) {<br/>
+                returnParams.add(parameter);<br/>
+            }<br/>
+        }<br/>
+        switch (returnParams.size()) {<br/>
+            case 1 :<br/>
+                return (MParameter)returnParams.elementAt(0);<br/>
+            case 0 :<br/>
+                cat.debug("No ReturnParameter found!");<br/>
+                return null;<br/>
+            default :<br/>
+                cat.debug(<br/>
+                    "More than one ReturnParameter found, returning first!");<br/>
+                return (MParameter)returnParams.elementAt(0);<br/>
+        }<br/>
+    }<br/>
+    /**<br/>
+     * Returns all return parameters for an operation.<br/>
+     * @param operation<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getReturnParameters(MOperation operation) {<br/>
+        Vector returnParams = new Vector();<br/>
+        MParameter firstReturnParameter = null;<br/>
+        Iterator params = operation.getParameters().iterator();<br/>
+        while (params.hasNext()) {<br/>
+            MParameter parameter = (MParameter)params.next();<br/>
+            if ((parameter.getKind()).equals(MParameterDirectionKind.RETURN)) {<br/>
+                returnParams.add(parameter);<br/>
+            }<br/>
+        }<br/>
+        return (Collection)returnParams;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the operation that some method realized. Returns null if<br/>
+     * object isn't a method or, possibly, if the method isn't properly<br/>
+     * defined.<br/>
+     *<br/>
+     * @param object  the method you want the realized operation of.<br/>
+     * @return an operation, or null.<br/>
+     */<br/>
+    public MOperation getSpecification(Object object) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if (!(object instanceof MMethod))<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    return null;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return ((MMethod)object).getSpecification();<br/>
+    }<br/>
+    /**<br/>
+     * Returns all Interfaces of which this class is a realization.<br/>
+     * @param cls  the class you want to have the interfaces for<br/>
+     * @return a collection of the Interfaces<br/>
+     */<br/>
+    public Collection getSpecifications(MClassifier cls) {<br/>
+        Collection result = new Vector();<br/>
+        Collection deps = cls.getClientDependencies();<br/>
+        Iterator depIterator = deps.iterator();<br/>
+        while (depIterator.hasNext()) {<br/>
+            MDependency dep = (MDependency)depIterator.next();<br/>
+            if ((dep instanceof MAbstraction)<br/>
+                &amp;&amp; dep.getStereotype() != null<br/>
+                &amp;&amp; dep.getStereotype().getName() != null<br/>
+                &amp;&amp; dep.getStereotype().getName().equals("realize")) {<br/>
+                MInterface i = (MInterface)dep.getSuppliers().toArray()[0];<br/>
+                result.add(i);<br/>
+            }<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /** This method returns all Classifiers of which this class is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;direct supertype.<br/>
+     *<br/>
+     * @param cls  the class you want to have the children for<br/>
+     * @return a collection of the children, each of which is a<br/>
+     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{@link MGeneralizableElement MGeneralizableElement}<br/>
+     */<br/>
+    public Collection getSubtypes(MClassifier cls) {<br/>
+        Collection result = new Vector();<br/>
+        Collection gens = cls.getSpecializations();<br/>
+        Iterator genIterator = gens.iterator();<br/>
+        while (genIterator.hasNext()) {<br/>
+            MGeneralization next = (MGeneralization)genIterator.next();<br/>
+            result.add(next.getChild());<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+    /**<br/>
+     * Build a returnparameter. Removes all current return parameters from the<br/>
+     * operation and adds the supplied parameter. The directionkind of the<br/>
+     * parameter will be return. The name will be equal to the name of the last<br/>
+     * found return parameter or the default value "return" if no return<br/>
+     * parameter was present in the operation.<br/>
+     * @param operation<br/>
+     * @param newReturnParameter<br/>
+     */<br/>
+    public void setReturnParameter(<br/>
+        MOperation operation,<br/>
+        MParameter newReturnParameter) {<br/>
+        Iterator params = operation.getParameters().iterator();<br/>
+        String name = "return";<br/>
+        while (params.hasNext()) {<br/>
+            MParameter parameter = (MParameter)params.next();<br/>
+            if ((parameter.getKind()).equals(MParameterDirectionKind.RETURN)) {<br/>
+                operation.removeParameter(parameter);<br/>
+                if (parameter.getName() != null || parameter.getName() == "") {<br/>
+                    name = parameter.getName();<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        newReturnParameter.setName(name);<br/>
+        newReturnParameter.setKind(MParameterDirectionKind.RETURN);<br/>
+        operation.addParameter(0, newReturnParameter);<br/>
+        // we set the listeners to the figs here too<br/>
+        // it would be better to do that in the figs themselves<br/>
+        Project p = ProjectManager.getManager().getCurrentProject();<br/>
+        Iterator it = p.findFigsForMember(operation).iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MElementListener listener = (MElementListener)it.next();<br/>
+            // UmlModelEventPump.getPump().removeModelEventListener(listener, newReturnParameter);<br/>
+            UmlModelEventPump.getPump().addModelEventListener(<br/>
+                listener,<br/>
+                newReturnParameter);<br/>
+        }<br/>
+    }<br/>
+    /**<br/>
+     * Builds a dependency with stereotype support<br/>
+     */<br/>
+    public MDependency buildSupportDependency(<br/>
+        MModelElement from,<br/>
+        MModelElement to) {<br/>
+        MDependency dep = CoreFactory.getFactory().buildDependency(from, to);<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        MStereotype stereo =<br/>
+            ExtensionMechanismsFactory.getFactory().buildStereotype(<br/>
+                dep,<br/>
+                "support",<br/>
+                ProjectManager.getManager().getCurrentProject().getModel());<br/>
+        return dep;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all behavioralfeatures found in this element and its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllBehavioralFeatures(MModelElement element) {<br/>
+        Iterator it = element.getModelElementContents().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MClassifier) {<br/>
+                list.addAll(getAllBehavioralFeatures((MClassifier)o));<br/>
+            } else {<br/>
+                list.addAll(getAllBehavioralFeatures((MModelElement)it.next()));<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all behavioralfeatures found in this classifier and its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllBehavioralFeatures(MClassifier clazz) {<br/>
+        List features = new ArrayList();<br/>
+        if (!(clazz instanceof MDataType)) {<br/>
+            Iterator it = clazz.getFeatures().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                Object o = it.next();<br/>
+                if (!(o instanceof MStructuralFeature)) {<br/>
+                    features.add(o);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return features;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all behavioralfeatures found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllBehavioralFeatures() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllBehavioralFeatures(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all interfaces found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllInterfaces() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllInterfaces(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all interfaces found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllInterfaces(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllInterfaces((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MInterface) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classes found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClasses() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllClasses(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classes found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClasses(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllClasses((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MClass) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Return all interfaces the given class realizes.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getRealizedInterfaces(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getClientDependencies().iterator();<br/>
+        List list = new ArrayList();<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MAbstraction) {<br/>
+                MAbstraction abstraction = (MAbstraction)o;<br/>
+                MStereotype stereo = abstraction.getStereotype();<br/>
+                if (stereo != null<br/>
+                    &amp;&amp; stereo.getBaseClass() != null<br/>
+                    &amp;&amp; stereo.getName() != null<br/>
+                    &amp;&amp; stereo.getBaseClass().equals("Abstraction")<br/>
+                    &amp;&amp; stereo.getName().equals("realize")) {<br/>
+                    Iterator it2 = abstraction.getSuppliers().iterator();<br/>
+                    while (it2.hasNext()) {<br/>
+                        Object o2 = it2.next();<br/>
+                        if (o2 instanceof MInterface) {<br/>
+                            list.add(o2);<br/>
+                        }<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the realization (abstraction) between some class and some interface<br/>
+     *<br/>
+     * @param source<br/>
+     * @param clazz<br/>
+     * @return MAbstraction<br/>
+     */<br/>
+    public MAbstraction getRealization(MInterface source, MClassifier clazz) {<br/>
+        if (source == null || clazz == null)<br/>
+            return null;<br/>
+        Iterator it = clazz.getClientDependencies().iterator();<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        MStereotype stereo =<br/>
+            ExtensionMechanismsFactory.getFactory().buildStereotype(<br/>
+                new MAbstractionImpl(),<br/>
+                "realize",<br/>
+                model);<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MAbstraction<br/>
+                &amp;&amp; ((MAbstraction)o).getStereotype().equals(stereo)) {<br/>
+                Iterator it2 = ((MAbstraction)o).getSuppliers().iterator();<br/>
+                while (it2.hasNext()) {<br/>
+                    Object o2 = it2.next();<br/>
+                    if (o2.equals(source)) {<br/>
+                        return (MAbstraction)o;<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classes some generalizable element clazz extends.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getExtendedClassifiers(MGeneralizableElement clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getGeneralizations().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            MGeneralizableElement parent = gen.getParent();<br/>
+            if (parent != null) {<br/>
+                list.add(parent);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Gets the generalization between two generalizable elements. Returns null<br/>
+     * if there is none.<br/>
+     * @param child<br/>
+     * @param parent<br/>
+     * @return MGeneralization<br/>
+     */<br/>
+    public MGeneralization getGeneralization(<br/>
+        MGeneralizableElement child,<br/>
+        MGeneralizableElement parent) {<br/>
+        if (child == null || parent == null)<br/>
+            return null;<br/>
+        Iterator it = child.getGeneralizations().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            if (gen.getParent() == parent) {<br/>
+                return gen;<br/>
+            }<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all flows from some source modelelement to a target modelelement.<br/>
+     * @param source<br/>
+     * @param target<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getFlows(MModelElement source, MModelElement target) {<br/>
+        if (source == null || target == null)<br/>
+            return null;<br/>
+        List ret = new ArrayList();<br/>
+        Collection targetFlows = target.getTargetFlows();<br/>
+        Iterator it = source.getSourceFlows().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MFlow flow = (MFlow)it.next();<br/>
+            if (targetFlows.contains(flow)) {<br/>
+                ret.add(flow);<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all elements that extend some class clazz.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getExtendingElements(MGeneralizableElement clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getSpecializations().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            MGeneralizableElement client = gen.getChild();<br/>
+            if (client != null) {<br/>
+                list.add(client);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classifiers that extend some classifier clazz.<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getExtendingClassifiers(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = clazz.getSpecializations().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralization gen = (MGeneralization)it.next();<br/>
+            MGeneralizableElement client = gen.getChild();<br/>
+            if (client instanceof MClassifier) {<br/>
+                list.add(client);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllComponents() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllComponents(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllComponents(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllComponents((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MComponent) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all datatypes found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllDataTypes() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllDataTypes(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllDataTypes(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllDataTypes((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MDataType) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all nodes found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllNodes() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllNodes(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all components found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllNodes(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(getAllNodes((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MNode) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Gets all classifiers that are associated to the given classifier (have<br/>
+     * an association relationship with the classifier).<br/>
+     * @param classifier<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAssociatedClassifiers(MClassifier classifier) {<br/>
+        if (classifier == null)<br/>
+            return new ArrayList();<br/>
+        List list = new ArrayList();<br/>
+        Iterator it = classifier.getAssociationEnds().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            MAssociation assoc = end.getAssociation();<br/>
+            Iterator it2 = assoc.getConnections().iterator();<br/>
+            while (it2.hasNext()) {<br/>
+                MAssociationEnd end2 = (MAssociationEnd)it2.next();<br/>
+                if (end2 != end) {<br/>
+                    list.add(end2.getType());<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Gets the associations between the classifiers from and to. Returns null<br/>
+     * if from or to is null or if there is no association between them.<br/>
+     * @param from<br/>
+     * @param to<br/>
+     * @return MAssociation<br/>
+     */<br/>
+    public Collection getAssociations(MClassifier from, MClassifier to) {<br/>
+        Set ret = new HashSet();<br/>
+        if (from == null || to == null)<br/>
+            return ret;<br/>
+        Iterator it = from.getAssociationEnds().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            MAssociation assoc = end.getAssociation();<br/>
+            Iterator it2 = assoc.getConnections().iterator();<br/>
+            while (it2.hasNext()) {<br/>
+                MAssociationEnd end2 = (MAssociationEnd)it2.next();<br/>
+                if (end2.getType() == to) {<br/>
+                    ret.add(assoc);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classifiers found in the projectbrowser model<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClassifiers() {<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        return getAllClassifiers(model);<br/>
+    }<br/>
+    /**<br/>
+     * Returns all classifiers found in this namespace and in its children<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllClassifiers(MNamespace ns) {<br/>
+        if (ns == null)<br/>
+            return new ArrayList();<br/>
+        Iterator it = ns.getOwnedElements().iterator();<br/>
+        List list = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            Object o = it.next();<br/>
+            if (o instanceof MNamespace) {<br/>
+                list.addAll(<span class="upd">getAllClassifiers</span>((MNamespace)o));<br/>
+            }<br/>
+            if (o instanceof MClassifier) {<br/>
+                list.add(o);<br/>
+            }<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all associations for some classifier<br/>
+     * @param classifier<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAssociations(Object oclassifier) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (ModelFacade.isAClassifier(oclassifier)) {<br/>
+            MClassifier classifier = (MClassifier)oclassifier;<br/>
+            Iterator it = classifier.getAssociationEnds().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                col.add(((MAssociationEnd)it.next()).getAssociation());<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the associationend between some classifier type and some associaton assoc.<br/>
+     * @param type<br/>
+     * @param assoc<br/>
+     * @return MAssociationEnd<br/>
+     */<br/>
+    public MAssociationEnd getAssociationEnd(<br/>
+        MClassifier type,<br/>
+        MAssociation assoc) {<br/>
+        if (type == null || assoc == null)<br/>
+            return null;<br/>
+        Iterator it = type.getAssociationEnds().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            if (assoc.getConnections().contains(end))<br/>
+                return end;<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the contents (owned elements) of this classifier and all its parents<br/>
+     * as specified in section 2.5.3.8 of the UML 1.3 spec<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllContents(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        List list = new ArrayList();<br/>
+        Iterator it = clazz.getOwnedElements().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MModelElement element = (MModelElement)it.next();<br/>
+            if (element.getVisibility().equals(MVisibilityKind.PUBLIC)<br/>
+                || element.getVisibility().equals(MVisibilityKind.PROTECTED)) {<br/>
+                list.add(element);<br/>
+            }<br/>
+        }<br/>
+        it = clazz.getGeneralizations().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            list.addAll(getAllContents((MClassifier)it.next()));<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all attributes of some classifier clazz and of its parents<br/>
+     * @param clazz<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllAttributes(MClassifier clazz) {<br/>
+        if (clazz == null)<br/>
+            return new ArrayList();<br/>
+        List list = new ArrayList();<br/>
+        Iterator it = clazz.getFeatures().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MFeature element = (MFeature)it.next();<br/>
+            if (element instanceof MAttribute) {<br/>
+                list.add(element);<br/>
+            }<br/>
+        }<br/>
+        it = clazz.getGeneralizations().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            list.addAll(getAllAttributes((MClassifier)it.next()));<br/>
+        }<br/>
+        return list;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the source of a relation. The source of a relation is defined as<br/>
+     * the modelelement that propagates this relation. If there are more then 1<br/>
+     * sources, only the first is returned. If there is no source, null is<br/>
+     * returned. Examples of sources include classifiers that are types to<br/>
+     * associationends, usecases that are bases to extend and include relations<br/>
+     * and so on.<br/>
+     * @param relation<br/>
+     * @return MModelElement<br/>
+     */<br/>
+    public MModelElement getSource(MRelationship relation) {<br/>
+        if (relation instanceof MAssociation) {<br/>
+            MAssociation assoc = (MAssociation)relation;<br/>
+            List conns = assoc.getConnections();<br/>
+            if (conns.isEmpty())<br/>
+                return null;<br/>
+            return ((MAssociationEnd)conns.get(0)).getType();<br/>
+        }<br/>
+        if (relation instanceof MGeneralization) {<br/>
+            MGeneralization gen = (MGeneralization)relation;<br/>
+            return gen.getParent();<br/>
+        }<br/>
+        if (relation instanceof MDependency) {<br/>
+            MDependency dep = (MDependency)relation;<br/>
+            Collection col = dep.getSuppliers();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MFlow) {<br/>
+            MFlow flow = (MFlow)relation;<br/>
+            Collection col = flow.getSources();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MExtend) {<br/>
+            MExtend extend = (MExtend)relation;<br/>
+            return extend.getExtension(); // we have to follow the arrows..<br/>
+        }<br/>
+        if (relation instanceof MInclude) {<br/>
+            MInclude include = (MInclude)relation;<br/>
+            return include.getBase();<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the destination of a relation. The destination of a relation is<br/>
+     * defined as the modelelement that receives this relation. If there are<br/>
+     * more then 1 destinations, only the first is returned. If there is no<br/>
+     * destination, null is returned. Examples of sources include classifiers that<br/>
+     * are types to associationends, usecases that are bases to extend and<br/>
+     * include relations and so on. In the case of an association, the destination<br/>
+     * is defined as the type of the second element in the connections list.<br/>
+     * @param relation<br/>
+     * @return MModelElement<br/>
+     */<br/>
+    public MModelElement getDestination(MRelationship relation) {<br/>
+        if (relation instanceof MAssociation) {<br/>
+            MAssociation assoc = (MAssociation)relation;<br/>
+            List conns = assoc.getConnections();<br/>
+            if (conns.size() &lt;= 1)<br/>
+                return null;<br/>
+            return ((MAssociationEnd)conns.get(1)).getType();<br/>
+        }<br/>
+        if (relation instanceof MGeneralization) {<br/>
+            MGeneralization gen = (MGeneralization)relation;<br/>
+            return gen.getChild();<br/>
+        }<br/>
+        if (relation instanceof MDependency) {<br/>
+            MDependency dep = (MDependency)relation;<br/>
+            Collection col = dep.getClients();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MFlow) {<br/>
+            MFlow flow = (MFlow)relation;<br/>
+            Collection col = flow.getTargets();<br/>
+            if (col.isEmpty())<br/>
+                return null;<br/>
+            return (MModelElement) (col.toArray())[0];<br/>
+        }<br/>
+        if (relation instanceof MExtend) {<br/>
+            MExtend extend = (MExtend)relation;<br/>
+            return extend.getBase();<br/>
+        }<br/>
+        if (relation instanceof MInclude) {<br/>
+            MInclude include = (MInclude)relation;<br/>
+            return include.getAddition();<br/>
+        }<br/>
+        return null;<br/>
+    }<br/>
+    /**<br/>
+     * Returns the dependencies between some supplier modelelement and some client<br/>
+     * modelelement. Does not return the vica versa relationship (dependency 'from<br/>
+     * client to supplier'.<br/>
+     * @param supplier<br/>
+     * @param client<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getDependencies(<br/>
+        MModelElement supplier,<br/>
+        MModelElement client) {<br/>
+        if (supplier == null || client == null)<br/>
+            return null;<br/>
+        List ret = new ArrayList();<br/>
+        Collection clientDependencies = client.getClientDependencies();<br/>
+        Iterator it = supplier.getSupplierDependencies().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MDependency dep = (MDependency)it.next();<br/>
+            if (clientDependencies.contains(dep)) {<br/>
+                ret.add(dep);<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all relationships between the source and dest modelelement and<br/>
+     * vica versa.<br/>
+     * @param source<br/>
+     * @param dest<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getRelationships(<br/>
+        MModelElement source,<br/>
+        MModelElement dest) {<br/>
+        Set ret = new HashSet();<br/>
+        if (source == null || dest == null)<br/>
+            return ret;<br/>
+        ret.addAll(getFlows(source, dest));<br/>
+        ret.addAll(getFlows(dest, source));<br/>
+        ret.addAll(getDependencies(source, dest));<br/>
+        ret.addAll(getDependencies(dest, source));<br/>
+        if (source instanceof MGeneralizableElement<br/>
+            &amp;&amp; dest instanceof MGeneralizableElement) {<br/>
+            ret.add(<br/>
+                getGeneralization(<br/>
+                    (MGeneralizableElement)source,<br/>
+                    (MGeneralizableElement)dest));<br/>
+            ret.add(<br/>
+                getGeneralization(<br/>
+                    (MGeneralizableElement)dest,<br/>
+                    (MGeneralizableElement)source));<br/>
+            if (source instanceof MClassifier &amp;&amp; dest instanceof MClassifier) {<br/>
+                ret.addAll(<br/>
+                    getAssociations((MClassifier)source, (MClassifier)dest));<br/>
+            }<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+    /**<br/>
+     * Returns true if some modelelement may be owned by the given namespace<br/>
+     * @param m<br/>
+     * @param ns<br/>
+     * @return boolean<br/>
+     */<br/>
+    public boolean isValidNamespace(MModelElement m, MNamespace ns) {<br/>
+        if (m == null || ns == null)<br/>
+            return false;<br/>
+        if (ns.getModel() != m.getModel())<br/>
+            return false;<br/>
+        if (m == ns)<br/>
+            return false;<br/>
+        if (m instanceof MNamespace<br/>
+            &amp;&amp; m == getFirstSharedNamespace((MNamespace)m, ns))<br/>
+            return false;<br/>
+        if (ns instanceof MInterface<br/>
+            || ns instanceof MActor<br/>
+            || ns instanceof MUseCase)<br/>
+            return false;<br/>
+        else if (ns instanceof MComponent)<br/>
+            return (m instanceof MComponent &amp;&amp; m != ns);<br/>
+        else if (ns instanceof MCollaboration) {<br/>
+            if (!(m instanceof MClassifierRole<br/>
+                || m instanceof MAssociationRole<br/>
+                || m instanceof MGeneralization<br/>
+                || m instanceof MConstraint))<br/>
+                return false;<br/>
+        } else if (ns instanceof MPackage) {<br/>
+            if (!(m instanceof MPackage<br/>
+                || m instanceof MClassifier<br/>
+                || m instanceof MAssociation<br/>
+                || m instanceof MGeneralization<br/>
+                || m instanceof MDependency<br/>
+                || m instanceof MConstraint<br/>
+                || m instanceof MCollaboration<br/>
+                || m instanceof MStateMachine<br/>
+                || m instanceof MStereotype))<br/>
+                return false;<br/>
+        } else if (ns instanceof MClass) {<br/>
+            if (!(m instanceof MClass<br/>
+                || m instanceof MAssociation<br/>
+                || m instanceof MGeneralization<br/>
+                || m instanceof MUseCase<br/>
+                || m instanceof MConstraint<br/>
+                || m instanceof MDependency<br/>
+                || m instanceof MCollaboration<br/>
+                || m instanceof MDataType<br/>
+                || m instanceof MInterface))<br/>
+                return false;<br/>
+        } else if (ns instanceof MClassifierRole) {<br/>
+            if (!(((MClassifierRole)ns).getAvailableContentses().contains(m)<br/>
+                || ((MClassifierRole)ns).getAvailableFeatures().contains(m)))<br/>
+                return false;<br/>
+        }<br/>
+        if (m instanceof MStructuralFeature) {<br/>
+            if (!isValidNamespace((MStructuralFeature)m, ns))<br/>
+                return false;<br/>
+        } else if (m instanceof MGeneralizableElement) {<br/>
+            if (!isValidNamespace((MGeneralizableElement)m, ns))<br/>
+                return false;<br/>
+        } else if (m instanceof MGeneralization) {<br/>
+            if (!isValidNamespace((MGeneralization)m, ns))<br/>
+                return false;<br/>
+        }<br/>
+        if (m instanceof MAssociation) {<br/>
+            if (!isValidNamespace((MAssociation)m, ns))<br/>
+                return false;<br/>
+        } else if (m instanceof MCollaboration) {<br/>
+            if (!isValidNamespace((MCollaboration)m, ns))<br/>
+                return false;<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+    private boolean isValidNamespace(MCollaboration collab, MNamespace ns) {<br/>
+        Iterator it = collab.getOwnedElements().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MModelElement m = (MModelElement)it.next();<br/>
+            if (m instanceof MClassifierRole) {<br/>
+                MClassifierRole role = (MClassifierRole)m;<br/>
+                Iterator it2 = role.getBases().iterator();<br/>
+                while (it2.hasNext()) {<br/>
+                    if (!ns.getOwnedElements().contains(it2.next()))<br/>
+                        return false;<br/>
+                }<br/>
+            } else if (m instanceof MAssociationRole) {<br/>
+                if (!ns<br/>
+                    .getOwnedElements()<br/>
+                    .contains(((MAssociationRole)m).getBase()))<br/>
+                    return false;<br/>
+            }<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+    private boolean isValidNamespace(MGeneralization gen, MNamespace ns) {<br/>
+        if (gen.getParent() == null || gen.getChild() == null)<br/>
+            return true;<br/>
+        MNamespace ns1 = gen.getParent().getNamespace();<br/>
+        MNamespace ns2 = gen.getChild().getNamespace();<br/>
+        if (ns == getFirstSharedNamespace(ns1, ns2))<br/>
+            return true;<br/>
+        return false;<br/>
+    }<br/>
+    private boolean isValidNamespace(MStructuralFeature struc, MNamespace ns) {<br/>
+        if (struc.getType() == null || struc.getOwner() == null)<br/>
+            return true;<br/>
+        return struc.getOwner().getNamespace().getOwnedElements().contains(<br/>
+            struc.getType());<br/>
+    }<br/>
+    <br/>
+    private boolean isValidNamespace(MAssociation assoc, MNamespace ns) {<br/>
+        Iterator it = assoc.getConnections().iterator();<br/>
+        List namespaces = new ArrayList();<br/>
+        while (it.hasNext()) {<br/>
+            MAssociationEnd end = (MAssociationEnd)it.next();<br/>
+            namespaces.add(end.getType().getNamespace());<br/>
+        }<br/>
+        it = namespaces.iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MNamespace ns1 = (MNamespace)it.next();<br/>
+            if (it.hasNext()) {<br/>
+                MNamespace ns2 = (MNamespace)it.next();<br/>
+                // TODO: this contains a small error (ns can be part of hierarchy<br/>
+                // of namespaces, that's not taken into account)<br/>
+                if (ns == getFirstSharedNamespace(ns1, ns2))<br/>
+                    return true;<br/>
+            }<br/>
+        }<br/>
+        return false;<br/>
+    }<br/>
+    <br/>
+    private boolean isValidNamespace(<br/>
+        MGeneralizableElement gen,<br/>
+        MNamespace ns) {<br/>
+        Iterator it = gen.getParents().iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MGeneralizableElement gen2 = (MGeneralizableElement)it.next();<br/>
+            if (!ns.getOwnedElements().contains(gen2)) {<br/>
+                return false;<br/>
+            }<br/>
+        }<br/>
+        return true;<br/>
+    }<br/>
+    /**<br/>
+     * Gets the first namespace two namespaces share. That is: it returns the<br/>
+     * first namespace that owns the given namespaces itself or some owner of<br/>
+     * the given namespaces.<br/>
+     * @param ns1<br/>
+     * @param ns2<br/>
+     * @return MNamespace<br/>
+     */<br/>
+    public MNamespace getFirstSharedNamespace(MNamespace ns1, MNamespace ns2) {<br/>
+        if (ns1 == null || ns2 == null)<br/>
+            return null;<br/>
+        if (ns1 == ns2)<br/>
+            return ns1;<br/>
+        boolean ns1Owner =<br/>
+            ModelManagementHelper.getHelper().getAllNamespaces(ns1).contains(<br/>
+                ns2);<br/>
+        boolean ns2Owner =<br/>
+            ModelManagementHelper.getHelper().getAllNamespaces(ns2).contains(<br/>
+                ns1);<br/>
+        if (ns1Owner)<br/>
+            return ns1;<br/>
+        if (ns2Owner)<br/>
+            return ns2;<br/>
+        return getFirstSharedNamespace(ns1.getNamespace(), ns2.getNamespace());<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all possible namespaces that may be selected by some given<br/>
+     * modelelement m. Which namespaces are allowed, is decided in the method<br/>
+     * isValidNamespace.<br/>
+     * @param m<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllPossibleNamespaces(MModelElement m) {<br/>
+        List ret = new ArrayList();<br/>
+        if (m == null)<br/>
+            return ret;<br/>
+        MNamespace model =<br/>
+            ProjectManager.getManager().getCurrentProject().getModel();<br/>
+        if (isValidNamespace(m, model))<br/>
+            ret.add(model);<br/>
+        Iterator it =<br/>
+            ModelManagementHelper<br/>
+                .getHelper()<br/>
+                .getAllModelElementsOfKind(model, MNamespace.class)<br/>
+                .iterator();<br/>
+        while (it.hasNext()) {<br/>
+            MNamespace ns = (MNamespace)it.next();<br/>
+            if (isValidNamespace(m, ns))<br/>
+                ret.add(ns);<br/>
+        }<br/>
+        return ret;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns the base classes (that are the classes that do not have any<br/>
+     * generalizations) for some given namespace. Personally, this seems a<br/>
+     * pointless operation to me but in GoModelToBaseElements this is done like<br/>
+     * this for some reason.<br/>
+     * TODO: find out if someone uses this.<br/>
+     * @param o<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getBaseClasses(Object o) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (ModelFacade.isANamespace(o)) {<br/>
+            Iterator it =<br/>
+                ModelManagementHelper<br/>
+                    .getHelper()<br/>
+                    .getAllModelElementsOfKind(o, MGeneralizableElement.class)<br/>
+                    .iterator();<br/>
+            while (it.hasNext()) {<br/>
+                MGeneralizableElement gen = (MGeneralizableElement)it.next();<br/>
+                if (gen.getGeneralizations().isEmpty()) {<br/>
+                    col.add(gen);<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+    /**<br/>
+     * Returns all children from some given generalizableelement on all levels<br/>
+     * (the complete tree excluding the generalizable element itself). Throws<br/>
+     * an IllegalStateException if there is a circular reference.<br/>
+     * @param o<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getChildren(Object o) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (ModelFacade.isAGeneralizableElement(o)) {<br/>
+            Iterator it =<br/>
+                ((MGeneralizableElement)o).getSpecializations().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                col.addAll(getChildren(col, it.next()));<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+    private Collection getChildren(Collection currentChildren, Object o) {<br/>
+        if (ModelFacade.isAGeneralization(o)) {<br/>
+            MGeneralization gen = (MGeneralization)o;<br/>
+            MGeneralizableElement child = gen.getChild();<br/>
+            if (currentChildren.contains(child))<br/>
+                throw new IllegalStateException("Circular inheritance occured.");<br/>
+            currentChildren.add(child);<br/>
+            Iterator it = child.getSpecializations().iterator();<br/>
+            while (it.hasNext()) {<br/>
+                currentChildren = getChildren(currentChildren, it.next());<br/>
+            }<br/>
+            return currentChildren;<br/>
+        }<br/>
+        throw new IllegalArgumentException("getChildren not called with generalization as argument");<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Returns all interfaces that are realized by the given class or by its<br/>
+     * superclasses. It's possible that interfaces occur twice in the collection<br/>
+     * returned. In that case there is a double reference to that interface.<br/>
+     * @param o<br/>
+     * @return Collection<br/>
+     */<br/>
+    public Collection getAllRealizedInterfaces(Object o) {<br/>
+        Collection col = new ArrayList();<br/>
+        if (o != null) {<br/>
+            if (ModelFacade.isAClass(o)) {<br/>
+                MClass clazz = (MClass)o;<br/>
+                Collection supDependencies = clazz.getClientDependencies();<br/>
+                Iterator it = supDependencies.iterator();<br/>
+                while (it.hasNext()) {<br/>
+                    MDependency dependency = (MDependency)it.next();<br/>
+                    MStereotype stereo = dependency.getStereotype();<br/>
+                    if (dependency instanceof MAbstraction<br/>
+                        &amp;&amp; stereo != null &amp;&amp; stereo.getName().equals("realize") &amp;&amp; stereo.getBaseClass().equals("Abstraction")) {<br/>
+                        col.addAll(dependency.getSuppliers());<br/>
+                    }<br/>
+                }<br/>
+                Collection superTypes = getSupertypes(o);<br/>
+                it = superTypes.iterator();<br/>
+                while (it.hasNext()) {<br/>
+                    col.addAll(getAllRealizedInterfaces(it.next()));<br/>
+                }<br/>
+            }<br/>
+        }<br/>
+        return col;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

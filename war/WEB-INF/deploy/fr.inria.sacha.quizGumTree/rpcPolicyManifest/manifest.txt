@@ -1,0 +1,3 @@
+# Module fr.inria.sacha.quizGumTree
+# RPC service class, partial path of RPC policy file
+fr.inria.sacha.quizGumTree.client.QuizService, F88CA289D92EF4D4958FB9BF821B7960.gwt.rpc

@@ -1,0 +1,1 @@
+HEAD - Fix potential issue while returning ProblemFieldBinding in getBinding(char[][],int,InvocationSite,boolean) method

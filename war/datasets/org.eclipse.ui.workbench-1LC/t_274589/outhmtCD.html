@@ -1,0 +1,1078 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_HeapStatus_1.9.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2005 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+<br/>
+package org.eclipse.ui.internal;<br/>
+<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+import org.eclipse.jface.action.Action;<br/>
+import org.eclipse.jface.action.IAction;<br/>
+import org.eclipse.jface.action.IMenuListener;<br/>
+import org.eclipse.jface.action.IMenuManager;<br/>
+import org.eclipse.jface.action.MenuManager;<br/>
+import org.eclipse.jface.preference.IPreferenceStore;<br/>
+import org.eclipse.jface.resource.ImageDescriptor;<br/>
+import org.eclipse.jface.util.IPropertyChangeListener;<br/>
+import org.eclipse.jface.util.PropertyChangeEvent;<br/>
+import org.eclipse.osgi.util.NLS;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.custom.BusyIndicator;<br/>
+import org.eclipse.swt.graphics.Color;<br/>
+import org.eclipse.swt.graphics.GC;<br/>
+import org.eclipse.swt.graphics.Image;<br/>
+import org.eclipse.swt.graphics.Point;<br/>
+import org.eclipse.swt.graphics.Rectangle;<br/>
+import org.eclipse.swt.widgets.Canvas;<br/>
+import org.eclipse.swt.widgets.Composite;<br/>
+import org.eclipse.swt.widgets.Display;<br/>
+import org.eclipse.swt.widgets.Event;<br/>
+import org.eclipse.swt.widgets.Listener;<br/>
+import org.eclipse.swt.widgets.Menu;<br/>
+<br/>
+/**<br/>
+ * The Heap Status control, which shows the heap usage statistics in the window trim.<br/>
+ * <br/>
+ * @since 3.1<br/>
+ */<br/>
+public class HeapStatus extends Composite {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean armed;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Image gcImage;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Color bgCol, usedMemCol, lowMemCol, freeMemCol, topLeftCol, bottomRightCol, sepCol, textCol, markCol, armCol;  <br/>
+    private Canvas button;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private IPreferenceStore prefStore;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private int updateInterval;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean showMax;<br/>
+    private long totalMem;<br/>
+    private long usedMem;<br/>
+    private long mark = -1;<br/>
+    // start with 12x12<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Rectangle imgBounds = new Rectangle(0,0,12,12);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private long maxMem = Long.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean maxMemKnown;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private float lowMemThreshold = 0.05f;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean showLowMemThreshold = true;<br/>
+<br/>
+    private final Runnable timer = new Runnable() {<br/>
+        public void run() {<br/>
+            if (!isDisposed()) {<br/>
+                updateStats();<br/>
+                updateToolTip();<br/>
+                adjustPosition();<br/>
+                redraw();<br/>
+                getDisplay().timerExec(updateInterval, this);<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+    <br/>
+    private final IPropertyChangeListener prefListener = new IPropertyChangeListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void propertyChange(PropertyChangeEvent event) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IHeapStatusConstants.PREF_UPDATE_INTERVAL.equals(event.getProperty())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setUpdateIntervalInMS(prefStore.getInt(IHeapStatusConstants.PREF_UPDATE_INTERVAL));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (IHeapStatusConstants.PREF_SHOW_MAX.equals(event.getProperty())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;showMax = prefStore.getBoolean(IHeapStatusConstants.PREF_SHOW_MAX);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;};<br/>
+<br/>
+    /**<br/>
+     * Creates a new heap status control with the given parent, and using<br/>
+     * the given preference store to obtain settings such as the refresh<br/>
+     * interval.<br/>
+     * <br/>
+     * @param parent the parent composite<br/>
+     * @param prefStore the preference store<br/>
+     */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public HeapStatus(Composite parent, IPreferenceStore prefStore) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(parent, SWT.NONE);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxMem = getMaxMem();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxMemKnown = maxMem != Long.MAX_VALUE;<br/>
+<br/>
+        this.prefStore = prefStore;<br/>
+        prefStore.addPropertyChangeListener(prefListener);<br/>
+        <br/>
+        setUpdateIntervalInMS(prefStore.getInt(IHeapStatusConstants.PREF_UPDATE_INTERVAL));<br/>
+        showMax = prefStore.getBoolean(IHeapStatusConstants.PREF_SHOW_MAX);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        button = new Canvas(this, SWT.NONE);<br/>
+        button.setToolTipText(WorkbenchMessages.HeapStatus_buttonToolTip);<br/>
+        <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ImageDescriptor imageDesc = WorkbenchImages.getWorkbenchImageDescriptor("elcl16/trash.gif"); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gcImage = imageDesc.createImage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (gcImage != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;imgBounds = gcImage.getBounds();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display display = getDisplay();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="mv">usedMemCol</span> = <span class="del">new <span class="mv">Color</span>(<span class="mv">display</span>, <span class="mv">255</span>, <span class="mv">255</span>, <span class="del">175</span>)</span></span>;</span>  // light yellow<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="mv">lowMemCol</span> = <span class="del">new <span class="mv">Color</span>(<span class="mv">display</span>, <span class="del">255</span>, <span class="mv">70</span>, <span class="mv">70</span>)</span></span>;</span>  // medium red <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="mv">freeMemCol</span> = <span class="del">new <span class="del"><span class="del">Color</span></span>(<span class="mv">display</span>, <span class="del">255</span>, <span class="mv">190</span>, <span class="mv">125</span>)</span></span>;</span>  // light orange<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="mv">bgCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="mv">COLOR_WIDGET_BACKGROUND</span></span>)</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="mv">sepCol</span> = <span class="del"><span class="mv">topLeftCol</span> = <span class="del"><span class="mv">armCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="mv">COLOR_WIDGET_NORMAL_SHADOW</span></span>)</span></span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="mv">bottomRightCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="mv">COLOR_WIDGET_HIGHLIGHT_SHADOW</span></span>)</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="del"><span class="del"><span class="mv">markCol</span> = <span class="del"><span class="mv">textCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="mv">COLOR_WIDGET_FOREGROUND</span></span>)</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createContextMenu();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        Listener listener = new Listener() {<br/>
+<br/>
+            public void handleEvent(Event event) {<br/>
+                switch (event.type) {<br/>
+                <span class="del">case <span class="mv"><span class="upd">SWT.<span class="mv">Dispose</span></span></span>:</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;doDispose();<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">Resize</span></span>:</span><br/>
+                    Rectangle rect = getClientArea();<br/>
+                    button.setBounds(rect.width - imgBounds.width - 1, 1, imgBounds.width, rect.height - 2);<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">Paint</span></span>:</span><br/>
+                    if (event.widget == HeapStatus.this) {<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;paintComposite(event.gc);<br/>
+                    }<br/>
+                    else if (event.widget == button) {<br/>
+                        paintButton(event.gc);<br/>
+                    }<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">MouseUp</span></span>:</span><br/>
+                    if (event.button == 1) {<br/>
+                        gc();<br/>
+                        arm(false);<br/>
+                    }<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">MouseDown</span></span>:</span><br/>
+                    if (event.button == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                    if (event.widget == HeapStatus.this)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                        setMark();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                    else if (event.widget == button)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                        arm(true);<br/>
+                    }<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">MouseExit</span></span>:</span><br/>
+                    arm(false);<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+<br/>
+        };<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">Dispose</span></span></span>, listener);<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseDown</span></span></span>, listener);<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">Paint</span></span></span>, listener);<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">Resize</span></span></span>, listener);<br/>
+        button.addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseDown</span></span></span>, listener);<br/>
+        button.addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseExit</span></span></span>, listener);<br/>
+        button.addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseUp</span></span></span>, listener);<br/>
+        button.addListener(<span class="mv"><span class="upd">SWT.<span class="mv">Paint</span></span></span>, listener);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// make sure stats are updated before first paint<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateStats();<br/>
+<br/>
+        getDisplay().asyncExec(new Runnable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void run() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isDisposed()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDisplay().timerExec(updateInterval, timer);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+   &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the maximum memory limit, or Long.MAX_VALUE if the max is not known.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private long getMaxMem() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long max = Long.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Must use reflect to allow compilation against JCL/Foundation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Method maxMemMethod = Runtime.class.getMethod("maxMemory", new Class[0]); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object o = maxMemMethod.invoke(Runtime.getRuntime(), new Object[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (o instanceof Long) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max = ((Long) o).longValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ignore if method missing or if there are other failures trying to determine the max<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return max;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void setUpdateIntervalInMS(int interval) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateInterval = Math.max(100, interval);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void doDispose() {<br/>
+        prefStore.removePropertyChangeListener(prefListener);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;if (gcImage != null)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gcImage.dispose();<br/>
+        if (usedMemCol != null)<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;usedMemCol.dispose();<br/>
+        if (lowMemCol != null)<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;lowMemCol.dispose();<br/>
+        if (freeMemCol != null)<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;freeMemCol.dispose();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/* (non-Javadoc)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see org.eclipse.swt.widgets.Composite#computeSize(int, int, boolean)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Point computeSize(int wHint, int hHint, boolean changed) {<br/>
+        GC gc = new GC(this);<br/>
+        Point p = gc.textExtent(WorkbenchMessages.HeapStatus_widthStr);<br/>
+        gc.dispose();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new Point(p.x + 15, 14);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    private void arm(boolean armed) {<br/>
+        if (this.armed == armed)<br/>
+            return;<br/>
+        this.armed = armed;<br/>
+        button.redraw();<br/>
+        button.update();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Creates the context menu<br/>
+     */<br/>
+    private void createContextMenu() {<br/>
+        MenuManager menuMgr = new MenuManager();<br/>
+        menuMgr.setRemoveAllWhenShown(true);<br/>
+        menuMgr.addMenuListener(new IMenuListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void menuAboutToShow(IMenuManager menuMgr) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fillMenu(menuMgr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+        Menu menu = menuMgr.createContextMenu(this);<br/>
+        setMenu(menu);<br/>
+    }<br/>
+    <br/>
+    private void fillMenu(IMenuManager menuMgr) {<br/>
+        menuMgr.add(new SetMarkAction());<br/>
+        menuMgr.add(new ClearMarkAction());<br/>
+        menuMgr.add(new ShowMaxAction());<br/>
+//        if (isKyrsoftViewAvailable()) {<br/>
+//        &nbsp;&nbsp;&nbsp;&nbsp;menuMgr.add(new ShowKyrsoftViewAction());<br/>
+//        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the mark to the current usedMem level. <br/>
+     */<br/>
+    private void setMark() {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;updateStats();  // get up-to-date stats before taking the mark<br/>
+        mark = usedMem;<br/>
+        redraw();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Clears the mark. <br/>
+     */<br/>
+    private void clearMark() {<br/>
+        mark = -1;<br/>
+        redraw();<br/>
+    }<br/>
+    <br/>
+    private void gc() {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;BusyIndicator.showWhile(getDisplay(), new Runnable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void run() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;busyGC();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+    }<br/>
+<br/>
+    private void busyGC() {<br/>
+        for (int i = 0; i &lt; 2; ++i) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        System.gc();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        System.runFinalization();<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    private void paintButton(GC gc) {<br/>
+        Rectangle rect = button.getClientArea();<br/>
+        <br/>
+        if (armed) {<br/>
+            gc.setBackground(armCol);<br/>
+            gc.fillRectangle(rect.x, rect.y, rect.width, rect.height);<br/>
+        }<br/>
+        if (gcImage != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int by = (rect.height - imgBounds.height) / 2 + rect.y; // button y<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawImage(gcImage, rect.x, by);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void paintComposite(GC gc) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (showMax &amp;&amp; maxMemKnown)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;paintCompositeMaxKnown(gc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;paintCompositeMaxUnknown(gc);<br/>
+    }<br/>
+    <br/>
+    private void paintCompositeMaxUnknown(GC gc) {<br/>
+        Rectangle rect = getClientArea();<br/>
+        int x = rect.x;<br/>
+        int y = rect.y;<br/>
+        int w = rect.width;<br/>
+        int h = rect.height;<br/>
+        int bw = imgBounds.width; // button width<br/>
+        int dx = x + w - bw - 2; // divider x<br/>
+        int sw = w - bw - 3; // status width <br/>
+        int uw = (int) (sw * usedMem / totalMem); // used mem width<br/>
+        int ux = x + 1 + uw; // used mem right edge<br/>
+        <br/>
+        gc.setBackground(bgCol);<br/>
+        gc.fillRectangle(rect);<br/>
+        gc.setForeground(sepCol);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(dx, y, dx, y + h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(ux, y, ux, y + h);<br/>
+        gc.setForeground(topLeftCol);<br/>
+        gc.drawLine(x, y, x+w, y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y, x, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.setForeground(bottomRightCol);<br/>
+        gc.drawLine(x+w-1, y, x+w-1, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y+h-1, x+w, y+h-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.setBackground(usedMemCol);<br/>
+        gc.fillRectangle(x + 1, y + 1, uw, h - 2);<br/>
+        <br/>
+        String s = NLS.bind(WorkbenchMessages.HeapStatus_status, convertToMeg(usedMem), convertToMeg(totalMem));<br/>
+        Point p = gc.textExtent(s);<br/>
+        int sx = (rect.width - 15 - p.x) / 2 + rect.x + 1;<br/>
+        int sy = (rect.height - 2 - p.y) / 2 + rect.y + 1;<br/>
+        gc.setForeground(textCol);<br/>
+        gc.drawString(s, sx, sy, true);<br/>
+        <br/>
+        // draw an I-shaped bar in the foreground colour for the mark (if present)<br/>
+        if (mark != -1) {<br/>
+            int ssx = (int) (sw * mark / totalMem) + x + 1;<br/>
+            paintMark(gc, ssx, y, h);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void paintCompositeMaxKnown(GC gc) {<br/>
+        Rectangle rect = getClientArea();<br/>
+        int x = rect.x;<br/>
+        int y = rect.y;<br/>
+        int w = rect.width;<br/>
+        int h = rect.height;<br/>
+        int bw = imgBounds.width; // button width<br/>
+        int dx = x + w - bw - 2; // divider x<br/>
+        int sw = w - bw - 3; // status width <br/>
+        int uw = (int) (sw * usedMem / maxMem); // used mem width<br/>
+        int ux = x + 1 + uw; // used mem right edge<br/>
+        int tw = (int) (sw * totalMem / maxMem); // current total mem width<br/>
+        int tx = x + 1 + tw; // current total mem right edge<br/>
+        <br/>
+        gc.setBackground(bgCol);<br/>
+        gc.fillRectangle(rect);<br/>
+        gc.setForeground(sepCol);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(dx, y, dx, y + h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(ux, y, ux, y + h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(tx, y, tx, y + h);<br/>
+        gc.setForeground(topLeftCol);<br/>
+        gc.drawLine(x, y, x+w, y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y, x, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.setForeground(bottomRightCol);<br/>
+        gc.drawLine(x+w-1, y, x+w-1, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y+h-1, x+w, y+h-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        if (lowMemThreshold != 0 &amp;&amp; ((double)(maxMem - usedMem) / (double)maxMem &lt; lowMemThreshold)) {<br/>
+            gc.setBackground(lowMemCol);<br/>
+        } else {<br/>
+            gc.setBackground(usedMemCol);<br/>
+        }<br/>
+        gc.fillRectangle(x + 1, y + 1, uw, h - 2);<br/>
+        <br/>
+        gc.setBackground(freeMemCol);<br/>
+        gc.fillRectangle(ux + 1, y + 1, tx - (ux + 1), h - 2);<br/>
+<br/>
+        // paint line for low memory threshold<br/>
+        if (showLowMemThreshold &amp;&amp; lowMemThreshold != 0) {<br/>
+            gc.setForeground(lowMemCol);<br/>
+            int thresholdX = x + 1 + (int) (sw * (1.0 - lowMemThreshold));<br/>
+            gc.drawLine(thresholdX, y + 1, thresholdX, y + h - 2);<br/>
+        }<br/>
+<br/>
+        String s = NLS.bind(WorkbenchMessages.HeapStatus_status, <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;convertToMeg(usedMem), convertToMeg(totalMem));<br/>
+        Point p = gc.textExtent(s);<br/>
+        int sx = (rect.width - 15 - p.x) / 2 + rect.x + 1;<br/>
+        int sy = (rect.height - 2 - p.y) / 2 + rect.y + 1;<br/>
+        gc.setForeground(textCol);<br/>
+        gc.drawString(s, sx, sy, true);<br/>
+        <br/>
+        // draw an I-shaped bar in the foreground colour for the mark (if present)<br/>
+        if (mark != -1) {<br/>
+            int ssx = (int) (sw * mark / maxMem) + x + 1;<br/>
+            paintMark(gc, ssx, y, h);<br/>
+        }<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void paintMark(GC gc, int x, int y, int h) {<br/>
+        gc.setForeground(markCol);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y+1, x, y+h-2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x-1, y+1, x+1, y+1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x-1, y+h-2, x+1, y+h-2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    private void updateStats() {<br/>
+        Runtime runtime = Runtime.getRuntime();<br/>
+        totalMem = runtime.totalMemory();<br/>
+        long freeMem = runtime.freeMemory();<br/>
+        usedMem = totalMem - freeMem;<br/>
+    }<br/>
+<br/>
+    private void updateToolTip() {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String usedStr = convertToMeg(usedMem);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String totalStr = convertToMeg(totalMem);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String maxStr = maxMemKnown ? convertToMeg(maxMem) : WorkbenchMessages.HeapStatus_maxUnknown;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String markStr = mark == -1 ? WorkbenchMessages.HeapStatus_noMark : convertToMeg(mark);<br/>
+        String toolTip = NLS.bind(WorkbenchMessages.HeapStatus_memoryToolTip, new Object[] { usedStr, totalStr, maxStr, markStr });<br/>
+        if (!toolTip.equals(getToolTipText())) {<br/>
+            setToolTipText(toolTip);<br/>
+        }<br/>
+    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    /**<br/>
+     * Converts the given number of bytes to a printable number of megabytes (rounded up).<br/>
+     */<br/>
+    private String convertToMeg(long numBytes) {<br/>
+        return NLS.bind(WorkbenchMessages.HeapStatus_meg, new Long((numBytes + (512 * 1024)) / (1024 * 1024)));<br/>
+    }<br/>
+<br/>
+<br/>
+    protected void adjustPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// do nothing<br/>
+    }<br/>
+<br/>
+    class SetMarkAction extends Action {<br/>
+        SetMarkAction() {<br/>
+            super(WorkbenchMessages.SetMarkAction_text);<br/>
+        }<br/>
+        <br/>
+        public void run() {<br/>
+            setMark();<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    class ClearMarkAction extends Action {<br/>
+        ClearMarkAction() {<br/>
+            super(WorkbenchMessages.ClearMarkAction_text);<br/>
+        }<br/>
+        <br/>
+        public void run() {<br/>
+            clearMark();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    class ShowMaxAction extends Action {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;ShowMaxAction() {<br/>
+            super(WorkbenchMessages.ShowMaxAction_text, IAction.AS_CHECK_BOX);<br/>
+            setEnabled(maxMemKnown);<br/>
+            setChecked(showMax);<br/>
+        }<br/>
+        <br/>
+        public void run() {<br/>
+            prefStore.setValue(IHeapStatusConstants.PREF_SHOW_MAX, isChecked());<br/>
+        }<br/>
+    }<br/>
+<br/>
+//    /**<br/>
+//     * Returns whether the Kyrsoft memory monitor view is available.<br/>
+//     * <br/>
+//     * @return &lt;code&gt;true&lt;/code&gt; if available, &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+//     */<br/>
+//    private boolean isKyrsoftViewAvailable() {<br/>
+//        return (Platform.getBundle(IHeapStatusConstants.KYRSOFT_PLUGIN_ID) != null) &amp;&amp; PlatformUI.getWorkbench().getViewRegistry().find(IHeapStatusConstants.KYRSOFT_VIEW_ID) != null; <br/>
+//    }<br/>
+//    <br/>
+//    class ShowKyrsoftViewAction extends Action {<br/>
+//        ShowKyrsoftViewAction() {<br/>
+//            super(WorkbenchMessages.ShowKyrsoftViewAction_text);<br/>
+//        }<br/>
+//        public void run() {<br/>
+//            if (!isKyrsoftViewAvailable()) { <br/>
+//                MessageDialog.openError(getShell(), WorkbenchMessages.HeapStatus_Error, WorkbenchMessages.ShowKyrsoftViewAction_KyrsoftNotInstalled);<br/>
+//                return;<br/>
+//            }<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();<br/>
+//            IWorkbenchPage page = window == null ? null : window.getActivePage();<br/>
+//            if (page == null) {<br/>
+//                MessageDialog.openError(getShell(), WorkbenchMessages.HeapStatus_Error, WorkbenchMessages.ShowKyrsoftViewAction_OpenPerspectiveFirst);<br/>
+//                return;<br/>
+//            }<br/>
+//            try {<br/>
+//                page.showView(IHeapStatusConstants.KYRSOFT_VIEW_ID);<br/>
+//            }<br/>
+//            catch (PartInitException e) {<br/>
+//                String msg = WorkbenchMessages.ShowKyrsoftViewAction_ErrorShowingKyrsoftView;<br/>
+//                IStatus status = new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, 0, msg, e);<br/>
+//                ErrorDialog.openError(getShell(), WorkbenchMessages.HeapStatus_Error, msg, status);<br/>
+//            }<br/>
+//            <br/>
+//        }<br/>
+//    }<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_HeapStatus_1.10.java</h1>
+<div class="code">
+<div class="id">
+/*******************************************************************************<br/>
+ * Copyright (c) 2005 IBM Corporation and others.<br/>
+ * All rights reserved. This program and the accompanying materials<br/>
+ * are made available under the terms of the Eclipse Public License v1.0<br/>
+ * which accompanies this distribution, and is available at<br/>
+ * http://www.eclipse.org/legal/epl-v10.html<br/>
+ *<br/>
+ * Contributors:<br/>
+ *     IBM Corporation - initial API and implementation<br/>
+ *******************************************************************************/<br/>
+<br/>
+package org.eclipse.ui.internal;<br/>
+<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+import org.eclipse.jface.action.Action;<br/>
+import org.eclipse.jface.action.IAction;<br/>
+import org.eclipse.jface.action.IMenuListener;<br/>
+import org.eclipse.jface.action.IMenuManager;<br/>
+import org.eclipse.jface.action.MenuManager;<br/>
+import org.eclipse.jface.preference.IPreferenceStore;<br/>
+import org.eclipse.jface.resource.ImageDescriptor;<br/>
+import org.eclipse.jface.util.IPropertyChangeListener;<br/>
+import org.eclipse.jface.util.PropertyChangeEvent;<br/>
+import org.eclipse.osgi.util.NLS;<br/>
+import org.eclipse.swt.SWT;<br/>
+import org.eclipse.swt.custom.BusyIndicator;<br/>
+import org.eclipse.swt.graphics.Color;<br/>
+import org.eclipse.swt.graphics.GC;<br/>
+import org.eclipse.swt.graphics.Image;<br/>
+import org.eclipse.swt.graphics.Point;<br/>
+import org.eclipse.swt.graphics.Rectangle;<br/>
+import org.eclipse.swt.widgets.Canvas;<br/>
+import org.eclipse.swt.widgets.Composite;<br/>
+import org.eclipse.swt.widgets.Display;<br/>
+import org.eclipse.swt.widgets.Event;<br/>
+import org.eclipse.swt.widgets.Listener;<br/>
+import org.eclipse.swt.widgets.Menu;<br/>
+<br/>
+/**<br/>
+ * The Heap Status control, which shows the heap usage statistics in the window trim.<br/>
+ * <br/>
+ * @since 3.1<br/>
+ */<br/>
+public class HeapStatus extends Composite {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean armed;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Image gcImage;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Color bgCol, usedMemCol, lowMemCol, freeMemCol, topLeftCol, bottomRightCol, sepCol, textCol, markCol, armCol;  <br/>
+    private Canvas button;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private IPreferenceStore prefStore;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private int updateInterval;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean showMax;<br/>
+    private long totalMem;<br/>
+    private long usedMem;<br/>
+    private long mark = -1;<br/>
+    // start with 12x12<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private Rectangle imgBounds = new Rectangle(0,0,12,12);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private long maxMem = Long.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean maxMemKnown;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private float lowMemThreshold = 0.05f;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private boolean showLowMemThreshold = true;<br/>
+<br/>
+    private final Runnable timer = new Runnable() {<br/>
+        public void run() {<br/>
+            if (!isDisposed()) {<br/>
+                updateStats();<br/>
+                updateToolTip();<br/>
+                adjustPosition();<br/>
+                redraw();<br/>
+                getDisplay().timerExec(updateInterval, this);<br/>
+            }<br/>
+        }<br/>
+    };<br/>
+    <br/>
+    private final IPropertyChangeListener prefListener = new IPropertyChangeListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void propertyChange(PropertyChangeEvent event) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IHeapStatusConstants.PREF_UPDATE_INTERVAL.equals(event.getProperty())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setUpdateIntervalInMS(prefStore.getInt(IHeapStatusConstants.PREF_UPDATE_INTERVAL));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (IHeapStatusConstants.PREF_SHOW_MAX.equals(event.getProperty())) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;showMax = prefStore.getBoolean(IHeapStatusConstants.PREF_SHOW_MAX);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;};<br/>
+<br/>
+    /**<br/>
+     * Creates a new heap status control with the given parent, and using<br/>
+     * the given preference store to obtain settings such as the refresh<br/>
+     * interval.<br/>
+     * <br/>
+     * @param parent the parent composite<br/>
+     * @param prefStore the preference store<br/>
+     */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public HeapStatus(Composite parent, IPreferenceStore prefStore) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;super(parent, SWT.NONE);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxMem = getMaxMem();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxMemKnown = maxMem != Long.MAX_VALUE;<br/>
+<br/>
+        this.prefStore = prefStore;<br/>
+        prefStore.addPropertyChangeListener(prefListener);<br/>
+        <br/>
+        setUpdateIntervalInMS(prefStore.getInt(IHeapStatusConstants.PREF_UPDATE_INTERVAL));<br/>
+        showMax = prefStore.getBoolean(IHeapStatusConstants.PREF_SHOW_MAX);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        button = new Canvas(this, SWT.NONE);<br/>
+        button.setToolTipText(WorkbenchMessages.HeapStatus_buttonToolTip);<br/>
+        <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ImageDescriptor imageDesc = WorkbenchImages.getWorkbenchImageDescriptor("elcl16/trash.gif"); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gcImage = imageDesc.createImage();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (gcImage != null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;imgBounds = gcImage.getBounds();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Display display = getDisplay();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="mv">usedMemCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="add">COLOR_INFO_BACKGROUND</span></span>)</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="mv">lowMemCol</span> = <span class="add">new <span class="mv">Color</span>(<span class="mv">display</span>, <span class="mv">255</span>, <span class="mv">70</span>, <span class="mv">70</span>)</span></span>;</span>  // medium red <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="mv">freeMemCol</span> = <span class="add">new <span class="mv">Color</span>(<span class="mv">display</span>, <span class="mv">255</span>, <span class="mv">190</span>, <span class="mv">125</span>)</span></span>;</span>  // light orange<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="mv">bgCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="mv">COLOR_WIDGET_BACKGROUND</span></span>)</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="mv">sepCol</span> = <span class="add"><span class="mv">topLeftCol</span> = <span class="add"><span class="mv">armCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="mv">COLOR_WIDGET_NORMAL_SHADOW</span></span>)</span></span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="mv">bottomRightCol</span> = <span class="mv"><span class="mv">display</span>.getSystemColor(<span class="upd">SWT.<span class="mv">COLOR_WIDGET_HIGHLIGHT_SHADOW</span></span>)</span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="add"><span class="add"><span class="mv">markCol</span> = <span class="add"><span class="mv">textCol</span> = <span class="add"><span class="mv">display</span>.<span class="add">getSystemColor</span>(<span class="mv"><span class="upd">SWT.<span class="mv">COLOR_WIDGET_FOREGROUND</span></span></span>)</span></span></span>;</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;createContextMenu();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        Listener listener = new Listener() {<br/>
+<br/>
+            public void handleEvent(Event event) {<br/>
+                switch (event.type) {<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">Dispose</span></span>:</span><br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;doDispose();<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">Resize</span></span>:</span><br/>
+                    Rectangle rect = getClientArea();<br/>
+                    button.setBounds(rect.width - imgBounds.width - 1, 1, imgBounds.width, rect.height - 2);<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">Paint</span></span>:</span><br/>
+                    if (event.widget == HeapStatus.this) {<br/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;paintComposite(event.gc);<br/>
+                    }<br/>
+                    else if (event.widget == button) {<br/>
+                        paintButton(event.gc);<br/>
+                    }<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">MouseUp</span></span>:</span><br/>
+                    if (event.button == 1) {<br/>
+                        gc();<br/>
+                        arm(false);<br/>
+                    }<br/>
+                    break;<br/>
+                <span class="mv">case <span class="upd">SWT.<span class="mv">MouseDown</span></span>:</span><br/>
+                    if (event.button == 1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                    if (event.widget == HeapStatus.this)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                        setMark();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                    else if (event.widget == button)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;                        arm(true);<br/>
+                    }<br/>
+                    break;<br/>
+                <span class="add">case <span class="mv"><span class="upd">SWT.<span class="mv">MouseExit</span></span></span>:</span><br/>
+                    arm(false);<br/>
+                    break;<br/>
+                }<br/>
+            }<br/>
+<br/>
+        };<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">Dispose</span></span></span>, listener);<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseDown</span></span></span>, listener);<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">Paint</span></span></span>, listener);<br/>
+        addListener(<span class="mv"><span class="upd">SWT.<span class="mv">Resize</span></span></span>, listener);<br/>
+        button.addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseDown</span></span></span>, listener);<br/>
+        button.addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseExit</span></span></span>, listener);<br/>
+        button.addListener(<span class="mv"><span class="upd">SWT.<span class="mv">MouseUp</span></span></span>, listener);<br/>
+        button.addListener(<span class="add"><span class="add">SWT</span>.<span class="mv">Paint</span></span>, listener);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// make sure stats are updated before first paint<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateStats();<br/>
+<br/>
+        getDisplay().asyncExec(new Runnable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void run() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!isDisposed()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getDisplay().timerExec(updateInterval, timer);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+   &nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/**<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * Returns the maximum memory limit, or Long.MAX_VALUE if the max is not known.<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private long getMaxMem() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long max = Long.MAX_VALUE;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Must use reflect to allow compilation against JCL/Foundation<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Method maxMemMethod = Runtime.class.getMethod("maxMemory", new Class[0]); //$NON-NLS-1$<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Object o = maxMemMethod.invoke(Runtime.getRuntime(), new Object[0]);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (o instanceof Long) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max = ((Long) o).longValue();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ignore if method missing or if there are other failures trying to determine the max<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return max;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void setUpdateIntervalInMS(int interval) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;updateInterval = Math.max(100, interval);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void doDispose() {<br/>
+        prefStore.removePropertyChangeListener(prefListener);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;if (gcImage != null)<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gcImage.dispose();<br/>
+        if (usedMemCol != null)<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;usedMemCol.dispose();<br/>
+        if (lowMemCol != null)<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;lowMemCol.dispose();<br/>
+        if (freeMemCol != null)<br/>
+        &nbsp;&nbsp;&nbsp;&nbsp;freeMemCol.dispose();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;/* (non-Javadoc)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; * @see org.eclipse.swt.widgets.Composite#computeSize(int, int, boolean)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp; */<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;public Point computeSize(int wHint, int hHint, boolean changed) {<br/>
+        GC gc = new GC(this);<br/>
+        Point p = gc.textExtent(WorkbenchMessages.HeapStatus_widthStr);<br/>
+        gc.dispose();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new Point(p.x + 15, 14);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    private void arm(boolean armed) {<br/>
+        if (this.armed == armed)<br/>
+            return;<br/>
+        this.armed = armed;<br/>
+        button.redraw();<br/>
+        button.update();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Creates the context menu<br/>
+     */<br/>
+    private void createContextMenu() {<br/>
+        MenuManager menuMgr = new MenuManager();<br/>
+        menuMgr.setRemoveAllWhenShown(true);<br/>
+        menuMgr.addMenuListener(new IMenuListener() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void menuAboutToShow(IMenuManager menuMgr) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fillMenu(menuMgr);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+        Menu menu = menuMgr.createContextMenu(this);<br/>
+        setMenu(menu);<br/>
+    }<br/>
+    <br/>
+    private void fillMenu(IMenuManager menuMgr) {<br/>
+        menuMgr.add(new SetMarkAction());<br/>
+        menuMgr.add(new ClearMarkAction());<br/>
+        menuMgr.add(new ShowMaxAction());<br/>
+//        if (isKyrsoftViewAvailable()) {<br/>
+//        &nbsp;&nbsp;&nbsp;&nbsp;menuMgr.add(new ShowKyrsoftViewAction());<br/>
+//        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Sets the mark to the current usedMem level. <br/>
+     */<br/>
+    private void setMark() {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;updateStats();  // get up-to-date stats before taking the mark<br/>
+        mark = usedMem;<br/>
+        redraw();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Clears the mark. <br/>
+     */<br/>
+    private void clearMark() {<br/>
+        mark = -1;<br/>
+        redraw();<br/>
+    }<br/>
+    <br/>
+    private void gc() {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;BusyIndicator.showWhile(getDisplay(), new Runnable() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void run() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;busyGC();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});<br/>
+    }<br/>
+<br/>
+    private void busyGC() {<br/>
+        for (int i = 0; i &lt; 2; ++i) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        System.gc();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        System.runFinalization();<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    private void paintButton(GC gc) {<br/>
+        Rectangle rect = button.getClientArea();<br/>
+        <br/>
+        if (armed) {<br/>
+            gc.setBackground(armCol);<br/>
+            gc.fillRectangle(rect.x, rect.y, rect.width, rect.height);<br/>
+        }<br/>
+        if (gcImage != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int by = (rect.height - imgBounds.height) / 2 + rect.y; // button y<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawImage(gcImage, rect.x, by);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void paintComposite(GC gc) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (showMax &amp;&amp; maxMemKnown)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;paintCompositeMaxKnown(gc);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;paintCompositeMaxUnknown(gc);<br/>
+    }<br/>
+    <br/>
+    private void paintCompositeMaxUnknown(GC gc) {<br/>
+        Rectangle rect = getClientArea();<br/>
+        int x = rect.x;<br/>
+        int y = rect.y;<br/>
+        int w = rect.width;<br/>
+        int h = rect.height;<br/>
+        int bw = imgBounds.width; // button width<br/>
+        int dx = x + w - bw - 2; // divider x<br/>
+        int sw = w - bw - 3; // status width <br/>
+        int uw = (int) (sw * usedMem / totalMem); // used mem width<br/>
+        int ux = x + 1 + uw; // used mem right edge<br/>
+        <br/>
+        gc.setBackground(bgCol);<br/>
+        gc.fillRectangle(rect);<br/>
+        gc.setForeground(sepCol);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(dx, y, dx, y + h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(ux, y, ux, y + h);<br/>
+        gc.setForeground(topLeftCol);<br/>
+        gc.drawLine(x, y, x+w, y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y, x, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.setForeground(bottomRightCol);<br/>
+        gc.drawLine(x+w-1, y, x+w-1, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y+h-1, x+w, y+h-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.setBackground(usedMemCol);<br/>
+        gc.fillRectangle(x + 1, y + 1, uw, h - 2);<br/>
+        <br/>
+        String s = NLS.bind(WorkbenchMessages.HeapStatus_status, convertToMeg(usedMem), convertToMeg(totalMem));<br/>
+        Point p = gc.textExtent(s);<br/>
+        int sx = (rect.width - 15 - p.x) / 2 + rect.x + 1;<br/>
+        int sy = (rect.height - 2 - p.y) / 2 + rect.y + 1;<br/>
+        gc.setForeground(textCol);<br/>
+        gc.drawString(s, sx, sy, true);<br/>
+        <br/>
+        // draw an I-shaped bar in the foreground colour for the mark (if present)<br/>
+        if (mark != -1) {<br/>
+            int ssx = (int) (sw * mark / totalMem) + x + 1;<br/>
+            paintMark(gc, ssx, y, h);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    private void paintCompositeMaxKnown(GC gc) {<br/>
+        Rectangle rect = getClientArea();<br/>
+        int x = rect.x;<br/>
+        int y = rect.y;<br/>
+        int w = rect.width;<br/>
+        int h = rect.height;<br/>
+        int bw = imgBounds.width; // button width<br/>
+        int dx = x + w - bw - 2; // divider x<br/>
+        int sw = w - bw - 3; // status width <br/>
+        int uw = (int) (sw * usedMem / maxMem); // used mem width<br/>
+        int ux = x + 1 + uw; // used mem right edge<br/>
+        int tw = (int) (sw * totalMem / maxMem); // current total mem width<br/>
+        int tx = x + 1 + tw; // current total mem right edge<br/>
+        <br/>
+        gc.setBackground(bgCol);<br/>
+        gc.fillRectangle(rect);<br/>
+        gc.setForeground(sepCol);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(dx, y, dx, y + h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(ux, y, ux, y + h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(tx, y, tx, y + h);<br/>
+        gc.setForeground(topLeftCol);<br/>
+        gc.drawLine(x, y, x+w, y);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y, x, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.setForeground(bottomRightCol);<br/>
+        gc.drawLine(x+w-1, y, x+w-1, y+h);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y+h-1, x+w, y+h-1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+        if (lowMemThreshold != 0 &amp;&amp; ((double)(maxMem - usedMem) / (double)maxMem &lt; lowMemThreshold)) {<br/>
+            gc.setBackground(lowMemCol);<br/>
+        } else {<br/>
+            gc.setBackground(usedMemCol);<br/>
+        }<br/>
+        gc.fillRectangle(x + 1, y + 1, uw, h - 2);<br/>
+        <br/>
+        gc.setBackground(freeMemCol);<br/>
+        gc.fillRectangle(ux + 1, y + 1, tx - (ux + 1), h - 2);<br/>
+<br/>
+        // paint line for low memory threshold<br/>
+        if (showLowMemThreshold &amp;&amp; lowMemThreshold != 0) {<br/>
+            gc.setForeground(lowMemCol);<br/>
+            int thresholdX = x + 1 + (int) (sw * (1.0 - lowMemThreshold));<br/>
+            gc.drawLine(thresholdX, y + 1, thresholdX, y + h - 2);<br/>
+        }<br/>
+<br/>
+        String s = NLS.bind(WorkbenchMessages.HeapStatus_status, <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;convertToMeg(usedMem), convertToMeg(totalMem));<br/>
+        Point p = gc.textExtent(s);<br/>
+        int sx = (rect.width - 15 - p.x) / 2 + rect.x + 1;<br/>
+        int sy = (rect.height - 2 - p.y) / 2 + rect.y + 1;<br/>
+        gc.setForeground(textCol);<br/>
+        gc.drawString(s, sx, sy, true);<br/>
+        <br/>
+        // draw an I-shaped bar in the foreground colour for the mark (if present)<br/>
+        if (mark != -1) {<br/>
+            int ssx = (int) (sw * mark / maxMem) + x + 1;<br/>
+            paintMark(gc, ssx, y, h);<br/>
+        }<br/>
+    }<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;private void paintMark(GC gc, int x, int y, int h) {<br/>
+        gc.setForeground(markCol);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x, y+1, x, y+h-2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x-1, y+1, x+1, y+1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gc.drawLine(x-1, y+h-2, x+1, y+h-2);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+    private void updateStats() {<br/>
+        Runtime runtime = Runtime.getRuntime();<br/>
+        totalMem = runtime.totalMemory();<br/>
+        long freeMem = runtime.freeMemory();<br/>
+        usedMem = totalMem - freeMem;<br/>
+    }<br/>
+<br/>
+    private void updateToolTip() {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String usedStr = convertToMeg(usedMem);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String totalStr = convertToMeg(totalMem);<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String maxStr = maxMemKnown ? convertToMeg(maxMem) : WorkbenchMessages.HeapStatus_maxUnknown;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;String markStr = mark == -1 ? WorkbenchMessages.HeapStatus_noMark : convertToMeg(mark);<br/>
+        String toolTip = NLS.bind(WorkbenchMessages.HeapStatus_memoryToolTip, new Object[] { usedStr, totalStr, maxStr, markStr });<br/>
+        if (!toolTip.equals(getToolTipText())) {<br/>
+            setToolTipText(toolTip);<br/>
+        }<br/>
+    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    /**<br/>
+     * Converts the given number of bytes to a printable number of megabytes (rounded up).<br/>
+     */<br/>
+    private String convertToMeg(long numBytes) {<br/>
+        return NLS.bind(WorkbenchMessages.HeapStatus_meg, new Long((numBytes + (512 * 1024)) / (1024 * 1024)));<br/>
+    }<br/>
+<br/>
+<br/>
+    protected void adjustPosition() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// do nothing<br/>
+    }<br/>
+<br/>
+    class SetMarkAction extends Action {<br/>
+        SetMarkAction() {<br/>
+            super(WorkbenchMessages.SetMarkAction_text);<br/>
+        }<br/>
+        <br/>
+        public void run() {<br/>
+            setMark();<br/>
+        }<br/>
+    }<br/>
+    <br/>
+    class ClearMarkAction extends Action {<br/>
+        ClearMarkAction() {<br/>
+            super(WorkbenchMessages.ClearMarkAction_text);<br/>
+        }<br/>
+        <br/>
+        public void run() {<br/>
+            clearMark();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    class ShowMaxAction extends Action {<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;ShowMaxAction() {<br/>
+            super(WorkbenchMessages.ShowMaxAction_text, IAction.AS_CHECK_BOX);<br/>
+            setEnabled(maxMemKnown);<br/>
+            setChecked(showMax);<br/>
+        }<br/>
+        <br/>
+        public void run() {<br/>
+            prefStore.setValue(IHeapStatusConstants.PREF_SHOW_MAX, isChecked());<br/>
+        }<br/>
+    }<br/>
+<br/>
+//    /**<br/>
+//     * Returns whether the Kyrsoft memory monitor view is available.<br/>
+//     * <br/>
+//     * @return &lt;code&gt;true&lt;/code&gt; if available, &lt;code&gt;false&lt;/code&gt; otherwise<br/>
+//     */<br/>
+//    private boolean isKyrsoftViewAvailable() {<br/>
+//        return (Platform.getBundle(IHeapStatusConstants.KYRSOFT_PLUGIN_ID) != null) &amp;&amp; PlatformUI.getWorkbench().getViewRegistry().find(IHeapStatusConstants.KYRSOFT_VIEW_ID) != null; <br/>
+//    }<br/>
+//    <br/>
+//    class ShowKyrsoftViewAction extends Action {<br/>
+//        ShowKyrsoftViewAction() {<br/>
+//            super(WorkbenchMessages.ShowKyrsoftViewAction_text);<br/>
+//        }<br/>
+//        public void run() {<br/>
+//            if (!isKyrsoftViewAvailable()) { <br/>
+//                MessageDialog.openError(getShell(), WorkbenchMessages.HeapStatus_Error, WorkbenchMessages.ShowKyrsoftViewAction_KyrsoftNotInstalled);<br/>
+//                return;<br/>
+//            }<br/>
+//&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();<br/>
+//            IWorkbenchPage page = window == null ? null : window.getActivePage();<br/>
+//            if (page == null) {<br/>
+//                MessageDialog.openError(getShell(), WorkbenchMessages.HeapStatus_Error, WorkbenchMessages.ShowKyrsoftViewAction_OpenPerspectiveFirst);<br/>
+//                return;<br/>
+//            }<br/>
+//            try {<br/>
+//                page.showView(IHeapStatusConstants.KYRSOFT_VIEW_ID);<br/>
+//            }<br/>
+//            catch (PartInitException e) {<br/>
+//                String msg = WorkbenchMessages.ShowKyrsoftViewAction_ErrorShowingKyrsoftView;<br/>
+//                IStatus status = new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, 0, msg, e);<br/>
+//                ErrorDialog.openError(getShell(), WorkbenchMessages.HeapStatus_Error, msg, status);<br/>
+//            }<br/>
+//            <br/>
+//        }<br/>
+//    }<br/>
+<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

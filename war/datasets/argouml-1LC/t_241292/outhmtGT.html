@@ -1,0 +1,2067 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_Import_1.58.java</h1>
+<div class="code">
+<div class="id">
+// $Id: Import.java,v 1.58 2004-08-23 22:49:13 bobtarling Exp $<br/>
+// Copyright (c) 1996-2004 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.reveng;<br/>
+<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Cursor;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.GridLayout;<br/>
+import java.awt.Toolkit;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.ActionListener;<br/>
+import java.awt.event.WindowAdapter;<br/>
+import java.awt.event.WindowEvent;<br/>
+import java.io.File;<br/>
+import java.io.PrintWriter;<br/>
+import java.io.StringWriter;<br/>
+import java.net.URL;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Hashtable;<br/>
+import java.util.ListIterator;<br/>
+import java.util.Vector;<br/>
+<br/>
+import javax.swing.ButtonGroup;<br/>
+import javax.swing.DefaultListModel;<br/>
+import javax.swing.JButton;<br/>
+import javax.swing.JCheckBox;<br/>
+import javax.swing.JComboBox;<br/>
+import javax.swing.JComponent;<br/>
+import javax.swing.JDialog;<br/>
+import javax.swing.JEditorPane;<br/>
+import javax.swing.JFileChooser;<br/>
+import javax.swing.JLabel;<br/>
+import javax.swing.JList;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JProgressBar;<br/>
+import javax.swing.JRadioButton;<br/>
+import javax.swing.JScrollPane;<br/>
+import javax.swing.JTabbedPane;<br/>
+import javax.swing.JTextArea;<br/>
+import javax.swing.JTextField;<br/>
+import javax.swing.JTable;<br/>
+import javax.swing.table.AbstractTableModel;<br/>
+import javax.swing.SwingUtilities;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+<br/>
+import org.argouml.application.api.Argo;<br/>
+import org.argouml.application.api.Configuration;<br/>
+import org.argouml.application.api.PluggableImport;<br/>
+import org.argouml.cognitive.Designer;<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.model.uml.UmlModelEventPump;<br/>
+import org.argouml.ui.ProjectBrowser;<br/>
+import org.argouml.ui.explorer.ExplorerEventAdaptor;<br/>
+import org.argouml.uml.diagram.static_structure.ClassDiagramGraphModel;<br/>
+import org.argouml.uml.diagram.static_structure.layout.ClassdiagramLayouter;<br/>
+import org.argouml.uml.diagram.ui.UMLDiagram;<br/>
+import org.argouml.util.logging.SimpleTimer;<br/>
+import org.argouml.util.osdep.OsUtil;<br/>
+<br/>
+import org.tigris.gef.base.Globals;<br/>
+<br/>
+/**<br/>
+ * This is the main class for all import classes.&lt;p&gt;<br/>
+ *<br/>
+ * It provides JPanels for tailoring the import run in the FileChooser.&lt;p&gt;<br/>
+ *<br/>
+ * The Import run is started by calling doFile(Project, File)&lt;p&gt;<br/>
+ *<br/>
+ * Supports recursive search in folder for all .java classes.&lt;p&gt;<br/>
+ *<br/>
+ * There are now 3 levels of detail for import:&lt;p&gt;<br/>
+ *<br/>
+ * &lt;ol&gt;<br/>
+ *   &lt;li&gt; 0 = classifiers only<br/>
+ *   &lt;li&gt; 1 = classifiers plus feature specifications<br/>
+ *   &lt;li&gt; 2 = full import, feature detail (ie. operations with methods)<br/>
+ * &lt;/ol&gt;<br/>
+ *<br/>
+ * @author Andreas Rueckert &lt;a_rueckert@gmx.net&gt;<br/>
+ */<br/>
+public class Import {<br/>
+<br/>
+    /** logger */<br/>
+    private static final Logger LOG = Logger.getLogger(Import.class);<br/>
+<br/>
+    /** Imported directory */<br/>
+    private String src_path;<br/>
+<br/>
+    /** Create a interface to the current diagram */<br/>
+    private DiagramInterface _diagram;<br/>
+<br/>
+    /**<br/>
+     * current language module<br/>
+     */<br/>
+    private PluggableImport module;<br/>
+<br/>
+    /**<br/>
+     * key = module name, value = PluggableImport instance<br/>
+     */<br/>
+    private Hashtable modules;<br/>
+<br/>
+    private JComponent configPanel;<br/>
+<br/>
+    private JCheckBox descend;<br/>
+<br/>
+    /** The files that needs a second RE pass. */<br/>
+    private Vector secondPassFiles;<br/>
+<br/>
+    private JCheckBox create_diagrams;<br/>
+<br/>
+    private JCheckBox minimise_figs;<br/>
+<br/>
+    private JCheckBox layout_diagrams;<br/>
+<br/>
+    // level 0 import detail<br/>
+    private JRadioButton classOnly;<br/>
+<br/>
+    // level 1 import detail<br/>
+    private JRadioButton classAndFeatures;<br/>
+<br/>
+    // level 2 import detail<br/>
+    private JRadioButton fullImport;<br/>
+<br/>
+    //import detail level var:<br/>
+    private int importLevel;<br/>
+<br/>
+    private JTextField inputSourceEncoding;<br/>
+<br/>
+    private JDialog dialog;<br/>
+<br/>
+    private ImportStatusScreen iss;<br/>
+<br/>
+    private StringBuffer problems = new StringBuffer();<br/>
+    <br/>
+    private Hashtable attributes = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Creates dialog window with chooser and configuration panel.<br/>
+     */<br/>
+    public Import() {<br/>
+        modules = new Hashtable();<br/>
+        ArrayList arraylist = Argo.getPlugins(PluggableImport.class);<br/>
+        ListIterator iterator = arraylist.listIterator();<br/>
+        while (iterator.hasNext()) {<br/>
+            PluggableImport module = (PluggableImport) iterator.next();<br/>
+            modules.put(module.getModuleName(), module);<br/>
+        }<br/>
+        if (modules.size() == 0)<br/>
+            throw new RuntimeException("Internal error. "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       + "No import modules defined");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// "Java" is a default module<br/>
+        module = (PluggableImport) modules.get("Java");<br/>
+        if (module == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new RuntimeException("Internal error. "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       + "Default import module not found");<br/>
+        JComponent chooser = module.getChooser(this);<br/>
+        dialog = new JDialog(ProjectBrowser.getInstance(), "Import sources");<br/>
+        dialog.addWindowListener(new WindowAdapter() {<br/>
+            public void windowClosing(WindowEvent evt) {<br/>
+                disposeDialog();<br/>
+            }<br/>
+        });<br/>
+<br/>
+        dialog.setModal(true);<br/>
+        dialog.getParent().setEnabled(false);<br/>
+<br/>
+        dialog.getContentPane().add(chooser, BorderLayout.WEST);<br/>
+        dialog.getContentPane().add(getConfigPanel(this), BorderLayout.EAST);<br/>
+        dialog.pack();<br/>
+        int x =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    (ProjectBrowser.getInstance().getSize().width<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     - dialog.getSize().width)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    / 2;<br/>
+        int y =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    (ProjectBrowser.getInstance().getSize().height<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     - dialog.getSize().height)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    / 2;<br/>
+        dialog.setLocation(x &gt; 0 ? x : 0, y &gt; 0 ? y : 0);<br/>
+        dialog.setVisible(true);<br/>
+    }<br/>
+<br/>
+    public Object getAttribute(String key) {<br/>
+        return attributes.get(key);<br/>
+    }<br/>
+<br/>
+    public void setAttribute(String key, Object value) {<br/>
+        attributes.put(key, value);<br/>
+    }<br/>
+<br/>
+    public String getInputSourceEncoding() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return inputSourceEncoding.getText();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Close dialog window.<br/>
+     *<br/>
+     */<br/>
+    public void disposeDialog() {<br/>
+        Configuration.setString(Argo.KEY_INPUT_SOURCE_ENCODING,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInputSourceEncoding());<br/>
+        dialog.getParent().setEnabled(true);<br/>
+        dialog.setVisible(false);<br/>
+        dialog.dispose();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the panel that lets the user set reverse engineering<br/>
+     * parameters.<br/>
+     */<br/>
+    public JComponent getConfigPanel(final Import importInstance) {<br/>
+<br/>
+        final JTabbedPane tab = new JTabbedPane();<br/>
+<br/>
+        // build the configPanel:<br/>
+        if (configPanel == null) {<br/>
+            JPanel general = new JPanel();<br/>
+            general.setLayout(new GridLayout(12, 1));<br/>
+<br/>
+            general.add(new JLabel("Select language for import:"));<br/>
+<br/>
+            Vector languages = new Vector();<br/>
+<br/>
+            for (Enumeration keys = modules.keys(); keys.hasMoreElements();) {<br/>
+                languages.add(keys.nextElement());<br/>
+            }<br/>
+            JComboBox selectedLanguage = new JComboBox(languages);<br/>
+            selectedLanguage.addActionListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JComboBox cb = (JComboBox) e.getSource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String selected = (String) cb.getSelectedItem();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    module = (PluggableImport) modules.get(selected);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    dialog.getContentPane().remove(0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JComponent chooser = module.getChooser(importInstance);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (chooser == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;chooser = new JPanel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    dialog.getContentPane().add(chooser, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JComponent config = module.getConfigPanel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (config == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;config = new JPanel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    tab.remove(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    tab.add(config, selected, 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    tab.validate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    dialog.validate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+            general.add(selectedLanguage);<br/>
+<br/>
+            descend = new JCheckBox("Descend directories recursively.");<br/>
+            descend.setSelected(true);<br/>
+            general.add(descend);<br/>
+<br/>
+<br/>
+            create_diagrams =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JCheckBox("Create diagrams from imported code", true);<br/>
+            general.add(create_diagrams);<br/>
+<br/>
+            minimise_figs =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JCheckBox("Minimise Class icons in diagrams", true);<br/>
+            general.add(minimise_figs);<br/>
+<br/>
+            layout_diagrams =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JCheckBox("Perform Automatic Diagram Layout", true);<br/>
+            general.add(layout_diagrams);<br/>
+<br/>
+            // de-selects the fig minimising &amp; layout<br/>
+            // if we are not creating diagrams<br/>
+            create_diagrams.addActionListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent actionEvent) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!create_diagrams.isSelected()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minimise_figs.setSelected(false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;layout_diagrams.setSelected(false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+<br/>
+            // select the level of import<br/>
+            // 0 = classifiers only<br/>
+            // 1 = classifiers plus feature specifications<br/>
+            // 2 = full import, feature detail<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    JLabel importDetailLabel = new JLabel("Level of import detail:");<br/>
+            ButtonGroup detailButtonGroup = new ButtonGroup();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    classOnly = new JRadioButton("Classfiers only");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    detailButtonGroup.add(classOnly);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    classAndFeatures =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JRadioButton("Classifiers plus feature specifications");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    detailButtonGroup.add(classAndFeatures);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    fullImport = new JRadioButton("Full import");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    fullImport.setSelected(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    detailButtonGroup.add(fullImport);<br/>
+<br/>
+            general.add(importDetailLabel);<br/>
+            general.add(classOnly);<br/>
+            general.add(classAndFeatures);<br/>
+            general.add(fullImport);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    general.add(new JLabel("Input source file encoding:"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING) == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING).trim().equals("")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputSourceEncoding =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new JTextField(System.getProperty("file.encoding"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputSourceEncoding =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new JTextField(Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    general.add(inputSourceEncoding);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    tab.add(general, "General");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    tab.add(module.getConfigPanel(), module.getModuleName());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    configPanel = tab;<br/>
+        }<br/>
+        return configPanel;<br/>
+    }<br/>
+<br/>
+    public void getUserClasspath() {<br/>
+        new ImportClasspathDialog(this);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This method is called by ActionImportFromSources to start the<br/>
+     * import run.&lt;p&gt;<br/>
+     *<br/>
+     * The method that for all parsing actions. It calls the actual<br/>
+     * parser methods depending on the type of the file.&lt;p&gt;<br/>
+     */<br/>
+    public void doFile() {<br/>
+<br/>
+        // determine how many files to process<br/>
+        Vector files = module.getList(this);<br/>
+<br/>
+        if (!classOnly.isSelected()) {<br/>
+            // 2 passes needed<br/>
+            files.addAll(files); // for the second pass<br/>
+<br/>
+            if (classAndFeatures.isSelected())<br/>
+                importLevel = 1;<br/>
+            else<br/>
+                importLevel = 2;<br/>
+        }<br/>
+        else<br/>
+            importLevel = 0;<br/>
+<br/>
+        // we always start with a level 0 import<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setAttribute("level", new Integer(0));<br/>
+<br/>
+        _diagram = getCurrentDiagram();<br/>
+<br/>
+        ProjectBrowser.getInstance().setCursor(<br/>
+                Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));<br/>
+<br/>
+        //turn off critiquing for reverse engineering<br/>
+        boolean b = Designer.TheDesigner.getAutoCritique();<br/>
+        if (b)  Designer.TheDesigner.setAutoCritique(false);<br/>
+        UmlModelEventPump.getPump().stopPumpingEvents();<br/>
+        <br/>
+        // now start importing (with an empty problem list)<br/>
+        problems = new StringBuffer();<br/>
+        iss = new ImportStatusScreen("Importing", "Splash");<br/>
+        SwingUtilities.invokeLater(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new ImportRun(files, b,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; layout_diagrams.isSelected()));<br/>
+        iss.show();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set path for processed directory.<br/>
+     */<br/>
+    public void setSrcPath(String path) {<br/>
+        src_path = path;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return path for processed directory.<br/>
+     */<br/>
+    public String getSrcPath() {<br/>
+        return src_path;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Parse 1 Java file, using JavaImport.<br/>
+     *<br/>
+     * @param f The file to parse.<br/>
+     * @exception Exception ??? TODO: Couldn't we throw a narrower one?<br/>
+     */<br/>
+    public void parseFile(Project project, Object f) throws Exception {<br/>
+<br/>
+        // Is this file a Java source file?<br/>
+        if ( module.isParseable(f)) {<br/>
+            ProjectBrowser.getInstance()<br/>
+                .showStatus("Parsing " + f.toString() + "...");<br/>
+            module.parseFile( project, f, _diagram, this);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check, if "Create diagrams from imported code" is selected.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if "Create diagrams from imported code" is selected<br/>
+     */<br/>
+    public boolean isCreateDiagramsChecked() {<br/>
+        if (create_diagrams != null)<br/>
+            return create_diagrams.isSelected();<br/>
+        else<br/>
+            return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check, if "Discend directories recursively" is selected.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if "Discend directories recursively" is selected<br/>
+     */<br/>
+    public boolean isDiscendDirectoriesRecursively() {<br/>
+        if (descend != null)<br/>
+            return descend.isSelected();<br/>
+        else<br/>
+            return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check, if "Minimise Class icons in diagrams" is selected.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if "Minimise Class icons in diagrams" is selected<br/>
+     */<br/>
+    public boolean isMinimiseFigsChecked() {<br/>
+        if (minimise_figs != null)<br/>
+            return minimise_figs.isSelected();<br/>
+        else<br/>
+            return false;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * If we have modified any diagrams, the project was modified and<br/>
+     * should be saved. I don't consider a import, that only modifies<br/>
+     * the metamodel, at this point (Andreas Rueckert &lt;a_rueckert@gmx.net&gt; ).<br/>
+     * Calling Project.setNeedsSave(true) doesn't work here, because<br/>
+     * Project.postLoad() is called after the import and it sets the<br/>
+     * _needsSave flag to false.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if any diagrams where modified and the project<br/>
+     * should be saved before exit.<br/>
+     */<br/>
+    public boolean needsSave() {<br/>
+        return (_diagram.getModifiedDiagrams().size() &gt; 0);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set target diagram.&lt;p&gt;<br/>
+     *<br/>
+     * @return selected diagram, if it is class diagram,<br/>
+     * else return null.<br/>
+     */<br/>
+    private DiagramInterface getCurrentDiagram() {<br/>
+        DiagramInterface result = null;<br/>
+        if (Globals.curEditor().getGraphModel()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    instanceof ClassDiagramGraphModel) {<br/>
+<br/>
+            result =  new DiagramInterface(Globals.curEditor());<br/>
+<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This class parses each file in turn and allows the GUI to refresh<br/>
+     * itself by performing the run() once for each file.&lt;p&gt;<br/>
+     *<br/>
+     * This class also listens for a "Stop" message from the<br/>
+     * ImportStatusScreen, in order to cancel long import runs.&lt;p&gt;<br/>
+     */<br/>
+    class ImportRun implements Runnable {<br/>
+        Vector _filesLeft;<br/>
+<br/>
+        int _countFiles;<br/>
+<br/>
+        int _countFilesThisPass;<br/>
+<br/>
+        Vector _nextPassFiles;<br/>
+<br/>
+        SimpleTimer _st;<br/>
+<br/>
+        boolean cancelled;<br/>
+<br/>
+        boolean criticThreadWasOn;<br/>
+<br/>
+        boolean doLayout;<br/>
+<br/>
+        public ImportRun(Vector f, boolean critic, boolean doLayout) {<br/>
+<br/>
+            iss.addCancelButtonListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent actionEvent) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    cancel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+<br/>
+            _filesLeft = f;<br/>
+            _countFiles = _filesLeft.size();<br/>
+            _countFilesThisPass = _countFiles;<br/>
+            _nextPassFiles = new Vector();<br/>
+            _st = new SimpleTimer("ImportRun");<br/>
+            _st.mark("start");<br/>
+            cancelled = false;<br/>
+            criticThreadWasOn = critic;<br/>
+            this.doLayout = doLayout;<br/>
+        }<br/>
+<br/>
+        /**<br/>
+         * Called once for each file to be parsed.&lt;p&gt;<br/>
+         *<br/>
+         * To refresh the GUI it calls itself again using the<br/>
+         * {@link SwingUtilities#invokeLater(Runnable)} method.&lt;p&gt;<br/>
+         */<br/>
+        public void run() {<br/>
+<br/>
+            if (_filesLeft.size() &gt; 0) {<br/>
+<br/>
+                // if there ae 2 passes:<br/>
+                if (importLevel &gt; 0) {<br/>
+                    if (_filesLeft.size() &lt;= _countFiles / 2) {<br/>
+<br/>
+                        if (importLevel == 1)<br/>
+                            setAttribute("level", new Integer(1));<br/>
+                        else<br/>
+                            setAttribute("level", new Integer(2));<br/>
+                    }<br/>
+                }<br/>
+<br/>
+                Object curFile = _filesLeft.elementAt(0);<br/>
+                _filesLeft.removeElementAt(0);<br/>
+<br/>
+                try {<br/>
+                    _st.mark(curFile.toString());<br/>
+                    ProjectBrowser.getInstance()<br/>
+                        .showStatus("Importing " + curFile.toString());<br/>
+                    parseFile(ProjectManager.getManager().getCurrentProject(),<br/>
+                        curFile); // Try to parse this file.<br/>
+<br/>
+                    int tot = _countFiles;<br/>
+                    if (_diagram != null) {<br/>
+                        tot += _diagram.getModifiedDiagrams().size() / 10;<br/>
+                    }<br/>
+                    iss.setMaximum(tot);<br/>
+                    int act =<br/>
+                        _countFiles<br/>
+                        - _filesLeft.size()<br/>
+                        - _nextPassFiles.size();<br/>
+                    iss.setValue(act);<br/>
+                    ProjectBrowser.getInstance()<br/>
+                        .getStatusBar().showProgress(100 * act / tot);<br/>
+<br/>
+                    // flush model events after every 50 classes<br/>
+                    // to avoid too many events in the event queue<br/>
+                    // after a long r.e. run<br/>
+                    if (act % 50 == 0) {<br/>
+                        UmlModelEventPump.getPump().flushModelEvents();<br/>
+                        UmlModelEventPump.getPump().stopPumpingEvents();<br/>
+                    }<br/>
+                }<br/>
+                catch (Exception e1) {<br/>
+<br/>
+                    _nextPassFiles.addElement(curFile);<br/>
+                    StringBuffer sb = new StringBuffer(80);<br/>
+                    // RuntimeExceptions should be reported here!<br/>
+                    if (e1 instanceof RuntimeException) {<br/>
+                        sb.append("Program bug encountered while parsing ");<br/>
+                        sb.append(curFile.toString());<br/>
+                        sb.append(", so some elements are not created in the model\n");<br/>
+                        StringWriter sw = new StringWriter();<br/>
+                        PrintWriter pw = new java.io.PrintWriter( sw );<br/>
+                        ((Exception) e1).printStackTrace( pw );<br/>
+                        sb.append(sw.getBuffer());<br/>
+                        LOG.error(sb.toString(), e1);<br/>
+                    }<br/>
+                    else {<br/>
+                        sb.append("Uncaught exception encountered while parsing ");<br/>
+                        sb.append(curFile.toString());<br/>
+                        sb.append(", so some elements are not created in the model\n");<br/>
+                        StringWriter sw = new StringWriter();<br/>
+                        PrintWriter pw = new java.io.PrintWriter( sw );<br/>
+                        ((Exception) e1).printStackTrace( pw );<br/>
+                        sb.append(sw.getBuffer());<br/>
+                        LOG.warn(sb.toString(), e1);<br/>
+                    }<br/>
+                    problems.append(sb);<br/>
+                }<br/>
+                <br/>
+                if (!isCancelled()) {<br/>
+                    SwingUtilities.invokeLater(this);<br/>
+                    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+<br/>
+            if (_nextPassFiles.size() &gt; 0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; _nextPassFiles.size() &lt; _countFilesThisPass) {<br/>
+                _filesLeft = _nextPassFiles;<br/>
+                _nextPassFiles = new Vector();<br/>
+                _countFilesThisPass = _filesLeft.size();<br/>
+<br/>
+                SwingUtilities.invokeLater(this);<br/>
+                return;<br/>
+            }<br/>
+            <br/>
+            // Do post load processings.<br/>
+            _st.mark("postprocessings");<br/>
+<br/>
+            // Check if any diagrams where modified and the project<br/>
+            // should be saved before exiting.<br/>
+            if (_diagram != null &amp;&amp; needsSave()) {<br/>
+                ProjectManager.getManager().getCurrentProject()<br/>
+                    .setNeedsSave(true);<br/>
+            }<br/>
+<br/>
+            ProjectBrowser.getInstance().showStatus("Import done");<br/>
+<br/>
+            // Layout the modified diagrams.<br/>
+            if (doLayout) {<br/>
+                _st.mark("layout");<br/>
+                if (_diagram != null) {<br/>
+                    for (int i = 0;<br/>
+                         i &lt; _diagram.getModifiedDiagrams().size();<br/>
+                         i++) {<br/>
+                        UMLDiagram diagram =<br/>
+                            (UMLDiagram) _diagram.getModifiedDiagrams()<br/>
+                            .elementAt(i);<br/>
+                        ClassdiagramLayouter layouter = <br/>
+                            module.getLayout(diagram);<br/>
+<br/>
+                        layouter.layout();<br/>
+<br/>
+                        // Resize the diagram???<br/>
+                        iss.setValue(_countFiles + (i + 1) / 10);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+<br/>
+            iss.done();<br/>
+            ProjectBrowser.getInstance()<br/>
+                .setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));<br/>
+<br/>
+            // if errors occured, display the collected messages here<br/>
+            if (problems != null &amp;&amp; problems.length() &gt; 0) {<br/>
+                <span class="del"><span class="del"><span class="del"><span class="del">System</span>.<span class="del">out</span></span>.<span class="del">println</span>(<span class="del">"THERE ARE PROBLEMS"</span>)</span>;</span><br/>
+                ProblemsDialog pd = new ProblemsDialog();<br/>
+                pd.setVisible(true);<br/>
+            }<br/>
+            <br/>
+            // turn criticing on again<br/>
+            if (criticThreadWasOn)  Designer.TheDesigner.setAutoCritique(true);<br/>
+<br/>
+            UmlModelEventPump.getPump().startPumpingEvents();<br/>
+<br/>
+            ExplorerEventAdaptor.getInstance().structureChanged();<br/>
+            ProjectBrowser.getInstance().setEnabled(true);<br/>
+<br/>
+            LOG.info(_st);<br/>
+            ProjectBrowser.getInstance().getStatusBar().showProgress(0);<br/>
+<br/>
+        }<br/>
+<br/>
+        private void cancel() { cancelled = true; }<br/>
+<br/>
+        private boolean isCancelled() { return cancelled; }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A window that shows the progress bar and a cancel button.<br/>
+     * TODO: React on the close button as if the Cancel button was pressed.<br/>
+     */<br/>
+    class ImportStatusScreen extends JDialog {<br/>
+<br/>
+        private JButton cancelButton;<br/>
+<br/>
+        private JLabel progressLabel;<br/>
+<br/>
+        private int numberOfFiles;<br/>
+<br/>
+        private JProgressBar _progress;<br/>
+<br/>
+        public ImportStatusScreen(String title, String iconName) {<br/>
+<br/>
+            super();<br/>
+            if (title != null) setTitle(title);<br/>
+            Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+            getContentPane().setLayout(new BorderLayout(0, 0));<br/>
+<br/>
+            // Parsing file x of z.<br/>
+            JPanel topPanel = new JPanel();<br/>
+            progressLabel = new JLabel();<br/>
+            topPanel.add(progressLabel);<br/>
+            getContentPane().add(topPanel, BorderLayout.NORTH);<br/>
+<br/>
+            // progress bar<br/>
+            _progress = new JProgressBar();<br/>
+            getContentPane().add(_progress, BorderLayout.CENTER);<br/>
+<br/>
+            // stop button<br/>
+            cancelButton = new JButton("Stop");<br/>
+            JPanel bottomPanel = new JPanel();<br/>
+            bottomPanel.add(cancelButton);<br/>
+            getContentPane().add(bottomPanel, BorderLayout.SOUTH);<br/>
+<br/>
+            Dimension contentPaneSize = getContentPane().getPreferredSize();<br/>
+            setLocation(scrSize.width / 2 - contentPaneSize.width / 2,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scrSize.height / 2 - contentPaneSize.height / 2);<br/>
+            pack();<br/>
+            this.setResizable(false);<br/>
+            this.setModal(true);        //MVW - Issue 2539.<br/>
+            this.getParent().setEnabled(false);   //MVW: do we really need this?<br/>
+        }<br/>
+<br/>
+        public void setMaximum(int i) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    _progress.setMaximum(i); numberOfFiles = i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        public void setValue(int i) {<br/>
+<br/>
+            _progress.setValue(i);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String pass = "1-st pass";<br/>
+            // if there are 2 passes:<br/>
+            if (importLevel &gt; 0) {<br/>
+                if (i &gt;= numberOfFiles / 2) pass = "2-nd pass";<br/>
+            }<br/>
+<br/>
+            int fileNumber = i != 1 ? ((i - 1) % (numberOfFiles / 2) + 1) : 1;<br/>
+<br/>
+            progressLabel.setText("Parsing file "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  + ((i - 1) % (numberOfFiles / 2) + 1)<br/>
+                                  + " of " + numberOfFiles / 2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  + ", " + pass + ". ");<br/>
+            pack(); // MVW: Is this not time-consuming?<br/>
+                    // Better make the window big enough at the start,<br/>
+                    // and only refresh the label.<br/>
+        }<br/>
+<br/>
+        public void addCancelButtonListener(ActionListener al) {<br/>
+            cancelButton.addActionListener(al);<br/>
+        }<br/>
+<br/>
+        public void done() { hide(); dispose(); }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * A window that shows the problems occured during import<br/>
+     */<br/>
+    class ProblemsDialog extends JDialog implements ActionListener {<br/>
+<br/>
+        private JButton closeButton;<br/>
+        private JLabel northLabel;<br/>
+<br/>
+        public ProblemsDialog() {<br/>
+            super();<br/>
+            setResizable(true);<br/>
+            setModal(false);<br/>
+            setTitle(Translator.localize("dialog.title.import-problems"));<br/>
+            <br/>
+            Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+            getContentPane().setLayout(new BorderLayout(0, 0));<br/>
+<br/>
+            // the introducing label<br/>
+            northLabel = new JLabel(Translator.localize("label.import-problems"));<br/>
+            getContentPane().add(northLabel, BorderLayout.NORTH);<br/>
+<br/>
+            // the text box containing the problem messages<br/>
+            JEditorPane textArea = new JEditorPane();<br/>
+            textArea.setText(problems.toString());<br/>
+            JPanel centerPanel = new JPanel(new BorderLayout());<br/>
+            centerPanel.add(new JScrollPane(textArea));<br/>
+            centerPanel.setPreferredSize(new Dimension(300, 200));<br/>
+            getContentPane().add(centerPanel);<br/>
+            <br/>
+            // close button<br/>
+            closeButton = new JButton(Translator.localize("button.close"));<br/>
+            JPanel bottomPanel = new JPanel();<br/>
+            bottomPanel.add(closeButton);<br/>
+            getContentPane().add(bottomPanel, BorderLayout.SOUTH);<br/>
+            <br/>
+            // listeners<br/>
+            closeButton.addActionListener(this);<br/>
+            addWindowListener(new WindowAdapter() {<br/>
+                public void windowClosing(WindowEvent evt) {<br/>
+                    disposeDialog();<br/>
+                }<br/>
+            });<br/>
+            <br/>
+            Dimension contentPaneSize = getContentPane().getPreferredSize();<br/>
+            setLocation(scrSize.width / 2 - contentPaneSize.width / 2,<br/>
+                    scrSize.height / 2 - contentPaneSize.height / 2);<br/>
+            pack();<br/>
+        }<br/>
+<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+            disposeDialog();<br/>
+        }<br/>
+<br/>
+        public void disposeDialog() {<br/>
+            hide(); dispose();<br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+/**<br/>
+ * dialog to setup the import classpath.<br/>
+ */<br/>
+class ImportClasspathDialog extends JDialog {<br/>
+<br/>
+    /** logger */<br/>
+    private static final Logger LOG =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Logger.getLogger(ImportClasspathDialog.class);<br/>
+<br/>
+    private JList paths;<br/>
+    private DefaultListModel pathsModel;<br/>
+<br/>
+    private JButton addFile;<br/>
+<br/>
+    private JButton removeFile;<br/>
+<br/>
+//    private JButton save;<br/>
+<br/>
+    private JButton ok;<br/>
+<br/>
+    private Import importProcess;<br/>
+<br/>
+    public ImportClasspathDialog(Import importProcess1) {<br/>
+<br/>
+        super();<br/>
+        setTitle("Set up the import classpath"); //MVW - Issue 2539.<br/>
+        importProcess = importProcess1;<br/>
+<br/>
+        Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+        getContentPane().setLayout(new BorderLayout(0, 0));<br/>
+<br/>
+        // paths list<br/>
+        pathsModel = new DefaultListModel();<br/>
+        paths = new JList(pathsModel);<br/>
+        paths.setVisibleRowCount(5);<br/>
+        JScrollPane listScroller = new JScrollPane(paths);<br/>
+        listScroller.setPreferredSize(new Dimension(250, 80));<br/>
+        getContentPane().add(listScroller, BorderLayout.CENTER);<br/>
+<br/>
+        initList();<br/>
+<br/>
+        // controls<br/>
+        JPanel controlsPanel = new JPanel();<br/>
+        controlsPanel.setLayout(new GridLayout(0, 3));<br/>
+        addFile = new JButton("Add");<br/>
+        removeFile = new JButton("Remove");<br/>
+//        save = new JButton("Save");<br/>
+        ok = new JButton("Ok");<br/>
+        controlsPanel.add(addFile);<br/>
+        controlsPanel.add(removeFile);<br/>
+//        controlsPanel.add(save);<br/>
+        controlsPanel.add(ok);<br/>
+        getContentPane().add(controlsPanel, BorderLayout.SOUTH);<br/>
+<br/>
+        addFile.addActionListener(new AddListener());<br/>
+        removeFile.addActionListener(new RemoveListener());<br/>
+//        save.addActionListener(new SaveListener());<br/>
+        ok.addActionListener(new OkListener());<br/>
+<br/>
+        //Display the window.<br/>
+        Dimension contentPaneSize = getContentPane().getPreferredSize();<br/>
+        setLocation(scrSize.width / 2 - contentPaneSize.width / 2,<br/>
+            scrSize.height / 2 - contentPaneSize.height / 2);<br/>
+        pack();<br/>
+        setVisible(true);<br/>
+        this.setModal(true);        //MVW   Issue 2539.<br/>
+        this.getParent().setEnabled(false);   //MVW: do we really need this?<br/>
+    }<br/>
+<br/>
+    private void initList() {<br/>
+<br/>
+        URL[] urls =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ImportClassLoader.getURLs(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        Configuration.getString(Argo.KEY_USER_IMPORT_CLASSPATH, ""));<br/>
+<br/>
+        for (int i = 0; i &lt; urls.length; i++) {<br/>
+            pathsModel.addElement(urls[i].getFile());<br/>
+        }<br/>
+<br/>
+        paths.setSelectedIndex(0);<br/>
+    }<br/>
+<br/>
+<br/>
+    private void doFiles() {<br/>
+        importProcess.doFile();<br/>
+    }<br/>
+<br/>
+//    class SaveListener implements ActionListener {<br/>
+//        public void actionPerformed(ActionEvent e) {<br/>
+//<br/>
+//            try{<br/>
+//            ImportClassLoader.getInstance().setPath(pathsModel.toArray());<br/>
+//            ImportClassLoader.getInstance().saveUserPath();<br/>
+//        }catch(Exception e1){LOG.warn("could not do save "+e1);}<br/>
+//        }<br/>
+//    }<br/>
+<br/>
+    class OkListener implements ActionListener {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+<br/>
+            URL urls[] = new URL[pathsModel.size()];<br/>
+            for (int i = 0; i &lt; urls.length; i++) {<br/>
+                try {<br/>
+                    urls[i] = new File((String) pathsModel.get(i)).toURL();<br/>
+                } catch (Exception e1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    LOG.warn("could not do ok: could not make"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "url " + pathsModel.get(i) + ", " + e1,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+<br/>
+            try {<br/>
+                ImportClassLoader.getInstance(urls);<br/>
+                ImportClassLoader.getInstance().saveUserPath();<br/>
+            } catch (Exception e1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOG.warn("could not do ok", e1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+            doFiles();<br/>
+            dispose();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    class RemoveListener implements ActionListener {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+            //This method can be called only if<br/>
+            //there's a valid selection<br/>
+            //so go ahead and remove whatever's selected.<br/>
+            int index = paths.getSelectedIndex();<br/>
+            pathsModel.remove(index);<br/>
+<br/>
+            int size = pathsModel.getSize();<br/>
+<br/>
+            if (size == 0) { //nothings left, disable firing.<br/>
+                removeFile.setEnabled(false);<br/>
+<br/>
+            } else { //Select an index.<br/>
+                if (index == pathsModel.getSize()) {<br/>
+                    //removed item in last position<br/>
+                    index--;<br/>
+                }<br/>
+<br/>
+                paths.setSelectedIndex(index);<br/>
+                paths.ensureIndexIsVisible(index);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    class AddListener implements ActionListener {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String directory = Globals.getLastDirectory();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    JFileChooser ch = OsUtil.getFileChooser(directory);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (ch == null) ch = OsUtil.getFileChooser();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    final JFileChooser chooser = ch;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    chooser.addActionListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (e.getActionCommand().equals(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JFileChooser.APPROVE_SELECTION)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File theFile = chooser.getSelectedFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (theFile != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    pathsModel.addElement(theFile.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else if (e.getActionCommand().equals(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   JFileChooser.CANCEL_SELECTION)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// TODO: What shall we do here?<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int retval = chooser.showOpenDialog(ProjectBrowser.getInstance());<br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_Import_1.59.java</h1>
+<div class="code">
+<div class="id">
+// $Id: Import.java,v 1.59 2004-08-23 23:53:06 bobtarling Exp $<br/>
+// Copyright (c) 1996-2004 The Regents of the University of California. All<br/>
+// Rights Reserved. Permission to use, copy, modify, and distribute this<br/>
+// software and its documentation without fee, and without a written<br/>
+// agreement is hereby granted, provided that the above copyright notice<br/>
+// and this paragraph appear in all copies.  This software program and<br/>
+// documentation are copyrighted by The Regents of the University of<br/>
+// California. The software program and documentation are supplied "AS<br/>
+// IS", without any accompanying services from The Regents. The Regents<br/>
+// does not warrant that the operation of the program will be<br/>
+// uninterrupted or error-free. The end-user understands that the program<br/>
+// was developed for research purposes and is advised not to rely<br/>
+// exclusively on the program for any reason.  IN NO EVENT SHALL THE<br/>
+// UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,<br/>
+// SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,<br/>
+// ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF<br/>
+// THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF<br/>
+// SUCH DAMAGE. THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY<br/>
+// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF<br/>
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE<br/>
+// PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF<br/>
+// CALIFORNIA HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT,<br/>
+// UPDATES, ENHANCEMENTS, OR MODIFICATIONS.<br/>
+<br/>
+package org.argouml.uml.reveng;<br/>
+<br/>
+import java.awt.BorderLayout;<br/>
+import java.awt.Cursor;<br/>
+import java.awt.Dimension;<br/>
+import java.awt.GridLayout;<br/>
+import java.awt.Toolkit;<br/>
+import java.awt.event.ActionEvent;<br/>
+import java.awt.event.ActionListener;<br/>
+import java.awt.event.WindowAdapter;<br/>
+import java.awt.event.WindowEvent;<br/>
+import java.io.File;<br/>
+import java.io.PrintWriter;<br/>
+import java.io.StringWriter;<br/>
+import java.net.URL;<br/>
+import java.util.ArrayList;<br/>
+import java.util.Enumeration;<br/>
+import java.util.Hashtable;<br/>
+import java.util.ListIterator;<br/>
+import java.util.Vector;<br/>
+<br/>
+import javax.swing.ButtonGroup;<br/>
+import javax.swing.DefaultListModel;<br/>
+import javax.swing.JButton;<br/>
+import javax.swing.JCheckBox;<br/>
+import javax.swing.JComboBox;<br/>
+import javax.swing.JComponent;<br/>
+import javax.swing.JDialog;<br/>
+import javax.swing.JEditorPane;<br/>
+import javax.swing.JFileChooser;<br/>
+import javax.swing.JLabel;<br/>
+import javax.swing.JList;<br/>
+import javax.swing.JPanel;<br/>
+import javax.swing.JProgressBar;<br/>
+import javax.swing.JRadioButton;<br/>
+import javax.swing.JScrollPane;<br/>
+import javax.swing.JTabbedPane;<br/>
+import javax.swing.JTextArea;<br/>
+import javax.swing.JTextField;<br/>
+import javax.swing.JTable;<br/>
+import javax.swing.table.AbstractTableModel;<br/>
+import javax.swing.SwingUtilities;<br/>
+<br/>
+import org.apache.log4j.Logger;<br/>
+<br/>
+import org.argouml.application.api.Argo;<br/>
+import org.argouml.application.api.Configuration;<br/>
+import org.argouml.application.api.PluggableImport;<br/>
+import org.argouml.cognitive.Designer;<br/>
+import org.argouml.i18n.Translator;<br/>
+import org.argouml.kernel.Project;<br/>
+import org.argouml.kernel.ProjectManager;<br/>
+import org.argouml.model.uml.UmlModelEventPump;<br/>
+import org.argouml.ui.ProjectBrowser;<br/>
+import org.argouml.ui.explorer.ExplorerEventAdaptor;<br/>
+import org.argouml.uml.diagram.static_structure.ClassDiagramGraphModel;<br/>
+import org.argouml.uml.diagram.static_structure.layout.ClassdiagramLayouter;<br/>
+import org.argouml.uml.diagram.ui.UMLDiagram;<br/>
+import org.argouml.util.logging.SimpleTimer;<br/>
+import org.argouml.util.osdep.OsUtil;<br/>
+<br/>
+import org.tigris.gef.base.Globals;<br/>
+<br/>
+/**<br/>
+ * This is the main class for all import classes.&lt;p&gt;<br/>
+ *<br/>
+ * It provides JPanels for tailoring the import run in the FileChooser.&lt;p&gt;<br/>
+ *<br/>
+ * The Import run is started by calling doFile(Project, File)&lt;p&gt;<br/>
+ *<br/>
+ * Supports recursive search in folder for all .java classes.&lt;p&gt;<br/>
+ *<br/>
+ * There are now 3 levels of detail for import:&lt;p&gt;<br/>
+ *<br/>
+ * &lt;ol&gt;<br/>
+ *   &lt;li&gt; 0 = classifiers only<br/>
+ *   &lt;li&gt; 1 = classifiers plus feature specifications<br/>
+ *   &lt;li&gt; 2 = full import, feature detail (ie. operations with methods)<br/>
+ * &lt;/ol&gt;<br/>
+ *<br/>
+ * @author Andreas Rueckert &lt;a_rueckert@gmx.net&gt;<br/>
+ */<br/>
+public class Import {<br/>
+<br/>
+    /** logger */<br/>
+    private static final Logger LOG = Logger.getLogger(Import.class);<br/>
+<br/>
+    /** Imported directory */<br/>
+    private String src_path;<br/>
+<br/>
+    /** Create a interface to the current diagram */<br/>
+    private DiagramInterface _diagram;<br/>
+<br/>
+    /**<br/>
+     * current language module<br/>
+     */<br/>
+    private PluggableImport module;<br/>
+<br/>
+    /**<br/>
+     * key = module name, value = PluggableImport instance<br/>
+     */<br/>
+    private Hashtable modules;<br/>
+<br/>
+    private JComponent configPanel;<br/>
+<br/>
+    private JCheckBox descend;<br/>
+<br/>
+    /** The files that needs a second RE pass. */<br/>
+    private Vector secondPassFiles;<br/>
+<br/>
+    private JCheckBox create_diagrams;<br/>
+<br/>
+    private JCheckBox minimise_figs;<br/>
+<br/>
+    private JCheckBox layout_diagrams;<br/>
+<br/>
+    // level 0 import detail<br/>
+    private JRadioButton classOnly;<br/>
+<br/>
+    // level 1 import detail<br/>
+    private JRadioButton classAndFeatures;<br/>
+<br/>
+    // level 2 import detail<br/>
+    private JRadioButton fullImport;<br/>
+<br/>
+    //import detail level var:<br/>
+    private int importLevel;<br/>
+<br/>
+    private JTextField inputSourceEncoding;<br/>
+<br/>
+    private JDialog dialog;<br/>
+<br/>
+    private ImportStatusScreen iss;<br/>
+<br/>
+    private StringBuffer problems = new StringBuffer();<br/>
+    <br/>
+    private Hashtable attributes = new Hashtable();<br/>
+<br/>
+    /**<br/>
+     * Creates dialog window with chooser and configuration panel.<br/>
+     */<br/>
+    public Import() {<br/>
+        modules = new Hashtable();<br/>
+        ArrayList arraylist = Argo.getPlugins(PluggableImport.class);<br/>
+        ListIterator iterator = arraylist.listIterator();<br/>
+        while (iterator.hasNext()) {<br/>
+            PluggableImport module = (PluggableImport) iterator.next();<br/>
+            modules.put(module.getModuleName(), module);<br/>
+        }<br/>
+        if (modules.size() == 0)<br/>
+            throw new RuntimeException("Internal error. "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       + "No import modules defined");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;// "Java" is a default module<br/>
+        module = (PluggableImport) modules.get("Java");<br/>
+        if (module == null)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new RuntimeException("Internal error. "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;       + "Default import module not found");<br/>
+        JComponent chooser = module.getChooser(this);<br/>
+        dialog = new JDialog(ProjectBrowser.getInstance(), "Import sources");<br/>
+        dialog.addWindowListener(new WindowAdapter() {<br/>
+            public void windowClosing(WindowEvent evt) {<br/>
+                disposeDialog();<br/>
+            }<br/>
+        });<br/>
+<br/>
+        dialog.setModal(true);<br/>
+        dialog.getParent().setEnabled(false);<br/>
+<br/>
+        dialog.getContentPane().add(chooser, BorderLayout.WEST);<br/>
+        dialog.getContentPane().add(getConfigPanel(this), BorderLayout.EAST);<br/>
+        dialog.pack();<br/>
+        int x =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    (ProjectBrowser.getInstance().getSize().width<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     - dialog.getSize().width)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    / 2;<br/>
+        int y =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    (ProjectBrowser.getInstance().getSize().height<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;     - dialog.getSize().height)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    / 2;<br/>
+        dialog.setLocation(x &gt; 0 ? x : 0, y &gt; 0 ? y : 0);<br/>
+        dialog.setVisible(true);<br/>
+    }<br/>
+<br/>
+    public Object getAttribute(String key) {<br/>
+        return attributes.get(key);<br/>
+    }<br/>
+<br/>
+    public void setAttribute(String key, Object value) {<br/>
+        attributes.put(key, value);<br/>
+    }<br/>
+<br/>
+    public String getInputSourceEncoding() {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return inputSourceEncoding.getText();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Close dialog window.<br/>
+     *<br/>
+     */<br/>
+    public void disposeDialog() {<br/>
+        Configuration.setString(Argo.KEY_INPUT_SOURCE_ENCODING,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;getInputSourceEncoding());<br/>
+        dialog.getParent().setEnabled(true);<br/>
+        dialog.setVisible(false);<br/>
+        dialog.dispose();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Get the panel that lets the user set reverse engineering<br/>
+     * parameters.<br/>
+     */<br/>
+    public JComponent getConfigPanel(final Import importInstance) {<br/>
+<br/>
+        final JTabbedPane tab = new JTabbedPane();<br/>
+<br/>
+        // build the configPanel:<br/>
+        if (configPanel == null) {<br/>
+            JPanel general = new JPanel();<br/>
+            general.setLayout(new GridLayout(12, 1));<br/>
+<br/>
+            general.add(new JLabel("Select language for import:"));<br/>
+<br/>
+            Vector languages = new Vector();<br/>
+<br/>
+            for (Enumeration keys = modules.keys(); keys.hasMoreElements();) {<br/>
+                languages.add(keys.nextElement());<br/>
+            }<br/>
+            JComboBox selectedLanguage = new JComboBox(languages);<br/>
+            selectedLanguage.addActionListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JComboBox cb = (JComboBox) e.getSource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    String selected = (String) cb.getSelectedItem();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    module = (PluggableImport) modules.get(selected);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    dialog.getContentPane().remove(0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JComponent chooser = module.getChooser(importInstance);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (chooser == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;chooser = new JPanel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    dialog.getContentPane().add(chooser, 0);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JComponent config = module.getConfigPanel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (config == null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;config = new JPanel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    tab.remove(1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    tab.add(config, selected, 1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    tab.validate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    dialog.validate();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+            general.add(selectedLanguage);<br/>
+<br/>
+            descend = new JCheckBox("Descend directories recursively.");<br/>
+            descend.setSelected(true);<br/>
+            general.add(descend);<br/>
+<br/>
+<br/>
+            create_diagrams =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JCheckBox("Create diagrams from imported code", true);<br/>
+            general.add(create_diagrams);<br/>
+<br/>
+            minimise_figs =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JCheckBox("Minimise Class icons in diagrams", true);<br/>
+            general.add(minimise_figs);<br/>
+<br/>
+            layout_diagrams =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JCheckBox("Perform Automatic Diagram Layout", true);<br/>
+            general.add(layout_diagrams);<br/>
+<br/>
+            // de-selects the fig minimising &amp; layout<br/>
+            // if we are not creating diagrams<br/>
+            create_diagrams.addActionListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent actionEvent) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (!create_diagrams.isSelected()) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minimise_figs.setSelected(false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;layout_diagrams.setSelected(false);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+<br/>
+            // select the level of import<br/>
+            // 0 = classifiers only<br/>
+            // 1 = classifiers plus feature specifications<br/>
+            // 2 = full import, feature detail<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    JLabel importDetailLabel = new JLabel("Level of import detail:");<br/>
+            ButtonGroup detailButtonGroup = new ButtonGroup();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    classOnly = new JRadioButton("Classfiers only");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    detailButtonGroup.add(classOnly);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    classAndFeatures =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new JRadioButton("Classifiers plus feature specifications");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    detailButtonGroup.add(classAndFeatures);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    fullImport = new JRadioButton("Full import");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    fullImport.setSelected(true);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    detailButtonGroup.add(fullImport);<br/>
+<br/>
+            general.add(importDetailLabel);<br/>
+            general.add(classOnly);<br/>
+            general.add(classAndFeatures);<br/>
+            general.add(fullImport);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    general.add(new JLabel("Input source file encoding:"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING) == null<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING).trim().equals("")) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputSourceEncoding =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new JTextField(System.getProperty("file.encoding"));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inputSourceEncoding =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    new JTextField(Configuration.getString(Argo.KEY_INPUT_SOURCE_ENCODING));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    general.add(inputSourceEncoding);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    tab.add(general, "General");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    tab.add(module.getConfigPanel(), module.getModuleName());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    configPanel = tab;<br/>
+        }<br/>
+        return configPanel;<br/>
+    }<br/>
+<br/>
+    public void getUserClasspath() {<br/>
+        new ImportClasspathDialog(this);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This method is called by ActionImportFromSources to start the<br/>
+     * import run.&lt;p&gt;<br/>
+     *<br/>
+     * The method that for all parsing actions. It calls the actual<br/>
+     * parser methods depending on the type of the file.&lt;p&gt;<br/>
+     */<br/>
+    public void doFile() {<br/>
+<br/>
+        // determine how many files to process<br/>
+        Vector files = module.getList(this);<br/>
+<br/>
+        if (!classOnly.isSelected()) {<br/>
+            // 2 passes needed<br/>
+            files.addAll(files); // for the second pass<br/>
+<br/>
+            if (classAndFeatures.isSelected())<br/>
+                importLevel = 1;<br/>
+            else<br/>
+                importLevel = 2;<br/>
+        }<br/>
+        else<br/>
+            importLevel = 0;<br/>
+<br/>
+        // we always start with a level 0 import<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;setAttribute("level", new Integer(0));<br/>
+<br/>
+        _diagram = getCurrentDiagram();<br/>
+<br/>
+        ProjectBrowser.getInstance().setCursor(<br/>
+                Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));<br/>
+<br/>
+        //turn off critiquing for reverse engineering<br/>
+        boolean b = Designer.TheDesigner.getAutoCritique();<br/>
+        if (b)  Designer.TheDesigner.setAutoCritique(false);<br/>
+        UmlModelEventPump.getPump().stopPumpingEvents();<br/>
+        <br/>
+        // now start importing (with an empty problem list)<br/>
+        problems = new StringBuffer();<br/>
+        iss = new ImportStatusScreen("Importing", "Splash");<br/>
+        SwingUtilities.invokeLater(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   new ImportRun(files, b,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; layout_diagrams.isSelected()));<br/>
+        iss.show();<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set path for processed directory.<br/>
+     */<br/>
+    public void setSrcPath(String path) {<br/>
+        src_path = path;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * @return path for processed directory.<br/>
+     */<br/>
+    public String getSrcPath() {<br/>
+        return src_path;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Parse 1 Java file, using JavaImport.<br/>
+     *<br/>
+     * @param f The file to parse.<br/>
+     * @exception Exception ??? TODO: Couldn't we throw a narrower one?<br/>
+     */<br/>
+    public void parseFile(Project project, Object f) throws Exception {<br/>
+<br/>
+        // Is this file a Java source file?<br/>
+        if ( module.isParseable(f)) {<br/>
+            ProjectBrowser.getInstance()<br/>
+                .showStatus("Parsing " + f.toString() + "...");<br/>
+            module.parseFile( project, f, _diagram, this);<br/>
+        }<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check, if "Create diagrams from imported code" is selected.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if "Create diagrams from imported code" is selected<br/>
+     */<br/>
+    public boolean isCreateDiagramsChecked() {<br/>
+        if (create_diagrams != null)<br/>
+            return create_diagrams.isSelected();<br/>
+        else<br/>
+            return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check, if "Discend directories recursively" is selected.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if "Discend directories recursively" is selected<br/>
+     */<br/>
+    public boolean isDiscendDirectoriesRecursively() {<br/>
+        if (descend != null)<br/>
+            return descend.isSelected();<br/>
+        else<br/>
+            return true;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Check, if "Minimise Class icons in diagrams" is selected.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if "Minimise Class icons in diagrams" is selected<br/>
+     */<br/>
+    public boolean isMinimiseFigsChecked() {<br/>
+        if (minimise_figs != null)<br/>
+            return minimise_figs.isSelected();<br/>
+        else<br/>
+            return false;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * If we have modified any diagrams, the project was modified and<br/>
+     * should be saved. I don't consider a import, that only modifies<br/>
+     * the metamodel, at this point (Andreas Rueckert &lt;a_rueckert@gmx.net&gt; ).<br/>
+     * Calling Project.setNeedsSave(true) doesn't work here, because<br/>
+     * Project.postLoad() is called after the import and it sets the<br/>
+     * _needsSave flag to false.&lt;p&gt;<br/>
+     *<br/>
+     * @return true, if any diagrams where modified and the project<br/>
+     * should be saved before exit.<br/>
+     */<br/>
+    public boolean needsSave() {<br/>
+        return (_diagram.getModifiedDiagrams().size() &gt; 0);<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Set target diagram.&lt;p&gt;<br/>
+     *<br/>
+     * @return selected diagram, if it is class diagram,<br/>
+     * else return null.<br/>
+     */<br/>
+    private DiagramInterface getCurrentDiagram() {<br/>
+        DiagramInterface result = null;<br/>
+        if (Globals.curEditor().getGraphModel()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    instanceof ClassDiagramGraphModel) {<br/>
+<br/>
+            result =  new DiagramInterface(Globals.curEditor());<br/>
+<br/>
+        }<br/>
+        return result;<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * This class parses each file in turn and allows the GUI to refresh<br/>
+     * itself by performing the run() once for each file.&lt;p&gt;<br/>
+     *<br/>
+     * This class also listens for a "Stop" message from the<br/>
+     * ImportStatusScreen, in order to cancel long import runs.&lt;p&gt;<br/>
+     */<br/>
+    class ImportRun implements Runnable {<br/>
+        Vector _filesLeft;<br/>
+<br/>
+        int _countFiles;<br/>
+<br/>
+        int _countFilesThisPass;<br/>
+<br/>
+        Vector _nextPassFiles;<br/>
+<br/>
+        SimpleTimer _st;<br/>
+<br/>
+        boolean cancelled;<br/>
+<br/>
+        boolean criticThreadWasOn;<br/>
+<br/>
+        boolean doLayout;<br/>
+<br/>
+        public ImportRun(Vector f, boolean critic, boolean doLayout) {<br/>
+<br/>
+            iss.addCancelButtonListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent actionEvent) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    cancel();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+<br/>
+            _filesLeft = f;<br/>
+            _countFiles = _filesLeft.size();<br/>
+            _countFilesThisPass = _countFiles;<br/>
+            _nextPassFiles = new Vector();<br/>
+            _st = new SimpleTimer("ImportRun");<br/>
+            _st.mark("start");<br/>
+            cancelled = false;<br/>
+            criticThreadWasOn = critic;<br/>
+            this.doLayout = doLayout;<br/>
+        }<br/>
+<br/>
+        /**<br/>
+         * Called once for each file to be parsed.&lt;p&gt;<br/>
+         *<br/>
+         * To refresh the GUI it calls itself again using the<br/>
+         * {@link SwingUtilities#invokeLater(Runnable)} method.&lt;p&gt;<br/>
+         */<br/>
+        public void run() {<br/>
+<br/>
+            if (_filesLeft.size() &gt; 0) {<br/>
+<br/>
+                // if there ae 2 passes:<br/>
+                if (importLevel &gt; 0) {<br/>
+                    if (_filesLeft.size() &lt;= _countFiles / 2) {<br/>
+<br/>
+                        if (importLevel == 1)<br/>
+                            setAttribute("level", new Integer(1));<br/>
+                        else<br/>
+                            setAttribute("level", new Integer(2));<br/>
+                    }<br/>
+                }<br/>
+<br/>
+                Object curFile = _filesLeft.elementAt(0);<br/>
+                _filesLeft.removeElementAt(0);<br/>
+<br/>
+                try {<br/>
+                    _st.mark(curFile.toString());<br/>
+                    ProjectBrowser.getInstance()<br/>
+                        .showStatus("Importing " + curFile.toString());<br/>
+                    parseFile(ProjectManager.getManager().getCurrentProject(),<br/>
+                        curFile); // Try to parse this file.<br/>
+<br/>
+                    int tot = _countFiles;<br/>
+                    if (_diagram != null) {<br/>
+                        tot += _diagram.getModifiedDiagrams().size() / 10;<br/>
+                    }<br/>
+                    iss.setMaximum(tot);<br/>
+                    int act =<br/>
+                        _countFiles<br/>
+                        - _filesLeft.size()<br/>
+                        - _nextPassFiles.size();<br/>
+                    iss.setValue(act);<br/>
+                    ProjectBrowser.getInstance()<br/>
+                        .getStatusBar().showProgress(100 * act / tot);<br/>
+<br/>
+                    // flush model events after every 50 classes<br/>
+                    // to avoid too many events in the event queue<br/>
+                    // after a long r.e. run<br/>
+                    if (act % 50 == 0) {<br/>
+                        UmlModelEventPump.getPump().flushModelEvents();<br/>
+                        UmlModelEventPump.getPump().stopPumpingEvents();<br/>
+                    }<br/>
+                }<br/>
+                catch (Exception e1) {<br/>
+<br/>
+                    _nextPassFiles.addElement(curFile);<br/>
+                    StringBuffer sb = new StringBuffer(80);<br/>
+                    // RuntimeExceptions should be reported here!<br/>
+                    if (e1 instanceof RuntimeException) {<br/>
+                        sb.append("Program bug encountered while parsing ");<br/>
+                        sb.append(curFile.toString());<br/>
+                        sb.append(", so some elements are not created in the model\n");<br/>
+                        StringWriter sw = new StringWriter();<br/>
+                        PrintWriter pw = new java.io.PrintWriter( sw );<br/>
+                        ((Exception) e1).printStackTrace( pw );<br/>
+                        sb.append(sw.getBuffer());<br/>
+                        LOG.error(sb.toString(), e1);<br/>
+                    }<br/>
+                    else {<br/>
+                        sb.append("Uncaught exception encountered while parsing ");<br/>
+                        sb.append(curFile.toString());<br/>
+                        sb.append(", so some elements are not created in the model\n");<br/>
+                        StringWriter sw = new StringWriter();<br/>
+                        PrintWriter pw = new java.io.PrintWriter( sw );<br/>
+                        ((Exception) e1).printStackTrace( pw );<br/>
+                        sb.append(sw.getBuffer());<br/>
+                        LOG.warn(sb.toString(), e1);<br/>
+                    }<br/>
+                    problems.append(sb);<br/>
+                }<br/>
+                <br/>
+                if (!isCancelled()) {<br/>
+                    SwingUtilities.invokeLater(this);<br/>
+                    return;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+<br/>
+            if (_nextPassFiles.size() &gt; 0<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; _nextPassFiles.size() &lt; _countFilesThisPass) {<br/>
+                _filesLeft = _nextPassFiles;<br/>
+                _nextPassFiles = new Vector();<br/>
+                _countFilesThisPass = _filesLeft.size();<br/>
+<br/>
+                SwingUtilities.invokeLater(this);<br/>
+                return;<br/>
+            }<br/>
+            <br/>
+            // Do post load processings.<br/>
+            _st.mark("postprocessings");<br/>
+<br/>
+            // Check if any diagrams where modified and the project<br/>
+            // should be saved before exiting.<br/>
+            if (_diagram != null &amp;&amp; needsSave()) {<br/>
+                ProjectManager.getManager().getCurrentProject()<br/>
+                    .setNeedsSave(true);<br/>
+            }<br/>
+<br/>
+            ProjectBrowser.getInstance().showStatus("Import done");<br/>
+<br/>
+            // Layout the modified diagrams.<br/>
+            if (doLayout) {<br/>
+                _st.mark("layout");<br/>
+                if (_diagram != null) {<br/>
+                    for (int i = 0;<br/>
+                         i &lt; _diagram.getModifiedDiagrams().size();<br/>
+                         i++) {<br/>
+                        UMLDiagram diagram =<br/>
+                            (UMLDiagram) _diagram.getModifiedDiagrams()<br/>
+                            .elementAt(i);<br/>
+                        ClassdiagramLayouter layouter = <br/>
+                            module.getLayout(diagram);<br/>
+<br/>
+                        layouter.layout();<br/>
+<br/>
+                        // Resize the diagram???<br/>
+                        iss.setValue(_countFiles + (i + 1) / 10);<br/>
+                    }<br/>
+                }<br/>
+            }<br/>
+<br/>
+            iss.done();<br/>
+            ProjectBrowser.getInstance()<br/>
+                .setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));<br/>
+<br/>
+            // if errors occured, display the collected messages here<br/>
+            if (problems != null &amp;&amp; problems.length() &gt; 0) {<br/>
+                ProblemsDialog pd = new ProblemsDialog();<br/>
+                pd.setVisible(true);<br/>
+            }<br/>
+            <br/>
+            // turn criticing on again<br/>
+            if (criticThreadWasOn)  Designer.TheDesigner.setAutoCritique(true);<br/>
+<br/>
+            UmlModelEventPump.getPump().startPumpingEvents();<br/>
+<br/>
+            ExplorerEventAdaptor.getInstance().structureChanged();<br/>
+            ProjectBrowser.getInstance().setEnabled(true);<br/>
+<br/>
+            LOG.info(_st);<br/>
+            ProjectBrowser.getInstance().getStatusBar().showProgress(0);<br/>
+<br/>
+        }<br/>
+<br/>
+        private void cancel() { cancelled = true; }<br/>
+<br/>
+        private boolean isCancelled() { return cancelled; }<br/>
+<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * A window that shows the progress bar and a cancel button.<br/>
+     * TODO: React on the close button as if the Cancel button was pressed.<br/>
+     */<br/>
+    class ImportStatusScreen extends JDialog {<br/>
+<br/>
+        private JButton cancelButton;<br/>
+<br/>
+        private JLabel progressLabel;<br/>
+<br/>
+        private int numberOfFiles;<br/>
+<br/>
+        private JProgressBar _progress;<br/>
+<br/>
+        public ImportStatusScreen(String title, String iconName) {<br/>
+<br/>
+            super();<br/>
+            if (title != null) setTitle(title);<br/>
+            Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+            getContentPane().setLayout(new BorderLayout(0, 0));<br/>
+<br/>
+            // Parsing file x of z.<br/>
+            JPanel topPanel = new JPanel();<br/>
+            progressLabel = new JLabel();<br/>
+            topPanel.add(progressLabel);<br/>
+            getContentPane().add(topPanel, BorderLayout.NORTH);<br/>
+<br/>
+            // progress bar<br/>
+            _progress = new JProgressBar();<br/>
+            getContentPane().add(_progress, BorderLayout.CENTER);<br/>
+<br/>
+            // stop button<br/>
+            cancelButton = new JButton("Stop");<br/>
+            JPanel bottomPanel = new JPanel();<br/>
+            bottomPanel.add(cancelButton);<br/>
+            getContentPane().add(bottomPanel, BorderLayout.SOUTH);<br/>
+<br/>
+            Dimension contentPaneSize = getContentPane().getPreferredSize();<br/>
+            setLocation(scrSize.width / 2 - contentPaneSize.width / 2,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scrSize.height / 2 - contentPaneSize.height / 2);<br/>
+            pack();<br/>
+            this.setResizable(false);<br/>
+            this.setModal(true);        //MVW - Issue 2539.<br/>
+            this.getParent().setEnabled(false);   //MVW: do we really need this?<br/>
+        }<br/>
+<br/>
+        public void setMaximum(int i) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    _progress.setMaximum(i); numberOfFiles = i;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+<br/>
+        public void setValue(int i) {<br/>
+<br/>
+            _progress.setValue(i);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String pass = "1-st pass";<br/>
+            // if there are 2 passes:<br/>
+            if (importLevel &gt; 0) {<br/>
+                if (i &gt;= numberOfFiles / 2) pass = "2-nd pass";<br/>
+            }<br/>
+<br/>
+            int fileNumber = i != 1 ? ((i - 1) % (numberOfFiles / 2) + 1) : 1;<br/>
+<br/>
+            progressLabel.setText("Parsing file "<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  + ((i - 1) % (numberOfFiles / 2) + 1)<br/>
+                                  + " of " + numberOfFiles / 2<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  + ", " + pass + ". ");<br/>
+            pack(); // MVW: Is this not time-consuming?<br/>
+                    // Better make the window big enough at the start,<br/>
+                    // and only refresh the label.<br/>
+        }<br/>
+<br/>
+        public void addCancelButtonListener(ActionListener al) {<br/>
+            cancelButton.addActionListener(al);<br/>
+        }<br/>
+<br/>
+        public void done() { hide(); dispose(); }<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * A window that shows the problems occured during import<br/>
+     */<br/>
+    class ProblemsDialog extends JDialog implements ActionListener {<br/>
+<br/>
+        private JButton closeButton;<br/>
+        private JLabel northLabel;<br/>
+<br/>
+        public ProblemsDialog() {<br/>
+            super();<br/>
+            setResizable(true);<br/>
+            setModal(false);<br/>
+            setTitle(Translator.localize("dialog.title.import-problems"));<br/>
+            <br/>
+            Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+            getContentPane().setLayout(new BorderLayout(0, 0));<br/>
+<br/>
+            // the introducing label<br/>
+            northLabel = new JLabel(Translator.localize("label.import-problems"));<br/>
+            getContentPane().add(northLabel, BorderLayout.NORTH);<br/>
+<br/>
+            // the text box containing the problem messages<br/>
+            JEditorPane textArea = new JEditorPane();<br/>
+            textArea.setText(problems.toString());<br/>
+            JPanel centerPanel = new JPanel(new BorderLayout());<br/>
+            centerPanel.add(new JScrollPane(textArea));<br/>
+            centerPanel.setPreferredSize(new Dimension(300, 200));<br/>
+            getContentPane().add(centerPanel);<br/>
+            <br/>
+            // close button<br/>
+            closeButton = new JButton(Translator.localize("button.close"));<br/>
+            JPanel bottomPanel = new JPanel();<br/>
+            bottomPanel.add(closeButton);<br/>
+            getContentPane().add(bottomPanel, BorderLayout.SOUTH);<br/>
+            <br/>
+            // listeners<br/>
+            closeButton.addActionListener(this);<br/>
+            addWindowListener(new WindowAdapter() {<br/>
+                public void windowClosing(WindowEvent evt) {<br/>
+                    disposeDialog();<br/>
+                }<br/>
+            });<br/>
+            <br/>
+            Dimension contentPaneSize = getContentPane().getPreferredSize();<br/>
+            setLocation(scrSize.width / 2 - contentPaneSize.width / 2,<br/>
+                    scrSize.height / 2 - contentPaneSize.height / 2);<br/>
+            pack();<br/>
+        }<br/>
+<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+            disposeDialog();<br/>
+        }<br/>
+<br/>
+        public void disposeDialog() {<br/>
+            hide(); dispose();<br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+/**<br/>
+ * dialog to setup the import classpath.<br/>
+ */<br/>
+class ImportClasspathDialog extends JDialog {<br/>
+<br/>
+    /** logger */<br/>
+    private static final Logger LOG =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;Logger.getLogger(ImportClasspathDialog.class);<br/>
+<br/>
+    private JList paths;<br/>
+    private DefaultListModel pathsModel;<br/>
+<br/>
+    private JButton addFile;<br/>
+<br/>
+    private JButton removeFile;<br/>
+<br/>
+//    private JButton save;<br/>
+<br/>
+    private JButton ok;<br/>
+<br/>
+    private Import importProcess;<br/>
+<br/>
+    public ImportClasspathDialog(Import importProcess1) {<br/>
+<br/>
+        super();<br/>
+        setTitle("Set up the import classpath"); //MVW - Issue 2539.<br/>
+        importProcess = importProcess1;<br/>
+<br/>
+        Dimension scrSize = Toolkit.getDefaultToolkit().getScreenSize();<br/>
+        getContentPane().setLayout(new BorderLayout(0, 0));<br/>
+<br/>
+        // paths list<br/>
+        pathsModel = new DefaultListModel();<br/>
+        paths = new JList(pathsModel);<br/>
+        paths.setVisibleRowCount(5);<br/>
+        JScrollPane listScroller = new JScrollPane(paths);<br/>
+        listScroller.setPreferredSize(new Dimension(250, 80));<br/>
+        getContentPane().add(listScroller, BorderLayout.CENTER);<br/>
+<br/>
+        initList();<br/>
+<br/>
+        // controls<br/>
+        JPanel controlsPanel = new JPanel();<br/>
+        controlsPanel.setLayout(new GridLayout(0, 3));<br/>
+        addFile = new JButton("Add");<br/>
+        removeFile = new JButton("Remove");<br/>
+//        save = new JButton("Save");<br/>
+        ok = new JButton("Ok");<br/>
+        controlsPanel.add(addFile);<br/>
+        controlsPanel.add(removeFile);<br/>
+//        controlsPanel.add(save);<br/>
+        controlsPanel.add(ok);<br/>
+        getContentPane().add(controlsPanel, BorderLayout.SOUTH);<br/>
+<br/>
+        addFile.addActionListener(new AddListener());<br/>
+        removeFile.addActionListener(new RemoveListener());<br/>
+//        save.addActionListener(new SaveListener());<br/>
+        ok.addActionListener(new OkListener());<br/>
+<br/>
+        //Display the window.<br/>
+        Dimension contentPaneSize = getContentPane().getPreferredSize();<br/>
+        setLocation(scrSize.width / 2 - contentPaneSize.width / 2,<br/>
+            scrSize.height / 2 - contentPaneSize.height / 2);<br/>
+        pack();<br/>
+        setVisible(true);<br/>
+        this.setModal(true);        //MVW   Issue 2539.<br/>
+        this.getParent().setEnabled(false);   //MVW: do we really need this?<br/>
+    }<br/>
+<br/>
+    private void initList() {<br/>
+<br/>
+        URL[] urls =<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    ImportClassLoader.getURLs(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;        Configuration.getString(Argo.KEY_USER_IMPORT_CLASSPATH, ""));<br/>
+<br/>
+        for (int i = 0; i &lt; urls.length; i++) {<br/>
+            pathsModel.addElement(urls[i].getFile());<br/>
+        }<br/>
+<br/>
+        paths.setSelectedIndex(0);<br/>
+    }<br/>
+<br/>
+<br/>
+    private void doFiles() {<br/>
+        importProcess.doFile();<br/>
+    }<br/>
+<br/>
+//    class SaveListener implements ActionListener {<br/>
+//        public void actionPerformed(ActionEvent e) {<br/>
+//<br/>
+//            try{<br/>
+//            ImportClassLoader.getInstance().setPath(pathsModel.toArray());<br/>
+//            ImportClassLoader.getInstance().saveUserPath();<br/>
+//        }catch(Exception e1){LOG.warn("could not do save "+e1);}<br/>
+//        }<br/>
+//    }<br/>
+<br/>
+    class OkListener implements ActionListener {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+<br/>
+            URL urls[] = new URL[pathsModel.size()];<br/>
+            for (int i = 0; i &lt; urls.length; i++) {<br/>
+                try {<br/>
+                    urls[i] = new File((String) pathsModel.get(i)).toURL();<br/>
+                } catch (Exception e1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    LOG.warn("could not do ok: could not make"<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     + "url " + pathsModel.get(i) + ", " + e1,<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;     e1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+            }<br/>
+<br/>
+            try {<br/>
+                ImportClassLoader.getInstance(urls);<br/>
+                ImportClassLoader.getInstance().saveUserPath();<br/>
+            } catch (Exception e1) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOG.warn("could not do ok", e1);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+            doFiles();<br/>
+            dispose();<br/>
+        }<br/>
+    }<br/>
+<br/>
+    class RemoveListener implements ActionListener {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+            //This method can be called only if<br/>
+            //there's a valid selection<br/>
+            //so go ahead and remove whatever's selected.<br/>
+            int index = paths.getSelectedIndex();<br/>
+            pathsModel.remove(index);<br/>
+<br/>
+            int size = pathsModel.getSize();<br/>
+<br/>
+            if (size == 0) { //nothings left, disable firing.<br/>
+                removeFile.setEnabled(false);<br/>
+<br/>
+            } else { //Select an index.<br/>
+                if (index == pathsModel.getSize()) {<br/>
+                    //removed item in last position<br/>
+                    index--;<br/>
+                }<br/>
+<br/>
+                paths.setSelectedIndex(index);<br/>
+                paths.ensureIndexIsVisible(index);<br/>
+            }<br/>
+        }<br/>
+    }<br/>
+<br/>
+<br/>
+    class AddListener implements ActionListener {<br/>
+        public void actionPerformed(ActionEvent e) {<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    String directory = Globals.getLastDirectory();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    JFileChooser ch = OsUtil.getFileChooser(directory);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (ch == null) ch = OsUtil.getFileChooser();<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    final JFileChooser chooser = ch;<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    chooser.addActionListener(new ActionListener()<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;public void actionPerformed(ActionEvent e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (e.getActionCommand().equals(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    JFileChooser.APPROVE_SELECTION)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File theFile = chooser.getSelectedFile();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (theFile != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    pathsModel.addElement(theFile.toString());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else if (e.getActionCommand().equals(<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   JFileChooser.CANCEL_SELECTION)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// TODO: What shall we do here?<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    });<br/>
+<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    int retval = chooser.showOpenDialog(ProjectBrowser.getInstance());<br/>
+        }<br/>
+    }<br/>
+}<br/>
+<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

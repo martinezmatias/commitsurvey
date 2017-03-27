@@ -1,0 +1,662 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_IIOPReferenceContextWrapper_1.4.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)IIOPRessourceContextWrapper.java&nbsp;&nbsp;&nbsp;&nbsp;1.1 02/07/15<br/>
+ *<br/>
+ * Copyright (C) 2002 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ * <br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ * <br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ */<br/>
+package org.objectweb.carol.jndi.iiop;<br/>
+<br/>
+// java import <br/>
+import java.io.Serializable;<br/>
+import java.rmi.Remote;<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NameParser;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.Referenceable;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import org.objectweb.carol.util.multi.ProtocolCurrent;<br/>
+<br/>
+/*<br/>
+ * Class &lt;code&gt;IIOPRemoteReferenceContextWrapper&lt;/code&gt; is the CAROL JNDI Context. This context make the <br/>
+ * iiop referenceable reference wrapping to/from a remote object. This context unexport the reference in the unbind method <br/>
+ * <br/>
+ * <br/>
+ * @author  Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @see javax.naming.Context<br/>
+ * @version 1.1, 15/07/2002<br/>
+ */<br/>
+public class IIOPReferenceContextWrapper implements Context {<br/>
+    <br/>
+    /**<br/>
+     * the IIOP JNDI context<br/>
+     * @see #IIOPReferenceContextWrapper<br/>
+     */<br/>
+     private static Context iiopContext = null;<br/>
+<br/>
+    /**<br/>
+     * the Exported Wrapper Hashtable<br/>
+     *<br/>
+     */<br/>
+    private static Hashtable wrapperHash = null;<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Constructs an IIOP Wrapper context <br/>
+     * @param iiopContext the inital IIOP context<br/>
+     *<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public IIOPReferenceContextWrapper (Context iiopCtx ) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext = iiopCtx;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash = new Hashtable();<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Resolve a Remote Object: <br/>
+     * If this object is a reference return the reference <br/>
+     *<br/>
+     * @param o the object to resolve<br/>
+     * @return a &lt;code&gt;Referenceable ((IIOPRemoteReference)o).getReference()&lt;/code&gt; if o is a IIOPRemoteReference<br/>
+     *         and the inititial object o if else<br/>
+     */<br/>
+    private Object resolveObject(Object o) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //TODO: May we can do a narrow ? <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (o instanceof IIOPRemoteReference) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// build of the Referenceable object with is Reference<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reference objRef = ((IIOPRemoteReference)o).getReference();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ObjectFactory objFact = (ObjectFactory)(Class.forName(objRef.getFactoryClassName())).newInstance(); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return objFact.getObjectInstance(objRef,null,null,null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else if (o instanceof IIOPRemoteResource) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ((IIOPRemoteResource)o).getResource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return o;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" + e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Encode an Object :<br/>
+     * If the object is a reference wrap it into a IIOPReferenceWrapper Object<br/>
+     * here the good way is to contact the carol configuration to get the iiop<br/>
+     * protable remote object<br/>
+     *<br/>
+     * @param o the object to encode<br/>
+     * @return  a &lt;code&gt;Remote IIOPRemoteReference Object&lt;/code&gt; if o is a ressource<br/>
+     *          o if else<br/>
+     */<br/>
+    private Object encodeObject(Object o, Object name, boolean replace) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Referenceable)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper irw =  new IIOPReferenceWrapper(((Referenceable)o).getReference());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().exportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper oldObj = (IIOPReferenceWrapper) wrapperHash.put(name, irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (oldObj != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (replace) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash.put(name, oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NamingException("Object already bind");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return irw;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } <span class="mv">if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Reference)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper irw =  new IIOPReferenceWrapper((Reference)o);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().exportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper oldObj = (IIOPReferenceWrapper) wrapperHash.put(name, irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (oldObj != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (replace) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash.put(name, oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NamingException("Object already bind");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return irw;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Serializable)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPResourceWrapper irw =  new IIOPResourceWrapper((Serializable) o);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().exportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPResourceWrapper oldObj = (IIOPResourceWrapper) wrapperHash.put(name, irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (oldObj != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (replace) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash.put(name, oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NamingException("Object already bind");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return irw;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return o;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" +e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+<br/>
+// Context methods<br/>
+// The Javadoc is deferred to the Context interface.<br/>
+   <br/>
+    public Object lookup(String name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return resolveObject(iiopContext.lookup(name));<br/>
+    }<br/>
+<br/>
+    public Object lookup(Name name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return resolveObject(iiopContext.lookup(name));<br/>
+    }<br/>
+<br/>
+    public void bind(String name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.bind(name,encodeObject(obj, name, false));<br/>
+    }<br/>
+<br/>
+    public void bind(Name name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.bind(name,encodeObject(obj, name, false));<br/>
+    }<br/>
+<br/>
+    public void rebind(String name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rebind(name,encodeObject(obj, name, true));<br/>
+    }<br/>
+<br/>
+    public void rebind(Name name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rebind(name,encodeObject(obj, name, true));<br/>
+    }<br/>
+<br/>
+    public void unbind(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    iiopContext.unbind(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(wrapperHash.containsKey(name)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject((Remote)wrapperHash.remove(name));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" +e);  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    public void unbind(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    iiopContext.unbind(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(wrapperHash.containsKey(name)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject((Remote)wrapperHash.remove(name));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" +e);  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    public void rename(String oldName, String newName) throws NamingException {&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(wrapperHash.containsKey(oldName)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    wrapperHash.put( newName, wrapperHash.remove(oldName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rename(oldName, newName);<br/>
+    }<br/>
+<br/>
+    public void rename(Name oldName, Name newName) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(wrapperHash.containsKey(oldName)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    wrapperHash.put(newName, wrapperHash.remove(oldName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rename(oldName, newName);&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(String name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.list(name);<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.list(name);<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.listBindings(name);<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(Name name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.listBindings(name);<br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.destroySubcontext(name);&nbsp;&nbsp;&nbsp;&nbsp;     <br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.destroySubcontext(name);&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.createSubcontext(name);<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.createSubcontext(name);<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.lookupLink(name);<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(Name name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.lookupLink(name);<br/>
+    }<br/>
+<br/>
+    public NameParser getNameParser(String name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getNameParser(name);<br/>
+    } <br/>
+<br/>
+    public NameParser getNameParser(Name name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getNameParser(name);<br/>
+    }<br/>
+<br/>
+    public String composeName(String name, String prefix)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return name;<br/>
+    }<br/>
+<br/>
+    public Name composeName(Name name, Name prefix) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (Name)name.clone();<br/>
+    }<br/>
+<br/>
+    public Object addToEnvironment(String propName, Object propVal) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.addToEnvironment(propName, propVal);<br/>
+    }<br/>
+<br/>
+    public Object removeFromEnvironment(String propName) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.removeFromEnvironment(propName);<br/>
+    }<br/>
+<br/>
+    public Hashtable getEnvironment() throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getEnvironment();<br/>
+    }<br/>
+<br/>
+    public void close() throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.close();<br/>
+    }<br/>
+<br/>
+    public String getNameInNamespace() throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getNameInNamespace();<br/>
+    }&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_IIOPReferenceContextWrapper_1.5.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * @(#)IIOPRessourceContextWrapper.java&nbsp;&nbsp;&nbsp;&nbsp;1.1 02/07/15<br/>
+ *<br/>
+ * Copyright (C) 2002 - INRIA (www.inria.fr)<br/>
+ *<br/>
+ * CAROL: Common Architecture for RMI ObjectWeb Layer<br/>
+ *<br/>
+ * This library is developed inside the ObjectWeb Consortium,<br/>
+ * http://www.objectweb.org<br/>
+ *<br/>
+ * This library is free software; you can redistribute it and/or<br/>
+ * modify it under the terms of the GNU Lesser General Public<br/>
+ * License as published by the Free Software Foundation; either<br/>
+ * version 2.1 of the License, or any later version.<br/>
+ * <br/>
+ * This library is distributed in the hope that it will be useful,<br/>
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of<br/>
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU<br/>
+ * Lesser General Public License for more details.<br/>
+ * <br/>
+ * You should have received a copy of the GNU Lesser General Public<br/>
+ * License along with this library; if not, write to the Free Software<br/>
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307<br/>
+ * USA<br/>
+ *<br/>
+ */<br/>
+package org.objectweb.carol.jndi.iiop;<br/>
+<br/>
+// java import <br/>
+import java.io.Serializable;<br/>
+import java.rmi.Remote;<br/>
+import java.util.Hashtable;<br/>
+<br/>
+import javax.naming.Context;<br/>
+import javax.naming.Name;<br/>
+import javax.naming.NameParser;<br/>
+import javax.naming.NamingEnumeration;<br/>
+import javax.naming.NamingException;<br/>
+import javax.naming.Reference;<br/>
+import javax.naming.Referenceable;<br/>
+import javax.naming.spi.ObjectFactory;<br/>
+<br/>
+import org.objectweb.carol.util.multi.ProtocolCurrent;<br/>
+<br/>
+/*<br/>
+ * Class &lt;code&gt;IIOPRemoteReferenceContextWrapper&lt;/code&gt; is the CAROL JNDI Context. This context make the <br/>
+ * iiop referenceable reference wrapping to/from a remote object. This context unexport the reference in the unbind method <br/>
+ * <br/>
+ * <br/>
+ * @author  Guillaume Riviere (Guillaume.Riviere@inrialpes.fr)<br/>
+ * @see javax.naming.Context<br/>
+ * @version 1.1, 15/07/2002<br/>
+ */<br/>
+public class IIOPReferenceContextWrapper implements Context {<br/>
+    <br/>
+    /**<br/>
+     * the IIOP JNDI context<br/>
+     * @see #IIOPReferenceContextWrapper<br/>
+     */<br/>
+     private static Context iiopContext = null;<br/>
+<br/>
+    /**<br/>
+     * the Exported Wrapper Hashtable<br/>
+     *<br/>
+     */<br/>
+    private static Hashtable wrapperHash = null;<br/>
+<br/>
+    <br/>
+    /**<br/>
+     * Constructs an IIOP Wrapper context <br/>
+     * @param iiopContext the inital IIOP context<br/>
+     *<br/>
+     * @throws NamingException if a naming exception is encountered<br/>
+     */<br/>
+    public IIOPReferenceContextWrapper (Context iiopCtx ) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext = iiopCtx;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash = new Hashtable();<br/>
+    }<br/>
+<br/>
+<br/>
+    /**<br/>
+     * Resolve a Remote Object: <br/>
+     * If this object is a reference return the reference <br/>
+     *<br/>
+     * @param o the object to resolve<br/>
+     * @return a &lt;code&gt;Referenceable ((IIOPRemoteReference)o).getReference()&lt;/code&gt; if o is a IIOPRemoteReference<br/>
+     *         and the inititial object o if else<br/>
+     */<br/>
+    private Object resolveObject(Object o) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    //TODO: May we can do a narrow ? <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if (o instanceof IIOPRemoteReference) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// build of the Referenceable object with is Reference<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Reference objRef = ((IIOPRemoteReference)o).getReference();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ObjectFactory objFact = (ObjectFactory)(Class.forName(objRef.getFactoryClassName())).newInstance(); <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return objFact.getObjectInstance(objRef,null,null,null);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else if (o instanceof IIOPRemoteResource) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ((IIOPRemoteResource)o).getResource();<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return o;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" + e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    /**<br/>
+     * Encode an Object :<br/>
+     * If the object is a reference wrap it into a IIOPReferenceWrapper Object<br/>
+     * here the good way is to contact the carol configuration to get the iiop<br/>
+     * protable remote object<br/>
+     *<br/>
+     * @param o the object to encode<br/>
+     * @return  a &lt;code&gt;Remote IIOPRemoteReference Object&lt;/code&gt; if o is a ressource<br/>
+     *          o if else<br/>
+     */<br/>
+    private Object encodeObject(Object o, Object name, boolean replace) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Referenceable)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper irw =  new IIOPReferenceWrapper(((Referenceable)o).getReference());<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().exportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper oldObj = (IIOPReferenceWrapper) wrapperHash.put(name, irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (oldObj != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (replace) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash.put(name, oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NamingException("Object already bind");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return irw;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else <span class="mv">if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Reference)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper irw =  new IIOPReferenceWrapper((Reference)o);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().exportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPReferenceWrapper oldObj = (IIOPReferenceWrapper) wrapperHash.put(name, irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (oldObj != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (replace) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash.put(name, oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NamingException("Object already bind");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return irw;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else if ((!(o instanceof Remote)) &amp;&amp; (o instanceof Serializable)) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPResourceWrapper irw =  new IIOPResourceWrapper((Serializable) o);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().exportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IIOPResourceWrapper oldObj = (IIOPResourceWrapper) wrapperHash.put(name, irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (oldObj != null) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    if (replace) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject(irw);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wrapperHash.put(name, oldObj);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;throw new NamingException("Object already bind");<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return irw;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    } else {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return o;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }</span><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" +e);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+    <br/>
+<br/>
+// Context methods<br/>
+// The Javadoc is deferred to the Context interface.<br/>
+   <br/>
+    public Object lookup(String name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return resolveObject(iiopContext.lookup(name));<br/>
+    }<br/>
+<br/>
+    public Object lookup(Name name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return resolveObject(iiopContext.lookup(name));<br/>
+    }<br/>
+<br/>
+    public void bind(String name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.bind(name,encodeObject(obj, name, false));<br/>
+    }<br/>
+<br/>
+    public void bind(Name name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.bind(name,encodeObject(obj, name, false));<br/>
+    }<br/>
+<br/>
+    public void rebind(String name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rebind(name,encodeObject(obj, name, true));<br/>
+    }<br/>
+<br/>
+    public void rebind(Name name, Object obj) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rebind(name,encodeObject(obj, name, true));<br/>
+    }<br/>
+<br/>
+    public void unbind(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    iiopContext.unbind(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(wrapperHash.containsKey(name)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject((Remote)wrapperHash.remove(name));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" +e);  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    public void unbind(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;try {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    iiopContext.unbind(name);<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    if(wrapperHash.containsKey(name)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ProtocolCurrent.getCurrent().getCurrentPortableRemoteObject().unexportObject((Remote)wrapperHash.remove(name));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    }<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;} catch (Exception e) {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throw new NamingException("" +e);  <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+    }<br/>
+<br/>
+    public void rename(String oldName, String newName) throws NamingException {&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(wrapperHash.containsKey(oldName)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    wrapperHash.put( newName, wrapperHash.remove(oldName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rename(oldName, newName);<br/>
+    }<br/>
+<br/>
+    public void rename(Name oldName, Name newName) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;if(wrapperHash.containsKey(oldName)){<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    wrapperHash.put(newName, wrapperHash.remove(oldName));<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.rename(oldName, newName);&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(String name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.list(name);<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration list(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.list(name);<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(String name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.listBindings(name);<br/>
+    }<br/>
+<br/>
+    public NamingEnumeration listBindings(Name name)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.listBindings(name);<br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.destroySubcontext(name);&nbsp;&nbsp;&nbsp;&nbsp;     <br/>
+    }<br/>
+<br/>
+    public void destroySubcontext(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.destroySubcontext(name);&nbsp;&nbsp;&nbsp;&nbsp;<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.createSubcontext(name);<br/>
+    }<br/>
+<br/>
+    public Context createSubcontext(Name name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.createSubcontext(name);<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(String name) throws NamingException  {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.lookupLink(name);<br/>
+    }<br/>
+<br/>
+    public Object lookupLink(Name name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.lookupLink(name);<br/>
+    }<br/>
+<br/>
+    public NameParser getNameParser(String name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getNameParser(name);<br/>
+    } <br/>
+<br/>
+    public NameParser getNameParser(Name name) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getNameParser(name);<br/>
+    }<br/>
+<br/>
+    public String composeName(String name, String prefix)<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return name;<br/>
+    }<br/>
+<br/>
+    public Name composeName(Name name, Name prefix) throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return (Name)name.clone();<br/>
+    }<br/>
+<br/>
+    public Object addToEnvironment(String propName, Object propVal) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.addToEnvironment(propName, propVal);<br/>
+    }<br/>
+<br/>
+    public Object removeFromEnvironment(String propName) <br/>
+&nbsp;&nbsp;&nbsp;&nbsp;    throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.removeFromEnvironment(propName);<br/>
+    }<br/>
+<br/>
+    public Hashtable getEnvironment() throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getEnvironment();<br/>
+    }<br/>
+<br/>
+    public void close() throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;iiopContext.close();<br/>
+    }<br/>
+<br/>
+    public String getNameInNamespace() throws NamingException {<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return iiopContext.getNameInNamespace();<br/>
+    }&nbsp;&nbsp;&nbsp;&nbsp;    <br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,764 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_JavaWsdlMappingFactory_1.1.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * JBoss, the OpenSource J2EE webOS<br/>
+ *<br/>
+ * Distributable under LGPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+package org.jboss.webservice.metadata.jaxrpcmapping;<br/>
+<br/>
+// $Id: JavaWsdlMappingFactory.java,v 1.1 2004-05-14 18:34:23 tdiesler Exp $<br/>
+<br/>
+import org.jboss.logging.Logger;<br/>
+import org.jboss.xml.binding.ContentNavigator;<br/>
+import org.jboss.xml.binding.ObjectModelFactory;<br/>
+import org.xml.sax.Attributes;<br/>
+<br/>
+/**<br/>
+ * A JBossXB factory for {@link org.jboss.webservice.metadata.jaxrpcmapping.JavaWsdlMapping}<br/>
+ * <br/>
+ * @author Thomas.Diesler@jboss.org<br/>
+ * @since 14-May-2004<br/>
+ */<br/>
+public class JavaWsdlMappingFactory implements ObjectModelFactory<br/>
+{<br/>
+   // provide logging<br/>
+   private static final Logger log = Logger.getLogger(JavaWsdlMappingFactory.class);<br/>
+<br/>
+   /**<br/>
+    * This method is called on the factory by the object model builder when the parsing starts.<br/>
+    */<br/>
+   public Object startDocument()<br/>
+   {<br/>
+      return new JavaWsdlMapping();<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * This method is called on the factory when the parsing is done.<br/>
+    */<br/>
+   public void endDocument(Object objectModel) throws Exception<br/>
+   {<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(JavaWsdlMapping javaWsdlMapping, ContentNavigator navigator, String namespaceURI, String localName, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + localName);<br/>
+      if ("package-mapping".equals(localName))<br/>
+         return new PackageMapping(javaWsdlMapping);<br/>
+      if ("java-xml-type-mapping".equals(localName))<br/>
+         return new JavaXmlTypeMapping(javaWsdlMapping);<br/>
+      if ("exception-mapping".equals(localName))<br/>
+         return new ExceptionMapping(javaWsdlMapping);<br/>
+      if ("service-interface-mapping".equals(localName))<br/>
+         return new ServiceInterfaceMapping(javaWsdlMapping);<br/>
+      if ("service-endpoint-interface-mapping".equals(localName))<br/>
+         return new ServiceEndpointInterfaceMapping(javaWsdlMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, PackageMapping packageMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + packageMapping + "]");<br/>
+      javaWsdlMapping.addPackageMapping(packageMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, JavaXmlTypeMapping typeMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + typeMapping + "]");<br/>
+      javaWsdlMapping.addJavaXmlTypeMappings(typeMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, ExceptionMapping exceptionMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + exceptionMapping + "]");<br/>
+      javaWsdlMapping.addExceptionMappings(exceptionMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, ServiceInterfaceMapping siMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + siMapping + "]");<br/>
+      javaWsdlMapping.addServiceInterfaceMappings(siMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, ServiceEndpointInterfaceMapping seiMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + seiMapping + "]");<br/>
+      javaWsdlMapping.addServiceEndpointInterfaceMappings(seiMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(PackageMapping packageMapping, ContentNavigator navigator, String namespaceURI, String localName, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + packageMapping + ",value=" + value + "]");<br/>
+      if ("package-type".equals(localName))<br/>
+         packageMapping.setPackageType(value);<br/>
+      else if ("namespaceURI".equals(localName))<br/>
+         packageMapping.setNamespaceURI(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(JavaXmlTypeMapping typeMapping, ContentNavigator navigator, String namespaceURI, String localName, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + localName);<br/>
+      if ("variable-mapping".equals(localName))<br/>
+         return new VariableMapping(typeMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaXmlTypeMapping typeMapping, VariableMapping variableMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + typeMapping + ",child=" + variableMapping + "]");<br/>
+      typeMapping.addVariableMapping(variableMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(JavaXmlTypeMapping typeMapping, ContentNavigator navigator, String namespaceURI, String localName, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + typeMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv">"class-type".equals(localName)</span>)<br/>
+         typeMapping.setClassType(value);<br/>
+      else if (<span class="mv"><span class="mv">"root-type-qname"</span>.equals(localName)</span>)<br/>
+         typeMapping.setRootTypeQName(navigator.resolveQName(value));<br/>
+      else if (<span class="mv"><span class="mv">"qname-scope"</span>.equals(localName)</span>)<br/>
+         typeMapping.setQnameScope(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ExceptionMapping exceptionMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + exceptionMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"exception-type"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         exceptionMapping.setExceptionType(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-message"</span>.equals(localName)</span>)<br/>
+         exceptionMapping.setWsdlMessage(navigator.resolveQName(value));<br/>
+      else if (<span class="mv"><span class="mv">"constructor-parameter-order"</span>.equals(localName)</span>)<br/>
+         exceptionMapping.addConstructorParameter(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(ServiceInterfaceMapping siMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="del"><span class="mv">"port-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new PortMapping(siMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceInterfaceMapping siMapping, PortMapping portMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + siMapping + ",child=" + portMapping + "]");<br/>
+      siMapping.addPortMapping(portMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ServiceInterfaceMapping siMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + siMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"service-interface"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         siMapping.setServiceInterface(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-service-name"</span>.equals(localName)</span>)<br/>
+         siMapping.setWsdlServiceName(navigator.resolveQName(value));<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(ServiceEndpointInterfaceMapping seiMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="del"><span class="mv">"service-endpoint-method-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new ServiceEndpointMethodMapping(seiMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceEndpointInterfaceMapping seiMapping, ServiceEndpointMethodMapping seiMethodMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + seiMapping + ",child=" + seiMapping + "]");<br/>
+      seiMapping.addServiceEndpointMethodMapping(seiMethodMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ServiceEndpointInterfaceMapping seiMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + seiMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"service-endpoint-interface"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         seiMapping.setServiceEndpointInterface(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-port-type"</span>.equals(localName)</span>)<br/>
+         seiMapping.setWsdlPortType(navigator.resolveQName(value));<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-binding"</span>.equals(localName)</span>)<br/>
+         seiMapping.setWsdlBinding(navigator.resolveQName(value));<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(VariableMapping variableMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + variableMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"java-variable-name"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         variableMapping.setJavaVariableName(value);<br/>
+      else if (<span class="mv"><span class="mv">"data-member"</span>.equals(localName)</span>)<br/>
+         variableMapping.setDataMember(true);<br/>
+      else if (<span class="mv"><span class="mv">"xml-element-name"</span>.equals(localName)</span>)<br/>
+         variableMapping.setXmlElementName(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(PortMapping portMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + portMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"port-name"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         portMapping.setPortName(value);<br/>
+      else if (<span class="mv"><span class="mv">"java-port-name"</span>.equals(localName)</span>)<br/>
+         portMapping.setJavaPortName(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(ServiceEndpointMethodMapping methodMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="del"><span class="mv">"method-param-parts-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new MethodParamPartsMapping(methodMapping);<br/>
+      if (<span class="mv"><span class="mv">"wsdl-return-value-mapping"</span>.equals(localName)</span>)<br/>
+         return new WsdlReturnValueMapping(methodMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceEndpointMethodMapping methodMapping, MethodParamPartsMapping partsMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + methodMapping + ",child=" + partsMapping + "]");<br/>
+      methodMapping.addMethodParamPartsMapping(partsMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceEndpointMethodMapping methodMapping, WsdlReturnValueMapping returnValueMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + methodMapping + ",child=" + returnValueMapping + "]");<br/>
+      methodMapping.setWsdlReturnValueMapping(returnValueMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ServiceEndpointMethodMapping methodMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + methodMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"java-method-name"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         methodMapping.setJavaMethodName(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-operation"</span>.equals(localName)</span>)<br/>
+         methodMapping.setWsdlOperation(value);<br/>
+      else if (<span class="mv"><span class="mv">"wrapped-element"</span>.equals(localName)</span>)<br/>
+         methodMapping.setWrappedElement(true);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(MethodParamPartsMapping partsMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="del"><span class="mv">"wsdl-message-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new WsdlMessageMapping(partsMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(MethodParamPartsMapping partsMapping, WsdlMessageMapping msgMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + partsMapping + ",child=" + msgMapping + "]");<br/>
+      partsMapping.setWsdlMessageMapping(msgMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(MethodParamPartsMapping partsMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + partsMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"param-position"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         partsMapping.setParamPosition(new Integer(value).intValue());<br/>
+      else if (<span class="mv"><span class="mv">"param-type"</span>.equals(localName)</span>)<br/>
+         partsMapping.setParamType(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(WsdlReturnValueMapping retValueMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + retValueMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"method-return-value"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         retValueMapping.setMethodReturnValue(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-message"</span>.equals(localName)</span>)<br/>
+         retValueMapping.setWsdlMessage(navigator.resolveQName(value));<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-message-part-name"</span>.equals(localName)</span>)<br/>
+         retValueMapping.setWsdlMessagePartName(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(WsdlMessageMapping msgMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + msgMapping + ",value=" + value + "]");<br/>
+      if (<span class="del"><span class="mv">"wsdl-message"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         msgMapping.setWsdlMessage(navigator.resolveQName(value));<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-message-part-name"</span>.equals(localName)</span>)<br/>
+         msgMapping.setWsdlMessagePartName(value);<br/>
+      else if (<span class="mv"><span class="mv">"parameter-mode"</span>.equals(localName)</span>)<br/>
+         msgMapping.setParameterMode(value);<br/>
+      else if (<span class="mv"><span class="mv">"soap-header"</span>.equals(localName)</span>)<br/>
+         msgMapping.setSoapHeader(true);<br/>
+   }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_JavaWsdlMappingFactory_1.2.java</h1>
+<div class="code">
+<div class="id">
+/*<br/>
+ * JBoss, the OpenSource J2EE webOS<br/>
+ *<br/>
+ * Distributable under LGPL license.<br/>
+ * See terms of license at gnu.org.<br/>
+ */<br/>
+package org.jboss.webservice.metadata.jaxrpcmapping;<br/>
+<br/>
+// $Id: JavaWsdlMappingFactory.java,v 1.2 2004-06-08 07:44:29 telrod Exp $<br/>
+<br/>
+import org.jboss.logging.Logger;<br/>
+import org.jboss.xml.binding.ContentNavigator;<br/>
+import org.jboss.xml.binding.ObjectModelFactory;<br/>
+import org.xml.sax.Attributes;<br/>
+<br/>
+/**<br/>
+ * A JBossXB factory for {@link org.jboss.webservice.metadata.jaxrpcmapping.JavaWsdlMapping}<br/>
+ *<br/>
+ * @author Thomas.Diesler@jboss.org<br/>
+ * @since 14-May-2004<br/>
+ */<br/>
+public class JavaWsdlMappingFactory implements ObjectModelFactory<br/>
+{<br/>
+   // provide logging<br/>
+   private static final Logger log = Logger.getLogger(JavaWsdlMappingFactory.class);<br/>
+<br/>
+   /**<br/>
+    * This method is called on the factory by the object model builder when the parsing starts.<br/>
+    */<br/>
+   public Object startDocument()<br/>
+   {<br/>
+      return new JavaWsdlMapping();<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * This method is called on the factory when the parsing is done.<br/>
+    */<br/>
+   public void endDocument(Object objectModel) throws Exception<br/>
+   {<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(JavaWsdlMapping javaWsdlMapping, ContentNavigator navigator, String namespaceURI, String localName, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + localName);<br/>
+      if ("package-mapping".equals(localName))<br/>
+         return new PackageMapping(javaWsdlMapping);<br/>
+      if ("java-xml-type-mapping".equals(localName))<br/>
+         return new JavaXmlTypeMapping(javaWsdlMapping);<br/>
+      if ("exception-mapping".equals(localName))<br/>
+         return new ExceptionMapping(javaWsdlMapping);<br/>
+      if ("service-interface-mapping".equals(localName))<br/>
+         return new ServiceInterfaceMapping(javaWsdlMapping);<br/>
+      if ("service-endpoint-interface-mapping".equals(localName))<br/>
+         return new ServiceEndpointInterfaceMapping(javaWsdlMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, PackageMapping packageMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + packageMapping + "]");<br/>
+      javaWsdlMapping.addPackageMapping(packageMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, JavaXmlTypeMapping typeMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + typeMapping + "]");<br/>
+      javaWsdlMapping.addJavaXmlTypeMappings(typeMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, ExceptionMapping exceptionMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + exceptionMapping + "]");<br/>
+      javaWsdlMapping.addExceptionMappings(exceptionMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, ServiceInterfaceMapping siMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + siMapping + "]");<br/>
+      javaWsdlMapping.addServiceInterfaceMappings(siMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaWsdlMapping javaWsdlMapping, ServiceEndpointInterfaceMapping seiMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + javaWsdlMapping + ",child=" + seiMapping + "]");<br/>
+      javaWsdlMapping.addServiceEndpointInterfaceMappings(seiMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(PackageMapping packageMapping, ContentNavigator navigator, String namespaceURI, String localName, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + packageMapping + ",value=" + value + "]");<br/>
+      if ("package-type".equals(localName))<br/>
+         packageMapping.setPackageType(value);<br/>
+      else if ("namespaceURI".equals(localName))<br/>
+         packageMapping.setNamespaceURI(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(JavaXmlTypeMapping typeMapping, ContentNavigator navigator, String namespaceURI, String localName, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + localName);<br/>
+      if ("variable-mapping".equals(localName))<br/>
+         return new VariableMapping(typeMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(JavaXmlTypeMapping typeMapping, VariableMapping variableMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + typeMapping + ",child=" + variableMapping + "]");<br/>
+      typeMapping.addVariableMapping(variableMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(JavaXmlTypeMapping typeMapping, ContentNavigator navigator, String namespaceURI, String localName, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + typeMapping + ",value=" + value + "]");<br/>
+      if (<span class="add"><span class="mv">"class-type".equals(localName)</span> || <span class="mv"><span class="add">"java-type"</span>.equals(localName)</span></span>)<br/>
+         typeMapping.setClassType(value);<br/>
+      else if (<span class="mv"><span class="mv">"root-type-qname"</span>.equals(localName)</span>)<br/>
+         typeMapping.setRootTypeQName(navigator.resolveQName(value));<br/>
+      else if (<span class="add"><span class="mv">"qname-scope"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         typeMapping.setQnameScope(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ExceptionMapping exceptionMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + exceptionMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"exception-type"</span>.equals(localName)</span>)<br/>
+         exceptionMapping.setExceptionType(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-message"</span>.equals(localName)</span>)<br/>
+         exceptionMapping.setWsdlMessage(navigator.resolveQName(value));<br/>
+      else if (<span class="add"><span class="mv">"constructor-parameter-order"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         exceptionMapping.addConstructorParameter(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(ServiceInterfaceMapping siMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="add"><span class="mv">"port-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new PortMapping(siMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceInterfaceMapping siMapping, PortMapping portMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + siMapping + ",child=" + portMapping + "]");<br/>
+      siMapping.addPortMapping(portMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ServiceInterfaceMapping siMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + siMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"service-interface"</span>.equals(localName)</span>)<br/>
+         siMapping.setServiceInterface(value);<br/>
+      else if (<span class="add"><span class="mv">"wsdl-service-name"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         siMapping.setWsdlServiceName(navigator.resolveQName(value));<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(ServiceEndpointInterfaceMapping seiMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="add"><span class="mv">"service-endpoint-method-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new ServiceEndpointMethodMapping(seiMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceEndpointInterfaceMapping seiMapping, ServiceEndpointMethodMapping seiMethodMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + seiMapping + ",child=" + seiMapping + "]");<br/>
+      seiMapping.addServiceEndpointMethodMapping(seiMethodMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ServiceEndpointInterfaceMapping seiMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + seiMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"service-endpoint-interface"</span>.equals(localName)</span>)<br/>
+         seiMapping.setServiceEndpointInterface(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-port-type"</span>.equals(localName)</span>)<br/>
+         seiMapping.setWsdlPortType(navigator.resolveQName(value));<br/>
+      else if (<span class="add"><span class="mv">"wsdl-binding"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         seiMapping.setWsdlBinding(navigator.resolveQName(value));<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(VariableMapping variableMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + variableMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"java-variable-name"</span>.equals(localName)</span>)<br/>
+         variableMapping.setJavaVariableName(value);<br/>
+      else if (<span class="mv"><span class="mv">"data-member"</span>.equals(localName)</span>)<br/>
+         variableMapping.setDataMember(true);<br/>
+      else if (<span class="add"><span class="mv">"xml-element-name"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         variableMapping.setXmlElementName(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(PortMapping portMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + portMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"port-name"</span>.equals(localName)</span>)<br/>
+         portMapping.setPortName(value);<br/>
+      else if (<span class="add"><span class="mv">"java-port-name"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         portMapping.setJavaPortName(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(ServiceEndpointMethodMapping methodMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="mv"><span class="mv">"method-param-parts-mapping"</span>.equals(localName)</span>)<br/>
+         return new MethodParamPartsMapping(methodMapping);<br/>
+      if (<span class="add"><span class="mv">"wsdl-return-value-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new WsdlReturnValueMapping(methodMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceEndpointMethodMapping methodMapping, MethodParamPartsMapping partsMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + methodMapping + ",child=" + partsMapping + "]");<br/>
+      methodMapping.addMethodParamPartsMapping(partsMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(ServiceEndpointMethodMapping methodMapping, WsdlReturnValueMapping returnValueMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + methodMapping + ",child=" + returnValueMapping + "]");<br/>
+      methodMapping.setWsdlReturnValueMapping(returnValueMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(ServiceEndpointMethodMapping methodMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + methodMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"java-method-name"</span>.equals(localName)</span>)<br/>
+         methodMapping.setJavaMethodName(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-operation"</span>.equals(localName)</span>)<br/>
+         methodMapping.setWsdlOperation(value);<br/>
+      else if (<span class="add"><span class="mv">"wrapped-element"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         methodMapping.setWrappedElement(true);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing of a new element started.<br/>
+    */<br/>
+   public Object newChild(MethodParamPartsMapping partsMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, Attributes attrs)<br/>
+   {<br/>
+      log.trace("newChild: " + <span class="mv">localName</span>);<br/>
+      if (<span class="add"><span class="mv">"wsdl-message-mapping"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         return new WsdlMessageMapping(partsMapping);<br/>
+      return null;<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when parsing character is complete.<br/>
+    */<br/>
+   public void addChild(MethodParamPartsMapping partsMapping, WsdlMessageMapping msgMapping, ContentNavigator navigator)<br/>
+   {<br/>
+      log.trace("addChild: [obj=" + partsMapping + ",child=" + msgMapping + "]");<br/>
+      partsMapping.setWsdlMessageMapping(msgMapping);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(MethodParamPartsMapping partsMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + partsMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"param-position"</span>.equals(localName)</span>)<br/>
+         partsMapping.setParamPosition(new Integer(value).intValue());<br/>
+      else if (<span class="add"><span class="mv">"param-type"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         partsMapping.setParamType(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(WsdlReturnValueMapping retValueMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + retValueMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"method-return-value"</span>.equals(localName)</span>)<br/>
+         retValueMapping.setMethodReturnValue(value);<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-message"</span>.equals(localName)</span>)<br/>
+         retValueMapping.setWsdlMessage(navigator.resolveQName(value));<br/>
+      else if (<span class="add"><span class="mv">"wsdl-message-part-name"</span>.<span class="mv">equals</span>(<span class="mv">localName</span>)</span>)<br/>
+         retValueMapping.setWsdlMessagePartName(value);<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * Called when a new simple child element with text value was read from the XML content.<br/>
+    */<br/>
+   public void setValue(WsdlMessageMapping msgMapping, ContentNavigator navigator, String namespaceURI, String <span class="mv">localName</span>, String value)<br/>
+   {<br/>
+      log.trace("setValue: [obj=" + msgMapping + ",value=" + value + "]");<br/>
+      if (<span class="mv"><span class="mv">"wsdl-message"</span>.equals(localName)</span>)<br/>
+         msgMapping.setWsdlMessage(navigator.resolveQName(value));<br/>
+      else if (<span class="mv"><span class="mv">"wsdl-message-part-name"</span>.equals(localName)</span>)<br/>
+         msgMapping.setWsdlMessagePartName(value);<br/>
+      else if (<span class="mv"><span class="mv">"parameter-mode"</span>.equals(localName)</span>)<br/>
+         msgMapping.setParameterMode(value);<br/>
+      else if (<span class="add"><span class="mv">"soap-header"</span>.<span class="add">equals</span>(<span class="add">localName</span>)</span>)<br/>
+         msgMapping.setSoapHeader(true);<br/>
+   }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

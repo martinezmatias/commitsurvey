@@ -1,0 +1,3 @@
+# Module fr.inria.sacha.result.Result
+# RPC service class, partial path of RPC policy file
+fr.inria.sacha.result.client.ResultService, 575F395F6401878F1558D8815EFD7EF4.gwt.rpc

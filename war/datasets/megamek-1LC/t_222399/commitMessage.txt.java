@@ -1,0 +1,1 @@
+Bug 1018169: Incorrect loading of TDB mixed-tech double heat sinks fixed.

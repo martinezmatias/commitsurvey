@@ -1,0 +1,426 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_AggregateBean_1.1.java</h1>
+<div class="code">
+<div class="id">
+package org.jboss.metadata.aggregate;<br/>
+<br/>
+import java.lang.reflect.*;<br/>
+import java.util.*;<br/>
+import org.jboss.metadata.*;<br/>
+<br/>
+public class AggregateBean extends AggregateMetaData implements BeanMetaData {<br/>
+    private AggregateContainer container;<br/>
+    private AggregateMethod[] methods;<br/>
+    private AggregateMethod[] homeMethods;<br/>
+    private AggregateField[] fields;<br/>
+    private String name;<br/>
+<br/>
+    public AggregateBean(String name) {<br/>
+        this.name = name;<br/>
+        methods = homeMethods = new AggregateMethod[0];<br/>
+        container = new AggregateContainer();<br/>
+        fields = new AggregateField[0];<br/>
+    }<br/>
+<br/>
+    public AggregateBean(String name, BeanMetaData[] plugins) {<br/>
+        this(name);<br/>
+        for(int i=0; i&lt;plugins.length; i++)<br/>
+            addPlugin(plugins[i]);<br/>
+    }<br/>
+<br/>
+    public void addPlugin(BeanMetaData plugin) {<br/>
+        super.addPlugin(plugin);<br/>
+        methods = mergeMethods(plugin.getMethods(), methods, plugin.getManager());<br/>
+        homeMethods = mergeMethods(plugin.getHomeMethods(), homeMethods, plugin.getManager());<br/>
+        fields = mergeFields(plugin.getFields(), fields, plugin.getManager());<br/>
+        container.addPlugin(plugin.getContainer());<br/>
+    }<br/>
+<br/>
+    private static MethodMetaData getMethod(Set source, String name, Class[] args) {<br/>
+        Iterator it = source.iterator();<br/>
+        while(it.hasNext()) {<br/>
+            MethodMetaData mmd = (MethodMetaData)it.next();<br/>
+            if(mmd.getName().equals(name) &amp;&amp;<br/>
+               paramsMatch(mmd.getParameterTypes(), args))<br/>
+                return mmd;<br/>
+        }<br/>
+        throw new IllegalArgumentException();<br/>
+    }<br/>
+<br/>
+    private static FieldMetaData getField(Set source, String name) {<br/>
+        Iterator it = source.iterator();<br/>
+        while(it.hasNext()) {<br/>
+            FieldMetaData fmd = (FieldMetaData)it.next();<br/>
+            if(fmd.getName().equals(name))<br/>
+                return fmd;<br/>
+        }<br/>
+        throw new IllegalArgumentException();<br/>
+    }<br/>
+<br/>
+    private static AggregateMethod[] mergeMethods(Set incoming, AggregateMethod[] existing, MetaDataPlugin manager) {<br/>
+        for(int i=0; i&lt;existing.length; i++) {<br/>
+            String name = existing[i].getName();<br/>
+            Class[] args = existing[i].getParameterTypes();<br/>
+            try {<br/>
+                MethodMetaData mmd = getMethod(incoming, name, args);<br/>
+                existing[i].addPlugin(mmd);<br/>
+                incoming.remove(mmd);<br/>
+            } catch(IllegalArgumentException e) {<br/>
+                try {<br/>
+                    Class cls = manager.getMethodClass();<br/>
+                    Object instance = cls.newInstance();<br/>
+                    Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                    m.invoke(instance, new Object[]{name});<br/>
+                    m = cls.getMethod("setParameterTypes", new Class[]{Class[].class});<br/>
+                    m.invoke(instance, new Object[]{args});<br/>
+                    existing[i].addPlugin((MethodMetaData)instance);<br/>
+                } catch(Exception e2) {e2.printStackTrace();}<br/>
+            }<br/>
+        }<br/>
+        Vector v = new Vector(Arrays.asList(existing));<br/>
+        for(Iterator it = incoming.iterator(); it.hasNext();) {<br/>
+            MethodMetaData mmd = (MethodMetaData)it.next();<br/>
+            String name = mmd.getName();<br/>
+            Class[] args = mmd.getParameterTypes();<br/>
+            MethodMetaData[] list = new MethodMetaData[MetaDataFactory.getPluginCount()];<br/>
+            for(int i=0; i&lt;list.length; i++) {<br/>
+                Class cls = MetaDataFactory.getPlugin(i).getMethodClass();<br/>
+                if(cls.equals(mmd.getClass()))<br/>
+                    list[i] = mmd;<br/>
+                else<br/>
+                    try {<br/>
+                        list[i] = (MethodMetaData)cls.newInstance();<br/>
+                        Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                        m.invoke(list[i], new Object[]{name});<br/>
+                        m = cls.getMethod("setParameterTypes", new Class[]{Class[].class});<br/>
+                        m.invoke(list[i], new Object[]{args});<br/>
+                    } catch(Exception e) {e.printStackTrace();}<br/>
+            }<br/>
+            v.addElement(new AggregateMethod(name, args, list));<br/>
+        }<br/>
+        if(v.size() &gt; existing.length)<br/>
+            return (AggregateMethod[])v.toArray(new AggregateMethod[v.size()]);<br/>
+        else<br/>
+            return existing;<br/>
+    }<br/>
+<br/>
+    private static AggregateField[] mergeFields(Set incoming, AggregateField[] existing, MetaDataPlugin manager) {<br/>
+        for(int i=0; i&lt;existing.length; i++) {<br/>
+            String name = existing[i].getName();<br/>
+            try {<br/>
+                FieldMetaData fmd = getField(incoming, name);<br/>
+                existing[i].addPlugin(fmd);<br/>
+                incoming.remove(fmd);<br/>
+            } catch(IllegalArgumentException e) {<br/>
+                try {<br/>
+                    Class cls = manager.getFieldClass();<br/>
+                    Object instance = cls.newInstance();<br/>
+                    Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                    m.invoke(instance, new Object[]{name});<br/>
+                    existing[i].addPlugin((FieldMetaData)instance);<br/>
+                } catch(Exception e2) {e2.printStackTrace();}<br/>
+            }<br/>
+        }<br/>
+        Vector v = new Vector(Arrays.asList(existing));<br/>
+        for(Iterator it = incoming.iterator(); it.hasNext();) {<br/>
+            FieldMetaData fmd = (FieldMetaData)it.next();<br/>
+            String name = fmd.getName();<br/>
+            FieldMetaData[] list = new FieldMetaData[MetaDataFactory.getPluginCount()];<br/>
+            for(int i=0; i&lt;list.length; i++) {<br/>
+                Class cls = MetaDataFactory.getPlugin(i).getFieldClass();<br/>
+                if(cls.equals(fmd.getClass()))<br/>
+                    list[i] = fmd;<br/>
+                else<br/>
+                    try {<br/>
+                        list[i] = (FieldMetaData)cls.newInstance();<br/>
+                        Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                        m.invoke(list[i], new Object[]{name});<br/>
+                    } catch(Exception e) {e.printStackTrace();}<br/>
+            }<br/>
+            v.addElement(new AggregateField(name, list));<br/>
+        }<br/>
+        if(v.size() &gt; existing.length)<br/>
+            return (AggregateField[])v.toArray(new AggregateField[v.size()]);<br/>
+        else<br/>
+            return existing;<br/>
+    }<br/>
+<br/>
+    public MethodMetaData getMethod(String name, Class[] args) {<br/>
+        for(int i=0; i&lt;methods.length; i++)<br/>
+            if(methods[i].getName().equals(name) &amp;&amp;<br/>
+               paramsMatch(methods[i].getParameterTypes(), args))<br/>
+                return methods[i];<br/>
+        throw new IllegalArgumentException("Method not found");<br/>
+    }<br/>
+<br/>
+    public MethodMetaData getHomeMethod(String name, Class[] args) {<br/>
+        for(int i=0; i&lt;homeMethods.length; i++)<br/>
+            if(homeMethods[i].getName().equals(name) &amp;&amp;<br/>
+               paramsMatch(homeMethods[i].getParameterTypes(), args))<br/>
+                return <span class="mv">methods</span>[i];<br/>
+        throw new IllegalArgumentException("Method not found");<br/>
+    }<br/>
+<br/>
+    public FieldMetaData getField(String name) {<br/>
+        for(int i=0; i&lt;fields.length; i++)<br/>
+            if(fields[i].getName().equals(name))<br/>
+                return fields[i];<br/>
+        throw new IllegalArgumentException("Field not found");<br/>
+    }<br/>
+<br/>
+    public Set getMethods() {<br/>
+        return new HashSet(Arrays.asList(<span class="mv"><span class="upd">methods</span></span>));<br/>
+    }<br/>
+<br/>
+    public Set getHomeMethods() {<br/>
+        return new HashSet(Arrays.asList(<span class="mv">homeMethods</span>));<br/>
+    }<br/>
+<br/>
+    public Set getFields() {<br/>
+        return new HashSet(Arrays.asList(fields));<br/>
+    }<br/>
+<br/>
+    public String getName() {<br/>
+        return name;<br/>
+    }<br/>
+<br/>
+    public ContainerMetaData getContainer() {<br/>
+        return container;<br/>
+    }<br/>
+<br/>
+    private static boolean paramsMatch(Class[] one, Class[] two) {<br/>
+        if(one.length != two.length)<br/>
+            return false;<br/>
+        for(int i=0; i&lt;one.length; i++)<br/>
+            if(!one[i].equals(two[i]))<br/>
+                return false;<br/>
+        return true;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_AggregateBean_1.2.java</h1>
+<div class="code">
+<div class="id">
+package org.jboss.metadata.aggregate;<br/>
+<br/>
+import java.lang.reflect.*;<br/>
+import java.util.*;<br/>
+import org.jboss.metadata.*;<br/>
+<br/>
+public class AggregateBean extends AggregateMetaData implements BeanMetaData {<br/>
+    private AggregateContainer container;<br/>
+    private AggregateMethod[] methods;<br/>
+    private AggregateMethod[] homeMethods;<br/>
+    private AggregateField[] fields;<br/>
+    private String name;<br/>
+<br/>
+    public AggregateBean(String name) {<br/>
+        this.name = name;<br/>
+        methods = homeMethods = new AggregateMethod[0];<br/>
+        container = new AggregateContainer();<br/>
+        fields = new AggregateField[0];<br/>
+    }<br/>
+<br/>
+    public AggregateBean(String name, BeanMetaData[] plugins) {<br/>
+        this(name);<br/>
+        for(int i=0; i&lt;plugins.length; i++)<br/>
+            addPlugin(plugins[i]);<br/>
+    }<br/>
+<br/>
+    public void addPlugin(BeanMetaData plugin) {<br/>
+        super.addPlugin(plugin);<br/>
+        methods = mergeMethods(plugin.getMethods(), methods, plugin.getManager());<br/>
+        homeMethods = mergeMethods(plugin.getHomeMethods(), homeMethods, plugin.getManager());<br/>
+        fields = mergeFields(plugin.getFields(), fields, plugin.getManager());<br/>
+        container.addPlugin(plugin.getContainer());<br/>
+    }<br/>
+<br/>
+    private static MethodMetaData getMethod(Set source, String name, Class[] args) {<br/>
+        Iterator it = source.iterator();<br/>
+        while(it.hasNext()) {<br/>
+            MethodMetaData mmd = (MethodMetaData)it.next();<br/>
+            if(mmd.getName().equals(name) &amp;&amp;<br/>
+               paramsMatch(mmd.getParameterTypes(), args))<br/>
+                return mmd;<br/>
+        }<br/>
+        throw new IllegalArgumentException();<br/>
+    }<br/>
+<br/>
+    private static FieldMetaData getField(Set source, String name) {<br/>
+        Iterator it = source.iterator();<br/>
+        while(it.hasNext()) {<br/>
+            FieldMetaData fmd = (FieldMetaData)it.next();<br/>
+            if(fmd.getName().equals(name))<br/>
+                return fmd;<br/>
+        }<br/>
+        throw new IllegalArgumentException();<br/>
+    }<br/>
+<br/>
+    private static AggregateMethod[] mergeMethods(Set incoming, AggregateMethod[] existing, MetaDataPlugin manager) {<br/>
+        for(int i=0; i&lt;existing.length; i++) {<br/>
+            String name = existing[i].getName();<br/>
+            Class[] args = existing[i].getParameterTypes();<br/>
+            try {<br/>
+                MethodMetaData mmd = getMethod(incoming, name, args);<br/>
+                existing[i].addPlugin(mmd);<br/>
+                incoming.remove(mmd);<br/>
+            } catch(IllegalArgumentException e) {<br/>
+                try {<br/>
+                    Class cls = manager.getMethodClass();<br/>
+                    Object instance = cls.newInstance();<br/>
+                    Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                    m.invoke(instance, new Object[]{name});<br/>
+                    m = cls.getMethod("setParameterTypes", new Class[]{Class[].class});<br/>
+                    m.invoke(instance, new Object[]{args});<br/>
+                    existing[i].addPlugin((MethodMetaData)instance);<br/>
+                } catch(Exception e2) {e2.printStackTrace();}<br/>
+            }<br/>
+        }<br/>
+        Vector v = new Vector(Arrays.asList(existing));<br/>
+        for(Iterator it = incoming.iterator(); it.hasNext();) {<br/>
+            MethodMetaData mmd = (MethodMetaData)it.next();<br/>
+            String name = mmd.getName();<br/>
+            Class[] args = mmd.getParameterTypes();<br/>
+            MethodMetaData[] list = new MethodMetaData[MetaDataFactory.getPluginCount()];<br/>
+            for(int i=0; i&lt;list.length; i++) {<br/>
+                Class cls = MetaDataFactory.getPlugin(i).getMethodClass();<br/>
+                if(cls.equals(mmd.getClass()))<br/>
+                    list[i] = mmd;<br/>
+                else<br/>
+                    try {<br/>
+                        list[i] = (MethodMetaData)cls.newInstance();<br/>
+                        Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                        m.invoke(list[i], new Object[]{name});<br/>
+                        m = cls.getMethod("setParameterTypes", new Class[]{Class[].class});<br/>
+                        m.invoke(list[i], new Object[]{args});<br/>
+                    } catch(Exception e) {e.printStackTrace();}<br/>
+            }<br/>
+            v.addElement(new AggregateMethod(name, args, list));<br/>
+        }<br/>
+        if(v.size() &gt; existing.length)<br/>
+            return (AggregateMethod[])v.toArray(new AggregateMethod[v.size()]);<br/>
+        else<br/>
+            return existing;<br/>
+    }<br/>
+<br/>
+    private static AggregateField[] mergeFields(Set incoming, AggregateField[] existing, MetaDataPlugin manager) {<br/>
+        for(int i=0; i&lt;existing.length; i++) {<br/>
+            String name = existing[i].getName();<br/>
+            try {<br/>
+                FieldMetaData fmd = getField(incoming, name);<br/>
+                existing[i].addPlugin(fmd);<br/>
+                incoming.remove(fmd);<br/>
+            } catch(IllegalArgumentException e) {<br/>
+                try {<br/>
+                    Class cls = manager.getFieldClass();<br/>
+                    Object instance = cls.newInstance();<br/>
+                    Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                    m.invoke(instance, new Object[]{name});<br/>
+                    existing[i].addPlugin((FieldMetaData)instance);<br/>
+                } catch(Exception e2) {e2.printStackTrace();}<br/>
+            }<br/>
+        }<br/>
+        Vector v = new Vector(Arrays.asList(existing));<br/>
+        for(Iterator it = incoming.iterator(); it.hasNext();) {<br/>
+            FieldMetaData fmd = (FieldMetaData)it.next();<br/>
+            String name = fmd.getName();<br/>
+            FieldMetaData[] list = new FieldMetaData[MetaDataFactory.getPluginCount()];<br/>
+            for(int i=0; i&lt;list.length; i++) {<br/>
+                Class cls = MetaDataFactory.getPlugin(i).getFieldClass();<br/>
+                if(cls.equals(fmd.getClass()))<br/>
+                    list[i] = fmd;<br/>
+                else<br/>
+                    try {<br/>
+                        list[i] = (FieldMetaData)cls.newInstance();<br/>
+                        Method m = cls.getMethod("setName", new Class[]{String.class});<br/>
+                        m.invoke(list[i], new Object[]{name});<br/>
+                    } catch(Exception e) {e.printStackTrace();}<br/>
+            }<br/>
+            v.addElement(new AggregateField(name, list));<br/>
+        }<br/>
+        if(v.size() &gt; existing.length)<br/>
+            return (AggregateField[])v.toArray(new AggregateField[v.size()]);<br/>
+        else<br/>
+            return existing;<br/>
+    }<br/>
+<br/>
+    public MethodMetaData getMethod(String name, Class[] args) {<br/>
+        for(int i=0; i&lt;methods.length; i++)<br/>
+            if(methods[i].getName().equals(name) &amp;&amp;<br/>
+               paramsMatch(methods[i].getParameterTypes(), args))<br/>
+                return methods[i];<br/>
+        throw new IllegalArgumentException("Method not found");<br/>
+    }<br/>
+<br/>
+    public MethodMetaData getHomeMethod(String name, Class[] args) {<br/>
+        for(int i=0; i&lt;homeMethods.length; i++)<br/>
+            if(homeMethods[i].getName().equals(name) &amp;&amp;<br/>
+               paramsMatch(homeMethods[i].getParameterTypes(), args))<br/>
+                return <span class="mv">homeMethods</span>[i];<br/>
+        throw new IllegalArgumentException("Method not found");<br/>
+    }<br/>
+<br/>
+    public FieldMetaData getField(String name) {<br/>
+        for(int i=0; i&lt;fields.length; i++)<br/>
+            if(fields[i].getName().equals(name))<br/>
+                return fields[i];<br/>
+        throw new IllegalArgumentException("Field not found");<br/>
+    }<br/>
+<br/>
+    public Set getMethods() {<br/>
+        return new HashSet(Arrays.asList(<span class="mv">methods</span>));<br/>
+    }<br/>
+<br/>
+    public Set getHomeMethods() {<br/>
+        return new HashSet(Arrays.asList(<span class="mv"><span class="upd">homeMethods</span></span>));<br/>
+    }<br/>
+<br/>
+    public Set getFields() {<br/>
+        return new HashSet(Arrays.asList(fields));<br/>
+    }<br/>
+<br/>
+    public String getName() {<br/>
+        return name;<br/>
+    }<br/>
+<br/>
+    public ContainerMetaData getContainer() {<br/>
+        return container;<br/>
+    }<br/>
+<br/>
+    private static boolean paramsMatch(Class[] one, Class[] two) {<br/>
+        if(one.length != two.length)<br/>
+            return false;<br/>
+        for(int i=0; i&lt;one.length; i++)<br/>
+            if(!one[i].equals(two[i]))<br/>
+                return false;<br/>
+        return true;<br/>
+    }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

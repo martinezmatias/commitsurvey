@@ -1,0 +1,1 @@
+[intern]maintain separation of view and frame

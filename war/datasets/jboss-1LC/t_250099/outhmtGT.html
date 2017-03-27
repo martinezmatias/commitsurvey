@@ -1,0 +1,518 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_ConnectionManager_1.5.java</h1>
+<div class="code">
+<div class="id">
+/***************************************<br/>
+ *                                     *<br/>
+ *  JBoss: The OpenSource J2EE WebOS   *<br/>
+ *                                     *<br/>
+ *  Distributable under LGPL license.  *<br/>
+ *  See terms of license at gnu.org.   *<br/>
+ *                                     *<br/>
+ ***************************************/<br/>
+<br/>
+package org.jboss.invocation.trunk.client;<br/>
+<br/>
+<br/>
+<br/>
+import EDU.oswego.cs.dl.util.concurrent.ClockDaemon;<br/>
+import EDU.oswego.cs.dl.util.concurrent.ThreadFactory;<br/>
+import java.io.IOException;<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import javax.resource.spi.work.WorkManager;<br/>
+import org.jboss.invocation.trunk.client.bio.BlockingClient;<br/>
+import org.jboss.logging.Logger;<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+/**<br/>
+ * This is a singleton class on that lives on a client which is used find existing <br/>
+ * connections that have been established to a sever.<br/>
+ * <br/>
+ * This class also powers a clean-up thread which shuts down clients that have been<br/>
+ * been inactive for 1 min.<br/>
+ * <br/>
+ * This class is the one that makes the decicion if the client used will be Blocking or Non Blocking.<br/>
+ * (currently based on jre version)<br/>
+ * <br/>
+ * @author &lt;a href="mailto:hiram.chirino@jboss.org"&gt;Hiram Chirino&lt;/a&gt;<br/>
+ */<br/>
+public class ConnectionManager<br/>
+{<br/>
+   private final static Logger log = Logger.getLogger(ConnectionManager.class);<br/>
+   private static ConnectionManager instance = new ConnectionManager();<br/>
+<br/>
+   /** <br/>
+    * A map of all the connections that we have established due to <br/>
+    * a request this vm has made.<br/>
+    * This field uses copy on write synchronization.<br/>
+    */<br/>
+   HashMap requestConnections = new HashMap();<br/>
+<br/>
+   /**<br/>
+    * Manages the thread that checks to see if connections have expired.<br/>
+    */<br/>
+   protected ClockDaemon clockDaemon = new ClockDaemon();<br/>
+<br/>
+   /**<br/>
+    * How often to check for expired connections<br/>
+    */<br/>
+   protected long checkPeriod = 1000 * 60;<br/>
+<br/>
+   /**<br/>
+    * How long before a connection expires<br/>
+    */<br/>
+   protected long expirationPeriod = 1000 * 60;<br/>
+<br/>
+   /**<br/>
+    * <br/>
+    */<br/>
+   Object checkTaskId;<br/>
+<br/>
+   private Class clientClass;<br/>
+<br/>
+   /**<br/>
+    * The thread group that will hold al the threads that<br/>
+    * are servicing this protocol's sockets.<br/>
+    */<br/>
+   public ThreadGroup threadGroup = new ThreadGroup("Client Sockets");<br/>
+<br/>
+   private WorkManager workManager;<br/>
+<br/>
+   /**<br/>
+    * We check the connections here.<br/>
+    */<br/>
+   class CheckTask implements Runnable<br/>
+   {<br/>
+      public void run()<br/>
+      {<br/>
+         Iterator i = requestConnections.values().iterator();<br/>
+         while (i.hasNext())<br/>
+         {<br/>
+            AbstractClient c = (AbstractClient) i.next();<br/>
+            c.checkExpired(expirationPeriod);<br/>
+         }<br/>
+      }<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * The thread group used by all the <br/>
+    */<br/>
+   public static ThreadGroup oiThreadGroup = new ThreadGroup("Optimized Invoker");<br/>
+<br/>
+   protected ConnectionManager()<br/>
+   {<br/>
+      //This sucks.  Should be an mbean, this should be running with jmx<br/>
+      //on the client.<br/>
+      try<br/>
+      {<br/>
+      ClassLoader cl = Thread.currentThread().getContextClassLoader(); <br/>
+      Class wmClass = cl.loadClass("org.jboss.resource.work.BaseWorkManager");<br/>
+      workManager = (WorkManager)wmClass.newInstance();<br/>
+      Method m = wmClass.getMethod(<span class="upd">"setMaxSize"</span>, new Class[] {Integer.TYPE});<br/>
+      m.invoke(workManager, new Object[] {new Integer(50)});<br/>
+      }<br/>
+      catch (Exception e)<br/>
+      {<br/>
+         throw new RuntimeException("unexpected problem setting up trunk client" + e);<br/>
+      } // end of catch<br/>
+      <br/>
+      clientClass = BlockingClient.class;<br/>
+      <br/>
+      // Try to use the NonBlockingClient if possible<br/>
+      if( "true".equals( System.getProperty("org.jboss.invocation.trunk.enable_nbio", "true") ) ) {<br/>
+         try<br/>
+         {<br/>
+            clientClass = Class.forName("org.jboss.invocation.trunk.client.nbio.NonBlockingClient");<br/>
+            log.debug("Using the Non Blocking version of the client");<br/>
+         }<br/>
+         catch (Throwable e)<br/>
+         {<br/>
+            if (log.isTraceEnabled())<br/>
+               log.trace("Cannot used NBIO: " + e);<br/>
+            log.debug("Using the Blocking version of the client");<br/>
+         }<br/>
+      }<br/>
+      log.debug("Setting the clockDaemon's thread factory");<br/>
+      clockDaemon.setThreadFactory(new ThreadFactory()<br/>
+      {<br/>
+         public Thread newThread(Runnable r)<br/>
+         {<br/>
+            Thread t = new Thread(oiThreadGroup, r, "Connection Cleaner");<br/>
+            t.setDaemon(true);<br/>
+            return t;<br/>
+         }<br/>
+      });<br/>
+<br/>
+   }<br/>
+<br/>
+   private void startCheckThread()<br/>
+   {<br/>
+      log.trace("Starting the Check Thread..");<br/>
+      checkTaskId = clockDaemon.executePeriodically(this.checkPeriod, new CheckTask(), true);<br/>
+   }<br/>
+<br/>
+   private void stopCheckThread()<br/>
+   {<br/>
+      log.trace("Stopping the Check Thread..");<br/>
+      clockDaemon.cancel(checkTaskId);<br/>
+      clockDaemon.shutDown();<br/>
+   }<br/>
+<br/>
+   public static ConnectionManager getInstance()<br/>
+   {<br/>
+      return instance;<br/>
+   }<br/>
+<br/>
+   AbstractClient connect(ServerAddress serverAddress) throws IOException<br/>
+   {<br/>
+<br/>
+      boolean tracing = log.isTraceEnabled();<br/>
+      /* most of the time this will find a connection */<br/>
+      AbstractClient connection = (AbstractClient) requestConnections.get(serverAddress);<br/>
+      if (connection != null)<br/>
+      {<br/>
+         if (tracing)<br/>
+            log.trace("Allready connected to that server, Reusing connection: " + connection);<br/>
+         return connection;<br/>
+      }<br/>
+<br/>
+      synchronized (requestConnections)<br/>
+      {<br/>
+<br/>
+         connection = (AbstractClient) requestConnections.get(serverAddress);<br/>
+         if (connection != null)<br/>
+         {<br/>
+            if (tracing)<br/>
+               log.trace("Allready connected to that server, Reusing connection: " + connection);<br/>
+            return connection;<br/>
+         }<br/>
+<br/>
+         if (tracing)<br/>
+            log.trace("Establishing a new connection to: " + serverAddress);<br/>
+<br/>
+         AbstractClient c = null;<br/>
+         try<br/>
+         {<br/>
+            c = (AbstractClient) clientClass.newInstance();<br/>
+         }<br/>
+         catch (Throwable e)<br/>
+         {<br/>
+            throw new IOException("Client could not be initialized: " + e);<br/>
+         }<br/>
+<br/>
+         c.setConnectionManager(this);<br/>
+         c.setWorkManager(workManager);<br/>
+         c.connect(serverAddress, threadGroup);<br/>
+         c.start();<br/>
+<br/>
+         if (tracing)<br/>
+            log.trace("Connection established: " + c);<br/>
+<br/>
+         if (requestConnections.size() == 0)<br/>
+            startCheckThread();<br/>
+<br/>
+         HashMap t = (HashMap) requestConnections.clone();<br/>
+         t.put(serverAddress, c);<br/>
+         requestConnections = t;<br/>
+         return c;<br/>
+<br/>
+      }<br/>
+<br/>
+   }<br/>
+<br/>
+   public void connectionClosed(AbstractClient connection, Exception reason)<br/>
+   {<br/>
+      if (log.isTraceEnabled())<br/>
+         log.trace("Connection closed: " + connection, reason);<br/>
+      // A connection was closed.. timeout or failure.<br/>
+      // Remove form out map of connections.<br/>
+      synchronized (requestConnections)<br/>
+      {<br/>
+         HashMap t = (HashMap) requestConnections.clone();<br/>
+         t.remove(connection.getServerAddress());<br/>
+         requestConnections = t;<br/>
+<br/>
+         if (t.size() == 0)<br/>
+            stopCheckThread();<br/>
+      }<br/>
+   }<br/>
+<br/>
+   public void handleRequest(AbstractClient connection, TrunkRequest request)<br/>
+   {<br/>
+   }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_ConnectionManager_1.6.java</h1>
+<div class="code">
+<div class="id">
+/***************************************<br/>
+ *                                     *<br/>
+ *  JBoss: The OpenSource J2EE WebOS   *<br/>
+ *                                     *<br/>
+ *  Distributable under LGPL license.  *<br/>
+ *  See terms of license at gnu.org.   *<br/>
+ *                                     *<br/>
+ ***************************************/<br/>
+<br/>
+package org.jboss.invocation.trunk.client;<br/>
+<br/>
+<br/>
+<br/>
+import EDU.oswego.cs.dl.util.concurrent.ClockDaemon;<br/>
+import EDU.oswego.cs.dl.util.concurrent.ThreadFactory;<br/>
+import java.io.IOException;<br/>
+import java.util.HashMap;<br/>
+import java.util.Iterator;<br/>
+import javax.resource.spi.work.WorkManager;<br/>
+import org.jboss.invocation.trunk.client.bio.BlockingClient;<br/>
+import org.jboss.logging.Logger;<br/>
+import java.lang.reflect.Method;<br/>
+<br/>
+/**<br/>
+ * This is a singleton class on that lives on a client which is used find existing <br/>
+ * connections that have been established to a sever.<br/>
+ * <br/>
+ * This class also powers a clean-up thread which shuts down clients that have been<br/>
+ * been inactive for 1 min.<br/>
+ * <br/>
+ * This class is the one that makes the decicion if the client used will be Blocking or Non Blocking.<br/>
+ * (currently based on jre version)<br/>
+ * <br/>
+ * @author &lt;a href="mailto:hiram.chirino@jboss.org"&gt;Hiram Chirino&lt;/a&gt;<br/>
+ */<br/>
+public class ConnectionManager<br/>
+{<br/>
+   private final static Logger log = Logger.getLogger(ConnectionManager.class);<br/>
+   private static ConnectionManager instance = new ConnectionManager();<br/>
+<br/>
+   /** <br/>
+    * A map of all the connections that we have established due to <br/>
+    * a request this vm has made.<br/>
+    * This field uses copy on write synchronization.<br/>
+    */<br/>
+   HashMap requestConnections = new HashMap();<br/>
+<br/>
+   /**<br/>
+    * Manages the thread that checks to see if connections have expired.<br/>
+    */<br/>
+   protected ClockDaemon clockDaemon = new ClockDaemon();<br/>
+<br/>
+   /**<br/>
+    * How often to check for expired connections<br/>
+    */<br/>
+   protected long checkPeriod = 1000 * 60;<br/>
+<br/>
+   /**<br/>
+    * How long before a connection expires<br/>
+    */<br/>
+   protected long expirationPeriod = 1000 * 60;<br/>
+<br/>
+   /**<br/>
+    * <br/>
+    */<br/>
+   Object checkTaskId;<br/>
+<br/>
+   private Class clientClass;<br/>
+<br/>
+   /**<br/>
+    * The thread group that will hold al the threads that<br/>
+    * are servicing this protocol's sockets.<br/>
+    */<br/>
+   public ThreadGroup threadGroup = new ThreadGroup("Client Sockets");<br/>
+<br/>
+   private WorkManager workManager;<br/>
+<br/>
+   /**<br/>
+    * We check the connections here.<br/>
+    */<br/>
+   class CheckTask implements Runnable<br/>
+   {<br/>
+      public void run()<br/>
+      {<br/>
+         Iterator i = requestConnections.values().iterator();<br/>
+         while (i.hasNext())<br/>
+         {<br/>
+            AbstractClient c = (AbstractClient) i.next();<br/>
+            c.checkExpired(expirationPeriod);<br/>
+         }<br/>
+      }<br/>
+   }<br/>
+<br/>
+   /**<br/>
+    * The thread group used by all the <br/>
+    */<br/>
+   public static ThreadGroup oiThreadGroup = new ThreadGroup("Optimized Invoker");<br/>
+<br/>
+   protected ConnectionManager()<br/>
+   {<br/>
+      //This sucks.  Should be an mbean, this should be running with jmx<br/>
+      //on the client.<br/>
+      try<br/>
+      {<br/>
+      ClassLoader cl = Thread.currentThread().getContextClassLoader(); <br/>
+      Class wmClass = cl.loadClass("org.jboss.resource.work.BaseWorkManager");<br/>
+      workManager = (WorkManager)wmClass.newInstance();<br/>
+      Method m = wmClass.getMethod(<span class="upd">"setMaxThreads"</span>, new Class[] {Integer.TYPE});<br/>
+      m.invoke(workManager, new Object[] {new Integer(50)});<br/>
+      }<br/>
+      catch (Exception e)<br/>
+      {<br/>
+         throw new RuntimeException("unexpected problem setting up trunk client" + e);<br/>
+      } // end of catch<br/>
+      <br/>
+      clientClass = BlockingClient.class;<br/>
+      <br/>
+      // Try to use the NonBlockingClient if possible<br/>
+      if( "true".equals( System.getProperty("org.jboss.invocation.trunk.enable_nbio", "true") ) ) {<br/>
+         try<br/>
+         {<br/>
+            clientClass = Class.forName("org.jboss.invocation.trunk.client.nbio.NonBlockingClient");<br/>
+            log.debug("Using the Non Blocking version of the client");<br/>
+         }<br/>
+         catch (Throwable e)<br/>
+         {<br/>
+            if (log.isTraceEnabled())<br/>
+               log.trace("Cannot used NBIO: " + e);<br/>
+            log.debug("Using the Blocking version of the client");<br/>
+         }<br/>
+      }<br/>
+      log.debug("Setting the clockDaemon's thread factory");<br/>
+      clockDaemon.setThreadFactory(new ThreadFactory()<br/>
+      {<br/>
+         public Thread newThread(Runnable r)<br/>
+         {<br/>
+            Thread t = new Thread(oiThreadGroup, r, "Connection Cleaner");<br/>
+            t.setDaemon(true);<br/>
+            return t;<br/>
+         }<br/>
+      });<br/>
+<br/>
+   }<br/>
+<br/>
+   private void startCheckThread()<br/>
+   {<br/>
+      log.trace("Starting the Check Thread..");<br/>
+      checkTaskId = clockDaemon.executePeriodically(this.checkPeriod, new CheckTask(), true);<br/>
+   }<br/>
+<br/>
+   private void stopCheckThread()<br/>
+   {<br/>
+      log.trace("Stopping the Check Thread..");<br/>
+      clockDaemon.cancel(checkTaskId);<br/>
+      clockDaemon.shutDown();<br/>
+   }<br/>
+<br/>
+   public static ConnectionManager getInstance()<br/>
+   {<br/>
+      return instance;<br/>
+   }<br/>
+<br/>
+   AbstractClient connect(ServerAddress serverAddress) throws IOException<br/>
+   {<br/>
+<br/>
+      boolean tracing = log.isTraceEnabled();<br/>
+      /* most of the time this will find a connection */<br/>
+      AbstractClient connection = (AbstractClient) requestConnections.get(serverAddress);<br/>
+      if (connection != null)<br/>
+      {<br/>
+         if (tracing)<br/>
+            log.trace("Allready connected to that server, Reusing connection: " + connection);<br/>
+         return connection;<br/>
+      }<br/>
+<br/>
+      synchronized (requestConnections)<br/>
+      {<br/>
+<br/>
+         connection = (AbstractClient) requestConnections.get(serverAddress);<br/>
+         if (connection != null)<br/>
+         {<br/>
+            if (tracing)<br/>
+               log.trace("Allready connected to that server, Reusing connection: " + connection);<br/>
+            return connection;<br/>
+         }<br/>
+<br/>
+         if (tracing)<br/>
+            log.trace("Establishing a new connection to: " + serverAddress);<br/>
+<br/>
+         AbstractClient c = null;<br/>
+         try<br/>
+         {<br/>
+            c = (AbstractClient) clientClass.newInstance();<br/>
+         }<br/>
+         catch (Throwable e)<br/>
+         {<br/>
+            throw new IOException("Client could not be initialized: " + e);<br/>
+         }<br/>
+<br/>
+         c.setConnectionManager(this);<br/>
+         c.setWorkManager(workManager);<br/>
+         c.connect(serverAddress, threadGroup);<br/>
+         c.start();<br/>
+<br/>
+         if (tracing)<br/>
+            log.trace("Connection established: " + c);<br/>
+<br/>
+         if (requestConnections.size() == 0)<br/>
+            startCheckThread();<br/>
+<br/>
+         HashMap t = (HashMap) requestConnections.clone();<br/>
+         t.put(serverAddress, c);<br/>
+         requestConnections = t;<br/>
+         return c;<br/>
+<br/>
+      }<br/>
+<br/>
+   }<br/>
+<br/>
+   public void connectionClosed(AbstractClient connection, Exception reason)<br/>
+   {<br/>
+      if (log.isTraceEnabled())<br/>
+         log.trace("Connection closed: " + connection, reason);<br/>
+      // A connection was closed.. timeout or failure.<br/>
+      // Remove form out map of connections.<br/>
+      synchronized (requestConnections)<br/>
+      {<br/>
+         HashMap t = (HashMap) requestConnections.clone();<br/>
+         t.remove(connection.getServerAddress());<br/>
+         requestConnections = t;<br/>
+<br/>
+         if (t.size() == 0)<br/>
+            stopCheckThread();<br/>
+      }<br/>
+   }<br/>
+<br/>
+   public void handleRequest(AbstractClient connection, TrunkRequest request)<br/>
+   {<br/>
+   }<br/>
+<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>

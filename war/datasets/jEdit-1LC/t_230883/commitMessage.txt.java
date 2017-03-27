@@ -1,0 +1,1 @@
+- correctly calculate the index when the sequence is in reverse mode.

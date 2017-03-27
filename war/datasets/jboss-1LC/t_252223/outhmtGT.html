@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8" />
+<title>Diff result</title>
+<style type="text/css">
+body { width: 100%; font-size: 10pt; }
+h1 { font-size: 125%; }
+div.content { font-family: Verdana, "DejaVu Sans Condensed", "Liberation Sans","Nimbus Sans L", Helvetica, sans-serif; margin : 1em auto; width: 100%; }
+div.left { float: left; width: 48%; padding: 1em; }
+div.right { float: right; width: 48%; padding: 1em; }
+div.code { font-family: "Liberation Mono", "Courrier New", monospace; border:1px solid black;}
+div.clear { clear: both; }
+span.del { background-color : red; font-weight: normal; font-style: normal;}
+span.add { background-color : lightgreen; font-weight: bold; font-style: normal;}
+span.upd { background-color : orange; font-weight: bold; font-style: italic;}
+span.id { background-color : white; font-weight: normal; font-style: normal;}
+span.mv { background-color : yellow; font-weight: normal; font-style: normal;}
+</style></head><body><div class="content"><div class="left">
+<h1>left_EnterpriseBeanPolicyContextHandler_1.1.java</h1>
+<div class="code">
+<div class="id">
+package org.jboss.ejb.plugins;<br/>
+<br/>
+import javax.security.jacc.PolicyContextException;<br/>
+import javax.security.jacc.PolicyContextHandler;<br/>
+import javax.ejb.EnterpriseBean;<br/>
+<br/>
+/** A PolicyContextHandler for the active EnterpriseBean<br/>
+ * @author Scott.Stark@jboss.org<br/>
+ * @version $Revison:$<br/>
+ */<br/>
+public class EnterpriseBeanPolicyContextHandler implements PolicyContextHandler<br/>
+{<br/>
+   public static final String EJB_CONTEXT_KEY = "javax.ejb.EnterpriseBean";<br/>
+   private static ThreadLocal ejbContext = new ThreadLocal();<br/>
+<br/>
+   static void setEnterpriseBean(Object bean)<br/>
+   {<br/>
+      ejbContext.set(bean);<br/>
+   }<br/>
+<br/>
+   /** Access the EJB policy context data.<br/>
+    * @param key - "javax.ejb.EnterpriseBean"<br/>
+    * @param data currently unused<br/>
+    * @return The active EnterpriseBean<br/>
+    * @throws PolicyContextException<br/>
+    */ <br/>
+   public Object getContext(String key, Object data)<br/>
+      throws PolicyContextException<br/>
+   {<br/>
+      Object context = null;<br/>
+      if( key.equalsIgnoreCase(EJB_CONTEXT_KEY) == <span class="upd">false</span> )<br/>
+         context = ejbContext.get();<br/>
+      return context;<br/>
+   }<br/>
+<br/>
+   public String[] getKeys()<br/>
+      throws PolicyContextException<br/>
+   {<br/>
+      String[] keys = {EJB_CONTEXT_KEY};<br/>
+      return keys;<br/>
+   }<br/>
+<br/>
+   public boolean supports(String key)<br/>
+      throws PolicyContextException<br/>
+   {<br/>
+      return key.equalsIgnoreCase(EJB_CONTEXT_KEY);<br/>
+   }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="right">
+<h1>right_EnterpriseBeanPolicyContextHandler_1.2.java</h1>
+<div class="code">
+<div class="id">
+package org.jboss.ejb.plugins;<br/>
+<br/>
+import javax.security.jacc.PolicyContextException;<br/>
+import javax.security.jacc.PolicyContextHandler;<br/>
+import javax.ejb.EnterpriseBean;<br/>
+<br/>
+/** A PolicyContextHandler for the active EnterpriseBean<br/>
+ * @author Scott.Stark@jboss.org<br/>
+ * @version $Revison:$<br/>
+ */<br/>
+public class EnterpriseBeanPolicyContextHandler implements PolicyContextHandler<br/>
+{<br/>
+   public static final String EJB_CONTEXT_KEY = "javax.ejb.EnterpriseBean";<br/>
+   private static ThreadLocal ejbContext = new ThreadLocal();<br/>
+<br/>
+   static void setEnterpriseBean(Object bean)<br/>
+   {<br/>
+      ejbContext.set(bean);<br/>
+   }<br/>
+<br/>
+   /** Access the EJB policy context data.<br/>
+    * @param key - "javax.ejb.EnterpriseBean"<br/>
+    * @param data currently unused<br/>
+    * @return The active EnterpriseBean<br/>
+    * @throws PolicyContextException<br/>
+    */ <br/>
+   public Object getContext(String key, Object data)<br/>
+      throws PolicyContextException<br/>
+   {<br/>
+      Object context = null;<br/>
+      if( key.equalsIgnoreCase(EJB_CONTEXT_KEY) == <span class="upd">true</span> )<br/>
+         context = ejbContext.get();<br/>
+      return context;<br/>
+   }<br/>
+<br/>
+   public String[] getKeys()<br/>
+      throws PolicyContextException<br/>
+   {<br/>
+      String[] keys = {EJB_CONTEXT_KEY};<br/>
+      return keys;<br/>
+   }<br/>
+<br/>
+   public boolean supports(String key)<br/>
+      throws PolicyContextException<br/>
+   {<br/>
+      return key.equalsIgnoreCase(EJB_CONTEXT_KEY);<br/>
+   }<br/>
+}<br/>
+</div>
+</div>
+</div>
+<div class="clear"></div>
+</div>
+</body>
+</html>
